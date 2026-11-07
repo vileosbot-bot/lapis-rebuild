@@ -69,7 +69,9 @@ export interface QuestRecruitmentEvidence extends SourceProvenance {
   readonly semanticNote: string;
   readonly serverRecruitmentMutation: "not-recovered";
   readonly recruitmentConditions: null;
+  readonly recruitmentConditionsStatus: "not-recovered";
   readonly recruitmentRewards: null;
+  readonly recruitmentRewardsStatus: "not-recovered";
 }
 
 export interface QuestScriptRecord extends SourceProvenance {
@@ -207,8 +209,8 @@ export function validateS4QuestRecruitDataset(value: unknown): PolicyIssue[] {
     if (isRecord(recruitment)) {
       if (recruitment.status !== "scripted-selection-branch-present") issues.push({ path: `${path}.recruitmentEvidence.status`, message: "selection branch evidence is required" });
       if (recruitment.serverRecruitmentMutation !== "not-recovered") issues.push({ path: `${path}.recruitmentEvidence.serverRecruitmentMutation`, message: "must remain not-recovered" });
-      if (recruitment.recruitmentConditions !== null) issues.push({ path: `${path}.recruitmentEvidence.recruitmentConditions`, message: "unrecovered conditions must remain null" });
-      if (recruitment.recruitmentRewards !== null) issues.push({ path: `${path}.recruitmentEvidence.recruitmentRewards`, message: "unrecovered rewards must remain null" });
+      if (recruitment.recruitmentConditions !== null || recruitment.recruitmentConditionsStatus !== "not-recovered") issues.push({ path: `${path}.recruitmentEvidence.recruitmentConditions`, message: "unrecovered conditions must be null and marked not-recovered" });
+      if (recruitment.recruitmentRewards !== null || recruitment.recruitmentRewardsStatus !== "not-recovered") issues.push({ path: `${path}.recruitmentEvidence.recruitmentRewards`, message: "unrecovered rewards must be null and marked not-recovered" });
       validateProvenance(recruitment.selectionBranch, `${path}.recruitmentEvidence.selectionBranch`, issues);
       if (isRecord(recruitment.selectionBranch) && Array.isArray(recruitment.selectionBranch.textLines)) {
         recruitment.selectionBranch.textLines.forEach((line, lineIndex) => validateProvenance(line, `${path}.recruitmentEvidence.selectionBranch.textLines[${lineIndex}]`, issues));

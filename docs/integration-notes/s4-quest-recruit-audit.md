@@ -80,7 +80,7 @@ Actor token只按原始脚本引用保留，不映射为NPC模板ID、NPC实体I
 
 Quest6的SELECT后文字主要为自我介绍；其合作语义依据STEP2的“请多关照”与STEP3的“目前我不需要朋友”分支保留，未将SELECT文本改写成明确邀请。
 
-本导出只证明资源中存在脚本选择/对话分支，不证明服务端已执行招募、队伍变更或持久化。`recruitmentConditions`与`recruitmentRewards`均保持`null`，`serverRecruitmentMutation`保持`not-recovered`。
+本导出只证明资源中存在脚本选择/对话分支，不证明服务端已执行招募、队伍变更或持久化。`recruitmentConditions`与`recruitmentRewards`均保持`null`，并分别通过`recruitmentConditionsStatus`与`recruitmentRewardsStatus`显式标记`not-recovered`；`serverRecruitmentMutation`同样保持`not-recovered`。
 
 ## 5. 解析器与语义限制
 
