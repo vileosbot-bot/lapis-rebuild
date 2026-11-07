@@ -208,3 +208,134 @@ Batch 2 无可成立的直接或部分冲突。10 条 NO_LAPIS_BINDING 清单：
 | **累计** | **32** | **15** | **47** |
 
 CSV 最终为 48 行（1 行表头 + 47 行数据），无空行；标准 CSV 引号解析后每行均为 23 个逻辑列。
+
+
+## Batch 3（第 5–6 章）
+
+### 1. 范围与来源
+
+本批追加第 5–6 章的 7 条遭遇记录：野外 3 条、剧情 4 条。对照源为本次对话附件，路径相对于 ~/workspace/downloads/ybcs/extracted/：
+
+- src/legacy_gui_runtime/ybcs_offline_field_encounters.py：5120 行；SHA-256 94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a。
+- src/legacy_gui_runtime/ybcs_offline_world_catalog.py：658 行；SHA-256 34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703。
+
+章节常量位于 field_encounters 第 255–258 行：第 5 章 41/43，第 6 章 51/53。实体常量位于第 323–324 行：第 5 章 entity 22614，第 6 章 entity 22609。没有独立 Scenarioinfo 文件；本批只使用附件内显式常量、placement、前置条件和源码注释线索。
+
+### 2. 第 5 章遭遇清单
+
+| row_id | 类型 | 地图 | scene/event | battle_zone_id |
+|---|---|---:|---|---:|
+| B3-F-001 | WILD | 1345 | entity 22402 石龟 | 1345（effective fallback） |
+| B3-F-002 | WILD | 1345 | entity 22403 石龟B | 1345（effective fallback） |
+| B3-F-003 | WILD | 1345 | entity 22404 石龟B（组合战斗） | 1345（effective fallback） |
+| B3-S-001 | STORY | 1345 | source 41 | 41 |
+| B3-S-002 | STORY | 1346 | source 43 | 43 |
+
+三条野外部署的准确位置：entity22402 从第 1625 行开始，entity22403 从第 1645 行开始，entity22404 从第 1670 行开始。三条均位于 map:old:1345。source41 的显式 Chapter 5 部署也位于 map:old:1345。三条野外记录与两条剧情记录保持独立，不合并为同一事件。
+
+### 3. 第 6 章遭遇清单
+
+| row_id | 类型 | 地图 | scene/event | battle_zone_id |
+|---|---|---:|---|---:|
+| B3-S-003 | STORY | 1500 | source 51 | 51 |
+| B3-S-004 | STORY | 1352 | source 53 | 53 |
+
+source51 的 placement 从第 2556 行开始，source_id 在第 2585 行；source53 从第 2604 行开始，source_id 在第 2634 行。两条都使用 entity_id=22609，但触发路径不同，不得将相同 entity ID 误判为重复遭遇。
+
+### 4. 章节归属及触发条件
+
+#### 野外遭遇
+
+- B3-F-001：map1345，entity22402，名称石龟，model4015，配置坐标 (97,125)，approach (97,123)，minimum_level=36，配置 minimum_hired_skill_level=5。
+- B3-F-002：map1345，entity22403，名称石龟B，model4016，配置坐标 (99,89)，approach (101,89)，minimum_level=36，配置 minimum_hired_skill_level=5。
+- B3-F-003：map1345，entity22404，名称石龟B，model4016，配置坐标 (99,53)，approach (99,51)，minimum_level=56，配置 minimum_hired_skill_level=7；reinforcements 包含 model4015 石龟。相邻 YB-341 注释明确说明这是独立的 level-56/current-solskill-Level-7 pack trigger 和版本化 offline policy。
+- 三条 placement 均未显式提供 battle_zone_id。effective_battle_zone_id 属性在 battle_zone_id 缺失时回退为 map_id 数值，因此表中 1345 是 ybcs 离线实现的 fallback，不是原版服务器最终 BattleEntry battleZone 的证明。
+- 野外解析按地图和精确实体定位，实时坐标可覆盖 authored anchor；候选须唯一且 Manhattan 距离严格小于 4。
+- admission 对 source_kind=field 跳过 hired-skill gating。因此配置中的 skill level 5/7 必须保留为原始配置，不得写成实际生效的野外雇佣技能门槛。
+
+#### 第 5 章剧情战
+
+- source41：map1345，battle_zone_id=41，entity_id=22614，server_driven_story_trigger=True，single_clear=True，minimum_level=1；前置剧情 source IDs 为 1,3,7,11,13,15,21,23,25,27,31,33,35,37。没有 trigger_cells，普通移动完成后由剧情延续解析器按地图查找唯一合格候选。battle_anchor=(71,85)，胜利返回 map1346 cell=(63,87)。
+- source43：map1346，battle_zone_id=43，entity_id=22614，server_driven_story_trigger=True，single_clear=True，minimum_level=1；前置剧情为 source41 以及全部前序剧情 source IDs。没有 trigger_cells；移动完成后解析唯一合格候选。battle_anchor=(19,71)，胜利返回 map1345 cell=(68,164)。
+- 源码注释指出，第 5 章两场剧情战的敌方阵容数量属于离线玩法策略，旧 DEO 未提供可证明的原版服务端敌方人数。不能把离线阵容数量提升为原版证据。
+
+#### 第 6 章剧情战
+
+**source51（B3-S-003）：**
+
+- map1500，battle_zone_id=51，entity_id=22609，minimum_level=15，minimum_hired_skill_level=2，battle_anchor=(80,52)，胜利返回 map1352 cell=(8,68)。
+- server_driven_story_trigger 未显式设置，数据类默认 False。
+- 因此 entity_record() 会发布 type-1 world actor；由精确 entity resolver 处理旧客户端 08 交互，距离要求 Manhattan <4。
+- 剧情 admission 要求当前符合条件的 solskill offer，以及有效的已雇佣 Ability；不得描述成普通移动完成自动触发。
+- 源码注释明确：新 Scenarioinfo 将 6-1 放在 successor-only plain map2291，旧安装没有可辩护的场景前身，因此 map1500 是明确的 compatibility proxy。该代理不代表已恢复原版 canonical map identity。
+
+**source53（B3-S-004）：**
+
+- map1352，battle_zone_id=53，entity_id=22609，minimum_level=15，minimum_hired_skill_level=2，battle_anchor=(25,59)，胜利返回 map1500 cell=(73,81)。
+- server_driven_story_trigger=True，single_clear=True，前置剧情 source51。
+- 没有 trigger_cells；普通移动完成后解析，必须有唯一合格候选。
+- 源码注释称新 source map2330 的唯一旧地图前身为 map1352。该注释只作章节和地图关联线索，不视为独立 Scenarioinfo 文件或 VERIFIED 证据。
+
+### 5. Lapis 绑定对照
+
+只读基线为：
+
+- manifests/encounter-bindings-2.2.json
+- manifests/story-battle-scenes.json
+- docs/integration-notes/s1-encounter.md
+- docs/evidence-ledger.md
+
+Lapis 的 S1 candidate_bindings 仍只有 1030→1、1070→3、1090→7、1100→9。本批地图 1345、1346、1500、1352 均没有候选地图绑定。
+
+Lapis 静态场景目录存在 zone41、43、51、53，标题已写入 CSV。这仅证明静态场景元数据存在，不证明 map-to-battle-zone 遭遇绑定。
+
+因此本批 7 条均按实际证据标记 NO_LAPIS_BINDING；不把静态场景存在误判为 MATCH，也不宣称存在直接冲突。
+
+### 6. 本批数量统计
+
+| 章节 | 野外 | 剧情 | 合计 |
+|---|---:|---:|---:|
+| 第 5 章 | 3 | 2 | 5 |
+| 第 6 章 | 0 | 2 | 2 |
+| **Batch 3** | **3** | **4** | **7** |
+
+N_field=3，N_story=4，N_CSV=7。新增 7 条均有 23 个逻辑字段，ybcs_evidence_level 全部为 RECOVERED_SECONDARY。
+
+### 7. MATCH / CONFLICT / UNRESOLVED / UNKNOWN
+
+| review_status | Batch 3 | Batch 1–3 累计 |
+|---|---:|---:|
+| MATCH | 0 | 3 |
+| DIRECT_CONFLICT | 0 | 0 |
+| TRIGGER_CONFLICT | 0 | 0 |
+| PARTIAL_OVERLAP | 0 | 0 |
+| UNRESOLVED_IDENTITY | 0 | 3 |
+| NO_LAPIS_BINDING | 7 | 48 |
+| LAPIS_ONLY | 0 | 0 |
+
+本批没有发现可成立的直接或部分冲突。七条 NO_LAPIS_BINDING 清单：B3-F-001、B3-F-002、B3-F-003、B3-S-001、B3-S-002、B3-S-003、B3-S-004。第 6 章 source51 的兼容代理地图身份限制已在 review_notes 明确说明，但其 story-source 51 与 battle zone 51 的源码身份明确；Lapis 没有对应地图绑定，故状态为 NO_LAPIS_BINDING。Batch 3 的 Chapter UNKNOWN 数量为 0；累计 UNKNOWN 仍为 Batch 1 的 22 条。
+
+### 8. 待核实事项
+
+1. Set.lib 的实际 zone_name.txt 内容未提供，本批 map_name 保持 UNKNOWN。
+2. 三条 map1345 野外记录的 effective battle zone 是 ybcs map_id fallback，不证明原版服务器最终 BattleEntry battleZone。
+3. source51 的 map1500 是兼容代理，不能当作原版 6-1 canonical map。
+4. source53 的 map1352 与 successor map2330 的前身关系来自源码注释，不是独立 Scenarioinfo 文件。
+5. 四个剧情 battle zone 有 Lapis 静态场景元数据，但没有对应 S1 地图绑定。
+6. ybcs 野外 entity ID 与 Lapis runtime entity ID 之间仍没有事件级身份映射。
+7. 第 5 章离线阵容数量是重构策略，不能当作原版服务端敌方人数证据。
+
+### 9. Batch 3 边界
+
+本批只追加 CSV 第 49–55 行和 Markdown 本节。没有修改前 48 行 CSV、Batch 1/2 Markdown 内容、其他仓库文件、运行时代码、main、Plan.md、Backlog 或证据台账。没有创建 PR、没有合并、没有写入主号仓库。Batch 4 未启动。
+
+### 10. Batch 1–3 累计统计
+
+| 范围 | 野外 | 剧情 | 合计 |
+|---|---:|---:|---:|
+| Batch 1 | 30 | 7 | 37 |
+| Batch 2 | 2 | 8 | 10 |
+| Batch 3 | 3 | 4 | 7 |
+| **累计** | **35** | **19** | **54** |
+
+CSV 最终为 55 行（1 行表头 + 54 行数据），标准 CSV 引号解析后每行均为 23 个逻辑列，无空白数据行。
