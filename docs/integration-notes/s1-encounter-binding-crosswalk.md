@@ -479,3 +479,144 @@ N_field=0，N_story=6，N_CSV=6。新增六条均为23个逻辑字段，ybcs_evi
 CSV 最终为61行（1行表头+60行数据），无空白数据行；标准 CSV 引号解析后每行均为23个逻辑列。
 
 本批只追加 CSV 第56–61行及本 Markdown 章节。未修改此前55行 CSV 和 Batch 1–3 Markdown 内容；未修改其他文件、main、Plan.md、Backlog、证据台账或运行时代码；未创建 PR、未合并、未写入主号仓库。Batch 5 未启动。
+
+## Batch 5（第 9–10 章）
+
+### 1. 范围与来源
+
+本批追加第 9–10 章三条剧情部署，没有独立的 source_kind=field 野外遭遇部署。对照源为本次对话附件，路径相对于 ~/workspace/downloads/ybcs/extracted/：
+
+- src/legacy_gui_runtime/ybcs_offline_field_encounters.py：5120 行；SHA-256 94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a。
+- src/legacy_gui_runtime/ybcs_offline_world_catalog.py：658 行；SHA-256 34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703。
+
+第 9–10 章常量位于 field_encounters 第 265–267 行：source81、91、93。三条均复用 STORY_SEVEN_ENTITY_ID=22610（第325行），分别使用 +1、+2、+3 表达式；没有独立 STORY_NINE_ENTITY_ID 或 STORY_TEN_ENTITY_ID。实体表达式实际行号分别为2940、2990、3033。
+
+### 2. 第 9 章遭遇清单
+
+| row_id | 类型 | 地图 | source_id | entity_id | battle_zone_id | placement 范围 |
+|---|---|---:|---:|---:|---:|---|
+| B5-S-001 | STORY | 1373 | 81 | 22611 | 81 | 2938–2981 |
+
+source81 使用 STORY_SEVEN_ENTITY_ID + 1（表达式第2940行），名称“村庄青年”，model4524，battle_anchor=(62,72)，minimum_level=15，minimum_hired_skill_level=2，single_clear=True，server_driven_story_trigger=True。
+
+前置剧情：61、63、65、71、73、75。胜利返回 map1381 cell=(18,80)。配置的 reinforcement 为4525村庄矿夫、4526村庄樵夫、4527村庄妇女，story companion model_id=577。
+
+源码注释第2932–2937行说明新 Scenarioinfo/ZoneMapData 将 9-1 放在 successor map2371、category 22；旧 map1373 被描述为 exact/near-exact predecessor，并可由原生 Terry ferry 到达。该内容只作为源码注释线索，不是独立 Scenarioinfo 文件。
+
+### 3. 第 10 章遭遇清单
+
+| row_id | 类型 | 地图 | source_id | entity_id | battle_zone_id | placement 范围 |
+|---|---|---:|---:|---:|---:|---|
+| B5-S-002 | STORY | 1381 | 91 | 22612 | 91 | 2988–3026 |
+| B5-S-003 | STORY | 1383 | 93 | 22613 | 93 | 3031–3065 |
+
+**source91：**
+
+- 实体表达式 STORY_SEVEN_ENTITY_ID + 2，实际值22612，表达式第2990行。
+- 名称洞穴之林普，model4544，battle_anchor=(43,51)。
+- minimum_level=15，minimum_hired_skill_level=2，single_clear=True，server_driven_story_trigger=True。
+- 前置剧情：61、63、65、71、73、75、81。
+- reinforcement 为两个额外4544洞穴之林普；story companion model_id=577，并有 additional_story_companions model_id=577。
+- 胜利返回 map1383 cell=(40,50)。
+
+源码注释第2982–2987行说明，旧 zone91 DEO 记录 COM0 + 577 + 5062 对阵三个4544；新归档额外增加4545和第四个4544，这些 successor-only 单位没有倒推到旧版本。注释还将新地图2380（10-1）与旧 map1381 关联。该注释不等于零售服务器最终阵容的完整证据。
+
+**source93：**
+
+- 实体表达式 STORY_SEVEN_ENTITY_ID + 3，实际值22613，表达式第3033行。
+- 名称娜依德，model1022，battle_anchor=(40,54)。
+- minimum_level=15，minimum_hired_skill_level=2，single_clear=True，server_driven_story_trigger=True。
+- 前置剧情：61、63、65、71、73、75、81、91。
+- drop_item_id=4114，名称天空之匙。
+- story companion model_id=577，并有 additional_story_companions model_id=577。
+- 胜利返回 map1381 cell=(12,16)。
+
+源码注释第3027–3030行说明旧 Ability 1022（Nayide）是跨版本稳定的开场敌人，旧 SRF 要求击败她，旧 DEE 奖励天空之匙，itemtbl 将该叙事物品解析为4114。注释将 successor map2381 与旧 map1383 关联。这些属于源码注释证据，不是独立 Scenarioinfo 文件。
+
+### 4. 章节归属与触发条件
+
+章节归属使用显式常量：
+
+- 第9章：STORY_NINE_SICILY_ZONE_ID=81（第265行）。
+- 第10章：STORY_TEN_LAKE_ZONE_ID=91、STORY_TEN_CASTLE_ZONE_ID=93（第266–267行）。
+
+三条 placement 均为 source_kind=story、single_clear=True、server_driven_story_trigger=True，触发路径为普通移动完成后的 server-driven/category-22 剧情延续；不虚构可点击的 ScenarioChg 世界实体。
+
+| source_id | map_id | battle_zone_id | 前置剧情 | 胜利返回 |
+|---:|---:|---:|---|---|
+| 81 | 1373 | 81 | 61、63、65、71、73、75 | 1381 |
+| 91 | 1381 | 91 | 61、63、65、71、73、75、81 | 1383 |
+| 93 | 1383 | 93 | 61、63、65、71、73、75、81、91 | 1381 |
+
+胜利返回地图不等于遭遇发生地图。第9章 map1373、第10章 map1381和map1383均按各自 placement 记录。
+
+### 5. Lapis 绑定对照
+
+只读基线：
+
+- manifests/encounter-bindings-2.2.json
+- manifests/story-battle-scenes.json
+- docs/integration-notes/s1-encounter.md
+- docs/evidence-ledger.md
+
+Lapis S1 candidate_bindings 仍只有1030→1、1070→3、1090→7、1100→9。本批地图1373、1381、1383没有对应候选地图绑定。
+
+Lapis 静态场景目录存在：
+
+| zone_id | 静态场景标题 |
+|---:|---|
+| 81 | 《剧情9》西西里奥岛 |
+| 91 | 《剧情10》达莱易湖 |
+| 93 | 达莱易城 |
+
+静态场景元数据存在不证明地图到 battleZone 的 S1 遭遇绑定。因此本批三条均标记 NO_LAPIS_BINDING，不把静态场景存在误判为 MATCH，也不宣称存在直接冲突。
+
+### 6. 本批数量统计
+
+| 章节 | 野外 | 剧情 | 合计 |
+|---|---:|---:|---:|
+| 第9章 | 0 | 1 | 1 |
+| 第10章 | 0 | 2 | 2 |
+| **Batch 5** | **0** | **3** | **3** |
+
+N_field=0，N_story=3，N_CSV=3。新增三条均为23个逻辑字段，ybcs_evidence_level 全部为 RECOVERED_SECONDARY。
+
+### 7. MATCH / CONFLICT / UNRESOLVED / UNKNOWN
+
+| review_status | Batch 5 | Batch 1–5 累计 |
+|---|---:|---:|
+| MATCH | 0 | 3 |
+| DIRECT_CONFLICT | 0 | 0 |
+| TRIGGER_CONFLICT | 0 | 0 |
+| PARTIAL_OVERLAP | 0 | 0 |
+| UNRESOLVED_IDENTITY | 0 | 3 |
+| NO_LAPIS_BINDING | 3 | 57 |
+| LAPIS_ONLY | 0 | 0 |
+
+三条 NO_LAPIS_BINDING 清单：B5-S-001、B5-S-002、B5-S-003。本批没有发现可成立的直接冲突或身份未解决记录。Chapter UNKNOWN 本批为0；累计 UNKNOWN 仍为前批的22条。
+
+### 8. 待核实事项
+
+1. Set.lib 的实际 zone_name.txt 内容未提供，地图名称保持 UNKNOWN。
+2. map1373 与 successor map2371 的 exact/near-exact predecessor 关系来自源码注释；没有独立 Scenarioinfo 文件。
+3. map1381 与 successor map2380、map1383 与 successor map2381 的关系来自源码注释，未提升为 VERIFIED。
+4. source91 的新归档额外敌人不倒推到旧版；零售最终敌方阵容不作超出旧 DEO 证据的推断。
+5. source93 的奖励线索来自旧 SRF/DEE 与 itemtbl 注释，不能据此推导完整零售服务器战斗配置。
+6. Lapis zone81/91/93 静态场景存在，但无对应 S1 地图绑定。
+
+### 9. Batch 5 边界
+
+本批只追加 CSV 第62–64行和 Markdown 本节。未修改前61行 CSV、Batch 1–4 Markdown 内容或其他文件；未修改 main、Plan.md、Backlog、证据台账或运行时代码；未写入主号仓库；未创建 PR、未合并。五批内容完成后，最终 PR 与合并仍由总管另行安排。
+
+### 10. Batch 1–5 累计统计
+
+| 范围 | 野外 | 剧情 | 合计 |
+|---|---:|---:|---:|
+| Batch 1 | 30 | 7 | 37 |
+| Batch 2 | 2 | 8 | 10 |
+| Batch 3 | 3 | 4 | 7 |
+| Batch 4 | 0 | 6 | 6 |
+| Batch 5 | 0 | 3 | 3 |
+| **累计** | **35** | **28** | **63** |
+
+CSV 最终为64行（1行表头+63条数据），无空白数据行；标准 CSV 引号解析后每行均为23个逻辑列。
