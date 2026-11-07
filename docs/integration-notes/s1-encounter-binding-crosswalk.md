@@ -100,3 +100,111 @@ map 1310、1341、1345 上的 5 条野外部署未纳入本批：这些地图分
 ## 7. 本批边界
 
 本批只新增本 CSV 与本 Markdown。没有修改既有 S1 文件、运行时代码、main、Plan.md、Backlog 或证据台账；没有创建 PR；Batch 2 未启动。所有冲突和未解决项仅记录，不覆盖任何已验证路径。
+
+## Batch 2（第 3–4 章）
+
+### 1. 范围与来源
+
+本批在 Batch 1 原有内容后追加第 3–4 章对照，只新增 10 条：野外 2 条、剧情 8 条。没有修改 Batch 1 的任何记录。
+
+对照源均为本次对话附件，路径相对于 `~/workspace/downloads/ybcs/extracted/`：
+
+- `src/legacy_gui_runtime/ybcs_offline_field_encounters.py`：5120 行；SHA-256 `94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a`。
+- `src/legacy_gui_runtime/ybcs_offline_world_catalog.py`：658 行；SHA-256 `34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703`。
+
+章节常量：第 3 章 zone 21/23/25/27（源文件第 247–250 行）；第 4 章 zone 31/33/35/37（第 251–254 行）。实体常量：Chapter 3 entity 22612、Chapter 4 entity 22613（第 321–322 行）。没有独立 Scenarioinfo 文件，本批只使用附件内显式常量、placement 与注释线索。
+
+### 2. 第 3 章遭遇清单
+
+| row_id | 类型 | 地图 | source/entity | battle_zone_id |
+|---|---|---:|---:|---:|
+| B2-F-001 | WILD | 1310 | entity 22400（斯塔克） | 1310（effective fallback） |
+| B2-S-001 | STORY | 1310 | source 21 | 21 |
+| B2-S-002 | STORY | 1320 | source 23 | 23 |
+| B2-S-003 | STORY | 1320 | source 25 | 25 |
+| B2-S-004 | STORY | 1330 | source 27 | 27 |
+
+### 3. 第 4 章遭遇清单
+
+| row_id | 类型 | 地图 | source/entity | battle_zone_id |
+|---|---|---:|---:|---:|
+| B2-F-002 | WILD | 1341 | entity 22401（斯塔克B） | 1341（effective fallback） |
+| B2-S-005 | STORY | 1341 | source 31 | 31 |
+| B2-S-006 | STORY | 1342 | source 33 | 33 |
+| B2-S-007 | STORY | 1342 | source 35 | 35 |
+| B2-S-008 | STORY | 1343 | source 37 | 37 |
+
+map 1310/entity 22400 与 map 1341/entity 22401 分别是本批第 3、4 章野外记录。map 1345 的 entity 22402/22403/22404 三条属于第 5 章，本批排除。
+
+### 4. 章节归属与触发条件
+
+#### 野外遭遇
+
+- B2-F-001：map 1310、entity 22400、名称斯塔克、model 4013，配置坐标 (58,50)，approach (58,48)。
+- B2-F-002：map 1341、entity 22401、名称斯塔克B、model 4014，配置坐标 (101,125)，approach (102,124)。
+- 两条野外记录的 minimum_level 均为 36；配置中还存在 minimum_hired_skill_level=5，但 admission 逻辑对 source_kind='field' 跳过雇佣技能等级门槛，不将其写成实际生效条件。
+- 野外 resolver 按地图筛选，优先使用实体实时位置（无实时位置时使用配置坐标），只在唯一候选且 Manhattan 距离严格小于 4 时返回。
+- placement 未显式提供 battle_zone_id；effective_battle_zone_id 回退为 map_id 数值。因此 1310/1341 是 ybcs 离线实现的 fallback，不是原版服务器最终 battleZone 的证明。
+
+#### 剧情战
+
+- 第 3 章 source 21/23/25/27 分别对应地图 1310/1320/1320/1330，显式常量分别为 STORY_THREE_BORDER_ZONE_ID、STORY_THREE_OUTER_LINE_ZONE_ID、STORY_THREE_INNER_LINE_ZONE_ID、STORY_THREE_HEADQUARTERS_ZONE_ID。
+- 第 4 章 source 31/33/35/37 分别对应地图 1341/1342/1342/1343，显式常量分别为 STORY_FOUR_FIRST_FORMATION_ZONE_ID、STORY_FOUR_SECOND_FORMATION_ZONE_ID、STORY_FOUR_THIRD_FORMATION_ZONE_ID、STORY_FOUR_FINAL_FORMATION_ZONE_ID。
+- 八条剧情 placement 均为 server_driven_story_trigger=True、single_clear=True、minimum_level=1，未声明 trigger_cells。
+- 解析逻辑是在普通移动完成后按地图寻找符合 admission 条件的剧情候选；候选必须唯一，且 prerequisite_story_source_ids 全部满足。没有固定 trigger_cells，不补造坐标触发格。
+- 各条精确前置 source IDs、placement 行号和常量值见 CSV 的 trigger_condition 与 ybcs_source_locator。
+
+### 5. Lapis 绑定对照
+
+只读基线：`manifests/encounter-bindings-2.2.json`、`manifests/story-battle-scenes.json`、`docs/integration-notes/s1-encounter.md`、`docs/evidence-ledger.md`。
+
+- Lapis S1 candidate_bindings 仅记录 field_map_id 1030、1070、1090、1100 的候选；没有本批 map 1310、1320、1330、1341、1342、1343 的对应地图绑定。
+- Lapis 静态场景目录中存在 zone 21/23/25/27/31/33/35/37，标题已逐条写入 CSV。这仅证明静态场景资源目录存在，不证明地图到战斗场景的遭遇绑定。
+- 因缺少同一逻辑事件的 Lapis 地图绑定，本批 10 条均判为 NO_LAPIS_BINDING；没有将场景目录存在误判为 MATCH。
+- Lapis 已 VERIFIED 的 world-entity、scene-object 交互边界和 0x98 BattleEntry 边界不作任何修改；本批不新增或提升任何 VERIFIED 结论。
+
+### 6. 本批数量统计
+
+| 范围 | 野外 | 剧情 | 合计 |
+|---|---:|---:|---:|
+| Chapter 3 | 1 | 4 | 5 |
+| Chapter 4 | 1 | 4 | 5 |
+| **Batch 2** | **2** | **8** | **10** |
+
+核对：`N_field=2`，`N_story=8`，`N_CSV=10=2+8`。新增 10 条均有 23 个逻辑字段，ybcs_evidence_level 全部为 RECOVERED_SECONDARY。
+
+### 7. MATCH / CONFLICT / UNRESOLVED / UNKNOWN
+
+| review_status | Batch 2 数量 | Batch 1 + Batch 2 累计 |
+|---|---:|---:|
+| MATCH | 0 | 3 |
+| DIRECT_CONFLICT | 0 | 0 |
+| TRIGGER_CONFLICT | 0 | 0 |
+| PARTIAL_OVERLAP | 0 | 0 |
+| UNRESOLVED_IDENTITY | 0 | 3 |
+| NO_LAPIS_BINDING | 10 | 41 |
+| LAPIS_ONLY | 0 | 0 |
+
+Batch 2 无可成立的直接或部分冲突。10 条 NO_LAPIS_BINDING 清单：B2-F-001、B2-F-002、B2-S-001、B2-S-002、B2-S-003、B2-S-004、B2-S-005、B2-S-006、B2-S-007、B2-S-008。Chapter UNKNOWN 数量为 0；累计 UNKNOWN 仍为 Batch 1 的 22 条。
+
+### 8. 待核实事项
+
+1. Set.lib 的实际 zone_name.txt 内容未随本批附件提供，因此 map_name 保持 UNKNOWN。
+2. 野外 1310/1341 的 effective_battle_zone_id 是 ybcs placement 的 map_id 回退值，不证明原版服务器最终 0x98 BattleEntry 的 battleZone。
+3. 八个剧情 battle zone 虽有 Lapis 静态场景资源，但没有本批地图到 battleZone 的 S1 candidate binding。
+4. 第 3、4 章野外 entity 与 Lapis runtime entity ID 之间没有事件级身份映射。
+5. 第 4 章 source 37 胜利返回 map 1345；该地图的三条野外记录仍属于第 5 章，未混入本批。
+
+### 9. Batch 2 边界
+
+本批只追加 CSV 的 10 条数据和 Markdown 本节。未修改 Batch 1 原有 CSV 第 1–38 行及 Markdown 原有内容；未修改任何既有 S1 文件、运行时代码、main、Plan.md、Backlog 或证据台账；未创建 PR；未合并；未写入主号仓库。Batch 3 未启动。
+
+### 10. Batch 1 + Batch 2 累计统计
+
+| 范围 | 野外 | 剧情 | 合计 |
+|---|---:|---:|---:|
+| Batch 1 | 30 | 7 | 37 |
+| Batch 2 | 2 | 8 | 10 |
+| **累计** | **32** | **15** | **47** |
+
+CSV 最终为 48 行（1 行表头 + 47 行数据），无空行；标准 CSV 引号解析后每行均为 23 个逻辑列。
