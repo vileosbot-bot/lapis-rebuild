@@ -298,3 +298,111 @@ The main remaining YBCS blockers are the item-table loader, old battle-growth po
 - YBCS is not labelled `VERIFIED`.
 - No binary archive or raw resource member is committed.
 - This document and its mapping CSV are inventory artifacts only; Batch 1+ require separate authorization.
+
+
+## 8. Batch 1 record-level verification addendum (auto-4-1)
+
+This section supplements the Batch 0 inventory. It does not change the evidence classification: every YBCS source/table observation remains RECOVERED_SECONDARY.
+
+### 8.1 Set.lib archive result
+
+- Supplied Set.lib size: 112,730 bytes.
+- SHA-256: ce1bb0425b367289f144e0780147f7c63abb833733035949853ce70dfb3c82fe.
+- Header: directory expanded size 528 bytes, packed directory size 241 bytes, data base offset 251, check word 0xE8356AB8 (recorded, not independently validated).
+- All 12 directory entries and all 12 members were decompressed successfully. No decompression error occurred.
+- Archive support used the existing Lapis extractor helpers from ViLeo06/lapis-rebuild at commit 51907f41365edb4be393579f3814d8e23116dd6e (tools/extract/lib_archive.py and tools/extract/pkware_blast.py). These helpers and the Set.lib binary are not copied into this PR.
+
+| Member | Unpacked bytes | Data rows / non-comment lines | SHA-256 |
+|---|---:|---:|---|
+| ability.atr | 109,656 | 724 | 0bab4c622336378e52fb0d13b6e5d50a78f2c514d687332d47042c416a07c04b |
+| itemtbl.atr | 339,967 | 2,073 | cf5c9786810b80619ae3133ad77a27d9fb51f2078c30c947c482483d1030eb2e |
+| levelabl.atr | 70,666 | 1,397 | 0766b9ab5c357e1e830708ca90589cbe715bf02265e185a4c6ae900eefe287dc |
+| magicatr.atr | 383 | 7 | dde12fc5e96359b6dc23dbc360672c08aad6d328fd25402a1dc27033fdb191c1 |
+| Magicptn.atr | 18,664 | 281 | 5affdd750873e7ccb5a364cc372870b98cde95df905140fa88aedd79155cfceb |
+| Magictbl.atr | 32,338 | 460 | d885bbd1bddffd3d4bf05b2b4e36232c62d94fc78209d46861b01986779ef0d9 |
+| solskill.atr | 4,282 | 90 | 43ad7f975336e7c105d7eda7a48fe8afcee109ce81b618ca83ef7ce812fe1a41 |
+| SysHelp.atr | 1,074 | 32 non-comment text lines | bfba64b0e68cef567895eb69989ee94f5120dbd10e1fc2f0fcb33cc26c81d240 |
+| tileattb.atr | 2,566 | 27 | e0c90bf8132223af6fa908906487e2c20a5fdacd39df9c4f8be83e16daf7fd01 |
+| tileattr.atr | 2,537 | 27 | fbdd1cf08e80c581d68c182ca1f28d9850fb63e05e25954ae02e2332b8a70dc9 |
+| Effectptn.atr | 1,567 | 8 | a2dbac61fb4d2d2b8f08be16a4ddaa1138f6742f81cb91bee6174cd9eb3d6c44 |
+| zone_name.txt | 4,099 | text member; 107 non-empty lines | 02541808ee6860c1fea4d7ca8cb31d1b0dfe326a3712e95eadbb3218370fa9dd |
+
+The row-count convention is non-empty lines excluding lines beginning with semicolon. SysHelp.atr and zone_name.txt are text resources, not combat attribute tables.
+
+### 8.2 ability.atr record count and parser-index check
+
+- 724 data records; 724 unique Ability IDs, minimum 100 and maximum 6216.
+- Header has 46 tab-separated fields. Actual data-row widths: 644 rows have 46 fields and 80 rows have 45 fields. Both widths satisfy the physical/magic parsers' minimum of 45 fields and retain field index 44 (name).
+- All 724 records have numeric values at every target index used by the two parsers. No duplicate Ability ID or invalid target numeric field was found.
+- ybcs_physical_combat.py reads indexes 18, 19, 20, 36, 37. ybcs_magic_combat.py reads 21, 22, 38, 39. The indexes match the installed header:
+
+| Index | Installed header | Parser field |
+|---:|---|---|
+| 18 | hit(명중) | physical_accuracy |
+| 19 | elu(회피) | physical_evasion |
+| 20 | blow(필살) | critical_rate |
+| 36 | 무기데미지 | physical_damage |
+| 37 | 방어력 | physical_defense |
+| 21 | mhit(마명) | magic_accuracy |
+| 22 | melu(마회) | magic_evasion |
+| 38 | 마법데미지 | magic_damage |
+| 39 | 마법방어력 | magic_defense |
+
+Representative source rows (physical tuple order [18/19/20/36/37], magic tuple order [21/22/38/39]):
+
+| Ability ID / line | Name | Physical fields | Magic fields | cla |
+|---|---|---|---|---:|
+| 100 / 2 | 见习剑士 | 160 / 2 / 2 / 0 / 5 | 160 / 5 / 0 / 0 | 0 |
+| 105 / 7 | 见习枪兵 | 160 / 2 / 3 / 2 / 0 | 160 / 5 / 0 / 0 | 4 |
+| 109 / 11 | 见习巫师 | 160 / 2 / 2 / 0 / 0 | 160 / 10 / 0 / 0 | 9 |
+| 500 / 102 | 士兵G | 101 / 1 / 2 / 44 / 27 | 101 / 5 / 0 / 0 | 0 |
+| 1004 / 266 | 见习巫师 | 180 / 20 / 2 / 10 / 25 | 180 / 30 / 30 / 30 | 6 |
+| 1005 / 267 | 巫师 | 180 / 30 / 2 / 20 / 25 | 180 / 30 / 40 / 40 | 8 |
+
+These are raw table fields, not formula outputs.
+
+### 8.3 itemtbl.atr scope boundary
+
+- itemtbl.atr is present and has 2,073 non-comment records.
+- All 2,073 rows have 55 tab-separated columns, matching the supplied loader shape of 53 numeric columns plus name and description.
+- This batch did not inspect item IDs, prices, damage/defence columns, profession flags, enhancement fields or item semantics. That record-level work remains assigned to S4.
+
+### 8.4 Additional source modules and parser results
+
+| Supplied module | Lines | Batch 1 finding |
+|---|---:|---|
+| ybcs_old_battle_growth.py | 737 | Loaded the supplied Set.lib through the old resource loader. Parsed 724 Ability growth rows; parsed ten starter chains (100–109), each with 100 ordered levels; resolved 459 unique first-match magic definition IDs. |
+| ybcs_old_magic_targeting.py | 747 | Imported successfully. Defines Dist/Area targeting interpretation and leaves unsupported client cursor inputs unsupported; it is not a damage arithmetic module. |
+| ybcs_battle_wire.py | 2,832 | Imported successfully. Its own source says damage formula, result/reward fields, terminal uplink response and persistence timing remain unresolved. |
+| ybcs_battle_terrain.py | 201 | Parsed tileattr.atr successfully as a 28-by-15 matrix built from 27 authored terrain rows and 11 authored movement profiles. |
+| ybcs_single_player_shop.py | 1,520 | Inspected load_old_item_table at lines 372–413. Its parser contract matches the 2,073 itemtbl rows / 55-column overview; no item-record semantics were audited. |
+| ybcs_quest_runtime.py | 679 | Imported with the existing archive helper API and used by read_set_members to decode Set.lib. It is a generic archive helper; this does not establish that combat data comes from Quest.lib. |
+
+Additional parser checks:
+- The exact ybcs_old_battle_growth loader returned 724 Ability rows and ten 100-level starter chains.
+- The exact ybcs_old_magic_attribute parser accepted all seven magicatr rows.
+- The exact ybcs_battle_authority Magictbl parser returned 460 physical rows; its first-match dictionary contains 459 unique IDs because definition 7305 occurs twice. First-match behavior is intentional in the supplied source.
+- The exact ybcs_battle_terrain parser returned 28 runtime terrain rows by 15 movement profiles.
+
+Import-scope qualification: ybcs_single_player_shop.py has additional top-level imports (including ybcs_inventory_items.py, ybcs_single_player_bank.py and ybcs_shop_sale_compatibility.py) that were not part of this upload. The itemtbl member count and row shape were therefore verified directly from archive bytes and against the supplied parser contract, without claiming a complete shop-service import smoke test.
+
+### 8.5 OldAbility-to-S19 authored row matches
+
+The target repository main was read without modification. Exact field-by-field comparison was performed for all 20 shared playable class IDs: swordsman 100, 110, 120, 130, 140, 150, 160, 170, 180, 190; wizard 109, 119, 129, 139, 149, 159, 169, 179, 189, 199.
+
+For every one of these 20 IDs, Set.lib ability.atr exactly matches the corresponding S19 data/classes row for HP, MP, move, hit, magic_hit, range and class_name_raw. The S19 class helper copies these fields into its authored class definition. The playerStats builder then uses HP/MP/hit/magicHit with its own level and equipment adjustments. This verifies authored anchors only; it does not equate final YBCS and S19 combatant values.
+
+The six S19 MVP skill rows (1101, 1201, 1301, 19101, 19201, 19301) were compared with their first-match Magictbl rows. Their authored Att, Dist, Area, MP, Time, Team, Unit, EA, EB, EC, TICK, LVPT, MagicPtn, iconindex, Iter and explanation values match exactly. S19 SKILL_POLICY behavior and damage multipliers remain separate reconstruction policy. A matching skill ID/row does not prove that both runtimes classify or execute it as the same damage kind.
+
+### 8.6 Attribute-order correction and remaining evidence gaps
+
+- ybcs_old_battle_growth.py defines OLD_ATTRIBUTE_ORDER as con, wis, str, dex, int, reg. Its Ability parser reads base values from columns 4, 6, 8, 10, 12, 14; levelabl growth values are columns 2–7.
+- ybcs_character_stats.py maps stat code 2 to STR/physical attack, code 3 to DEX/physical defence, code 4 to INT/magic attack and code 5 to REG/magic defence. The constant name LEGACY_DEFENSE_STAT_CODE=3 refers to the DEX storage slot; it does not mean the third stat is named DEF.
+- The earlier Batch 0 CSV wording “DEF stat code 3” is corrected in the Batch 1 mapping update to DEX.
+- The elemental table lookup-to-resolver caller remains an EVIDENCE_GAP: the supplied modules define percent_for_definition_attack and resolve_offline_direct_magic_damage(elemental_percent=100), but no attached module calls the former and passes its result to the latter. Fixture A records an explicit table-derived elemental_percent as a test input only; it does not claim this missing production wiring was recovered.
+- YBCS direct magic has no supplied magic hit/critical resolver. Fixture M therefore excludes paired magic hit/critical comparisons.
+- No formula outputs or YBCS-versus-S19 damage calculations were produced in Batch 1.
+
+### 8.7 Batch 1 boundary
+
+The Set.lib binary and extracted members remain outside the repository. This addendum contains only inventory counts, hashes, field-index evidence and authored-field comparisons. Fixture inputs are specified in s3-fixture-spec.md. Batch 2 formula cross-calculation remains unperformed and requires separate authorization.
