@@ -53,13 +53,15 @@ export interface OfflineProgramShopMapping extends Provenance {
 }
 
 export interface OfflineSalePolicy {
+  policyId: "old-new-same-id-half-old-price-sale-v1";
   rule: string;
   unitPriceColumnIndexZeroBased: 17;
   exactAuthoritativeInventoryRowRequired: true;
   soldItemsRestockCatalog: false;
-  eligibleItemIds: null;
-  eligibilitySourceProvided: false;
-  status: "RULE_TEXT_RECOVERED_ELIGIBLE_SET_NOT_EXPORTED";
+  eligibleItemIds: readonly number[];
+  eligibilitySourceProvided: true;
+  eligibilitySource: Provenance;
+  status: "PINNED_ID_SET_EXPORTED";
 }
 
 export interface OfflineCatalogPolicy {
@@ -117,13 +119,80 @@ export function countRawItemsByShopNumber(rows: readonly ShopItemRecord[]): Map<
 }
 
 export function assertOfflineCatalogPolicy(policy: OfflineCatalogPolicy): void {
+  assertOfflineSalePolicy(policy.salePolicy);
   if (policy.retailRulesClaimed !== false || policy.finiteStock !== true) {
     throw new Error("offline catalog policy boundary is invalid");
   }
   if (policy.purchasePriceColumnIndexZeroBased !== 17) {
     throw new Error("offline purchase price source must remain itemtbl numericColumns[17]");
   }
-  if (policy.salePolicy.eligibleItemIds !== null || policy.salePolicy.eligibilitySourceProvided !== false) {
-    throw new Error("sale eligibility must remain unresolved until its source module is supplied");
+}
+
+/** Pinned exact-ID eligibility recovered from ybcs offline sale compatibility module. */
+export const OFFLINE_SHOP_SALE_POLICY_ID = "old-new-same-id-half-old-price-sale-v1" as const;
+
+export const COMPATIBLE_HALF_PRICE_ITEM_IDS = [
+  4, 11, 17, 26, 31, 211, 1004, 1011, 1017, 1026, 1031, 1211, 2004, 2011, 2017, 2026, 2031, 2211, 3004, 3011, 3017, 3026, 3031, 3211, 4001, 4002, 4003, 4004, 4007, 4008, 4009, 4012, 4013, 4014, 4015, 4016, 4017, 4018, 4022, 4024, 4026, 4027, 4028, 4037, 4038, 4039, 4040, 4041, 4042, 4043, 4044, 4045, 4046, 4047, 4048, 4049, 4050, 4051, 4052, 4053, 4054, 4055, 4056, 4057, 4058, 4059, 4060, 4062, 4063, 4064, 4065, 4066, 4067, 4068, 4069, 4074, 4075, 4078, 4089, 4090, 4104, 4105, 4107, 4108, 4109, 4110, 4111, 4114, 4116, 4401, 4402, 4403, 4404, 4405, 4406, 4407, 4408, 4409, 4410, 4411, 4412, 4413, 4414, 4415, 4416, 4417, 4418, 4716, 5000, 5001, 5002, 5003, 5004, 5005, 5100, 5101, 5102, 5103, 5104, 5105, 6000, 6001, 6011, 6021, 6031, 6032, 6042, 6052, 6062, 6063, 6073, 6083, 6093, 6094, 6104, 6114, 6124, 6125, 6135, 6145, 6155, 6156, 6166, 6176, 6186, 6187, 6197, 6207, 6800, 6801, 6802, 6803, 6804, 6805,
+] as const;
+
+const COMPATIBLE_HALF_PRICE_ITEM_ID_SET: ReadonlySet<number> =
+  new Set<number>(COMPATIBLE_HALF_PRICE_ITEM_IDS);
+
+export const SHOP_SALE_ELIGIBILITY_PROVENANCE: Provenance = {
+  sourceProject: "ybcs-offline",
+  sourceArtifact: "ybcs_shop_sale_compatibility.py",
+  sourceMember: "COMPATIBLE_HALF_PRICE_ITEM_IDS / compatible_sale_unit_price",
+  sourceHash: "044db91fab1b1618bdb1aae87eb7d36bc29051af98bff830d179cdfd210f71a0",
+  sourceRecord: {
+    lineStart: 18,
+    lineEnd: 54,
+    symbol: "COMPATIBLE_HALF_PRICE_ITEM_IDS",
+    numericColumnCount: 154,
+  },
+  evidenceLevel: "RECOVERED_SECONDARY",
+  evidenceLabel: "重构参考",
+  runtimeVerified: false,
+};
+
+export interface PricedSaleItem {
+  itemResourceId: number;
+  price: number;
+}
+
+/** Exact whitelist lookup; unsupported IDs return null. */
+export function compatibleSaleUnitPrice(item: PricedSaleItem): number | null {
+  if (!COMPATIBLE_HALF_PRICE_ITEM_ID_SET.has(item.itemResourceId)) return null;
+  if (!Number.isInteger(item.price) || item.price <= 0 || item.price % 2 !== 0) {
+    throw new Error("pinned shop-sale compatibility row must have positive even old price");
+  }
+  return item.price / 2;
+}
+
+export function assertOfflineSalePolicy(policy: OfflineSalePolicy): void {
+  if (policy.policyId !== OFFLINE_SHOP_SALE_POLICY_ID ||
+      policy.eligibilitySourceProvided !== true ||
+      policy.status !== "PINNED_ID_SET_EXPORTED" ||
+      policy.eligibleItemIds.length !== COMPATIBLE_HALF_PRICE_ITEM_IDS.length ||
+      new Set(policy.eligibleItemIds).size !== policy.eligibleItemIds.length ||
+      policy.eligibleItemIds.some((id, index) => id !== COMPATIBLE_HALF_PRICE_ITEM_IDS[index])) {
+    throw new Error("offline sale eligibility policy metadata is invalid");
+  }
+  if (policy.eligibilitySource.evidenceLevel !== "RECOVERED_SECONDARY" ||
+      policy.eligibilitySource.evidenceLabel !== "重构参考" ||
+      policy.eligibilitySource.runtimeVerified !== false) {
+    throw new Error("offline sale eligibility provenance is invalid");
+  }
+}
+
+export function assertOfflineSaleEligibility(
+  rows: readonly ShopItemRecord[],
+): void {
+  const byId = new Map(rows.map(row => [row.itemResourceId, row]));
+  for (const id of COMPATIBLE_HALF_PRICE_ITEM_IDS) {
+    const row = byId.get(id);
+    if (!row) throw new Error(`eligible item ${id} is missing from itemtbl export`);
+    if (row.price <= 0 || row.price % 2 !== 0) {
+      throw new Error(`pinned shop-sale compatibility row ${id} must have positive even old price`);
+    }
   }
 }

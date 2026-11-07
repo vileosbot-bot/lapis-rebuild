@@ -110,3 +110,41 @@ Every mapping and offline policy declaration separately points to `ybcs_single_p
 Only the JSON export, TypeScript policy, and this audit document are intended for GitHub. `Set.lib`, extracted `itemtbl.atr`, other extracted members, and original source modules are not included.
 
 All exported facts use `RECOVERED_SECONDARY` / `重构参考`; `runtimeVerified` remains false.
+
+## B4 补充批：半价出售资格（pinned exact-ID set）
+
+### Source and policy identity
+
+- Source module: `ybcs_shop_sale_compatibility.py` (2,381 bytes).
+- Source SHA-256: `044db91fab1b1618bdb1aae87eb7d36bc29051af98bff830d179cdfd210f71a0`.
+- Policy ID: `old-new-same-id-half-old-price-sale-v1`.
+- Whitelist symbol: `COMPATIBLE_HALF_PRICE_ITEM_IDS`, literal entries at L20-L35.
+- Runtime predicate: `compatible_sale_unit_price`, L45-L54.
+- Exported eligibility file: `s4-shop-sale-eligibility.json`.
+
+### Qualification rule
+
+An item is eligible only when its exact `item_resource_id` is a member of the pinned `COMPATIBLE_HALF_PRICE_ITEM_IDS` set. For a listed item, the old `itemtbl.atr` price must be positive and even; the YBCS offline sale unit credit is exactly `price // 2`. A listed item with a non-positive or odd old price raises the source module's `ValueError`; it is not rounded or silently repaired. An ID outside the whitelist returns `None`.
+
+The module docstring says the pinned set was derived from a read-only same-ID comparison where the newer table's explicit sale price was exactly half the old price. The newer-client resource is not a runtime dependency. This is a YBCS offline compatibility policy, not a claim about the retail server. No eligibility is inferred from item category or name.
+
+### Exact count and B4 catalog cross-check
+
+- Pinned whitelist entries: **154**.
+- Unique IDs: **154** (no duplicates).
+- IDs present in the B4 export's 2,073 item records: **154/154**.
+- Listed IDs with positive even old `itemtbl.atr` prices: **154/154**.
+- Missing catalog IDs: **0**.
+- Invalid pinned old-price rows: **0**.
+- Item ID range: 4–6805.
+- Every eligibility record in `s4-shop-sale-eligibility.json` retains the exact whitelist literal index, source line and zero-based column offset, plus the B4 itemtbl source line and raw-line SHA-256.
+
+The full exact ID set, old price, computed offline half-price unit credit and per-record provenance are in `s4-shop-sale-eligibility.json`. The existing 2,073 item records in `s4-shop-catalog-data.json` are unchanged.
+
+### Evidence boundary and scope
+
+- Evidence remains `RECOVERED_SECONDARY` / `重构参考`; `runtimeVerified=false`.
+- The old item table has one price column and no recovered sale-price column; the eligibility source is the pinned compatibility module, not a fabricated itemtbl sale-price column.
+- This supplement does not alter purchase quantity rules; the two existing declarations remain separately preserved and unreconciled.
+- This supplement does not change product records, NPC program/shop mappings, finite-stock rules, sale-restock behavior, or retail-server claims.
+- Only the eligibility policy and its separate exact-ID dataset are added/updated.
