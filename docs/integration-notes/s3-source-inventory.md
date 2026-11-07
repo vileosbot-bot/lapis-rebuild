@@ -12,7 +12,7 @@
 
 All paths below are package-relative to `legacy_gui_runtime/`. The line ranges refer to the supplied source attachments.
 
-| Source | Lines | Role and verified entrypoints |
+| Source | Lines | Role and inspected entrypoints |
 |---|---:|---|
 | `ybcs_physical_combat.py` | 500 | Physical formula source. `OldAbilityPhysicalProfile` (70–79), `OfflinePhysicalCombatProfile` (82–112), `parse_old_ability_physical_profiles` (155–202), `ability_physical_profile` (218–248), `build_character_physical_profile` (251–380), `resolve_offline_physical_damage` (382–406), `offline_physical_hit_chance` (410–430), `offline_physical_critical_chance` (433–439), `resolve_offline_physical_action` (441–479). |
 | `ybcs_magic_combat.py` | 501 | Direct magic formula source. `OldAbilityMagicProfile` (89–98), `OfflineMagicCombatProfile` (100–128), `parse_old_ability_magic_profiles` (169–214), `ability_magic_profile` (230–250), `build_character_magic_profile` (253–339), `is_direct_offensive_magic` (342–364), `is_recovery_magic` (367–382), `resolve_offline_magic_recovery` (412–439), `resolve_offline_direct_magic_damage` (442–481). |
@@ -100,9 +100,11 @@ runtime/client/NRes/Set.lib
   ├─ Magictbl.atr ── load_old_magic_definitions
   │                    └─ OldMagicDefinition (Att / EA / EB / EC / MP ...)
   └─ magicatr.atr ── load_old_magic_attribute_table
-                       └─ OldMagicAttributeTable
-                            └─ percent_for_definition_attack
-                                 └─ apply_old_magic_attribute_percent
+                       └─ OldMagicAttributeTable.percent_for_definition_attack
+                            └─ elemental_percent argument [caller not attached]
+
+resolve_offline_direct_magic_damage
+  └─ post-defence apply_old_magic_attribute_percent(elemental_percent)
 
 GameDomain ── ability / equipment / attribute_words
     └─ build_character_magic_profile
@@ -169,12 +171,14 @@ Therefore:
 
 This is the actual rounding rule of the supplied offline policy. The module's own docstring says the old resource proves integer percentage inputs but does not prove the retired server's ordering or rounding (257–265). Do not label this as the original retail-server rule.
 
+Important integration boundary: the supplied magic resolver imports and calls `apply_old_magic_attribute_percent`, but it does not load `OldMagicAttributeTable` or call `percent_for_definition_attack`. Its caller supplies `elemental_percent` (default 100). The caller that joins Magictbl Att / target profession to the table and passes that value into the resolver is not present in the supplied files; this lookup-to-resolver wiring remains an EVIDENCE_GAP.
+
 ### 3.3 Limits of the element join
 
 - The table has earth/holy/magic rows, but the current Magictbl Att join only accepts 1–4.
 - The source comments identify Att=6 as an ambiguous earth-looking value and compound Att values 15/16 as collisions; those are intentionally neutral rather than guessed.
 - The table lookup requires target profession 0..9 or the special-monster selector. The S19 class family is only `swordsman | wizard`; no evidenced lossless mapping to the ten old profession columns or special-monster flag exists yet.
-- `elemental_percent` is a target-selected percentage input, not a proven standalone elemental-resistance stat. Its precise authored row/column values require the Batch 1 archive audit.
+- `elemental_percent` is a target-selected percentage input, not a proven standalone elemental-resistance stat. The lookup function exists, but its caller-to-resolver wiring is not in the supplied files. Its precise authored row/column values require the Batch 1 archive audit.
 
 ## 4. OldAbility-to-S19 authored attribute mapping draft
 
@@ -263,6 +267,7 @@ YBCS source dependencies not supplied:
 - `ybcs_old_battle_growth.py`: imported by `ybcs_character_stats.py`; its policy is loaded at module initialization and supplies old HP/MP baseline lookup.
 - `ybcs_quest_runtime.py`: implementation of `read_quest_archive` and `extract_member`, required by `read_set_members`.
 - `ybcs_old_magic_targeting.py`: direct-magic classification dependency and battle-authority target helper.
+- The orchestration/call site that selects `elemental_percent` from `OldMagicAttributeTable.percent_for_definition_attack` and passes it into `resolve_offline_direct_magic_damage`: not present in the supplied files.
 - `ybcs_battle_wire.py` and `ybcs_battle_terrain.py`: top-level imports of `ybcs_battle_authority.py`; needed to import/use that module's Magictbl parser in the current package layout, although they are not arithmetic inputs.
 
 Resource inputs not attached:
