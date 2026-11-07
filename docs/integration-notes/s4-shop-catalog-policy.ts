@@ -147,7 +147,7 @@ export const SHOP_SALE_ELIGIBILITY_PROVENANCE: Provenance = {
     lineStart: 18,
     lineEnd: 54,
     symbol: "COMPATIBLE_HALF_PRICE_ITEM_IDS",
-    numericColumnCount: 154,
+    fieldCount: 154,
   },
   evidenceLevel: "RECOVERED_SECONDARY",
   evidenceLabel: "重构参考",
