@@ -603,3 +603,56 @@ The current S19 implementation also has no general authored EA damage path. The 
 - YBCS outputs remain RECOVERED_SECONDARY; S19 outputs remain RECONSTRUCTION_POLICY.
 - No .lib/.atr binary or extracted resource was committed. No S19 code, tuning, simulator or existing gameplay file was changed.
 - No full combat simulation was performed. Batch 4 and later work require separate authorization.
+
+
+## 11. Batch 4 full combat simulation (auto-4-1)
+
+### 11.1 Scenario and execution
+
+- Report: docs/integration-notes/s3-full-simulation-report.md.
+- Scenario: authored swordsman Ability/class 100 versus two caster enemy slots labelled by YBCS Ability IDs 500 and 502.
+- S19's current simulateCombat input supports one player and 1..8 enemies, not a two-player party. The native supported one-player/two-enemy shape was used rather than inventing a production party scheduler.
+- YBCS combines resolve_offline_physical_action for the player with resolve_offline_direct_magic_damage for enemy actions. This is a comparison harness, not a claim that a native YBCS full-battle scheduler was recovered.
+- S19 follows simulateCombat's native event cadence, event ordering, first-living-target selection and stop conditions, calling playerStats, enemyStats and resolveAttack. Player useSkills=false; both enemy roles are caster.
+- Seed 1. The traced S19 aggregate was checked against native simulateCombat and matched exactly: victory, 10.150 seconds, 35 remaining HP, 7 player actions, 6 enemy actions, 142 damage dealt and 90 damage taken.
+- The five common event IDs P-01, E1-01, E2-01, P-02 and E1-02 use identical event-specific hit/critical roll pairs on both sides. YBCS direct magic reserves but does not consume the pair because its magic hit/critical resolver is EVIDENCE_GAP.
+
+### 11.2 Decision and input mapping
+
+- Player target policy: first living enemy. Enemy target policy: the sole player.
+- YBCS: Ability 100 physical unarmed fallback 10; Ability 500 casts Magictbl 5201 (EA45, Att1); Ability 502 casts Magictbl 7201 (EA45, Att3). This enemy spell assignment is a deterministic test script, not recovered AI.
+- S19: class 100 uses basic physical attack; two enemyStats(level 1, normal, caster) profiles use generic magic resolveAttack. S19 has no SKILL_POLICY rows for old IDs 5201/7201, so no authored-EA skill mapping is claimed.
+- YBCS enemy HP comes from authored Ability rows (100 and 150); S19 generic caster HP is 71 for each enemy. This is explicitly INPUT_MAPPING, not a hidden normalization.
+- YBCS direct magic table percentages are 100 for Att1 and Att3 against target profession selector 0. The percentage is materialized as a fixture input; production lookup-to-resolver wiring remains EVIDENCE_GAP.
+
+### 11.3 Results
+
+| Metric | YBCS | S19 |
+|---|---:|---:|
+| Outcome | Defeat | Victory |
+| Last event / time | E1-02 / 3.800s | P-07 / 10.150s |
+| Rounds (player action index) | 2 | 7 |
+| Player actions | 2 | 7 |
+| Enemy actions | 3 | 6 |
+| Damage dealt to enemies (HP removed) | 30 | 142 |
+| Damage received by player (HP removed) | 125 | 90 |
+| Remaining player HP | 0 | 35 |
+| Enemy 500 remaining HP | 70 | 0 |
+| Enemy 502 remaining HP | 150 | 0 |
+| Events executed | 5 | 13 |
+
+Per-action resolved damage:
+- YBCS: 20, 45, 45, 10, 45.
+- S19: 31, 15, 15, 22, 15, 15, 31, 22, 15, 22, 15, 22, 22.
+
+First numeric divergence: P-01, YBCS 20 versus S19 31 (delta -11), with the same hit and critical rolls. Largest common-event delta: +30 on each of E1-01, E2-01 and E1-02 (YBCS direct magic 45 versus S19 generic caster magic 15).
+
+### 11.4 Attribution and evidence boundary
+
+- P-01/P-02: FORMULA, CRITICAL, CLAMP_CAP and INPUT_MAPPING; YBCS unarmed fallback and x2 critical versus S19 authored-family attack, ×1.5 critical and 45%-HP cap.
+- E1/E2 magic: FORMULA and INPUT_MAPPING; YBCS EA45 direct magic versus S19 magicAttack23 minus 0.65×magicDefense12. YBCS magic hit/critical remains EVIDENCE_GAP; S19 magic hit chance 0.832 and critical chance 0.03.
+- Element order was not numerically active because both explicit YBCS element inputs were neutral 100%. The production lookup caller remains EVIDENCE_GAP.
+- S19's generic caster HP71/71 differs from YBCS authored Ability HP100/150. No input normalization was applied.
+- Batch 3 EB_ISOLATION was not exercised or altered.
+- All YBCS results remain RECOVERED_SECONDARY; S19 remains RECONSTRUCTION_POLICY. No S19 code, tuning, or resource binary was modified.
+- Batch 5 adjudication document is recommended to proceed; no further simulation or code changes are authorized by Batch 4.
