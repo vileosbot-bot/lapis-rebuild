@@ -339,3 +339,143 @@ N_field=3，N_story=4，N_CSV=7。新增 7 条均有 23 个逻辑字段，ybcs_e
 | **累计** | **35** | **19** | **54** |
 
 CSV 最终为 55 行（1 行表头 + 54 行数据），标准 CSV 引号解析后每行均为 23 个逻辑列，无空白数据行。
+
+## Batch 4（第 7–8 章）
+
+### 1. 范围与来源
+
+本批新增第 7–8 章六条剧情部署，不存在本批独立的 source_kind=field 野外遭遇部署。六条均使用 STORY_SEVEN_ENTITY_ID=22610，但 source_id、地图、battle_zone_id、前置剧情和触发方式各自独立，不能合并为一条记录。
+
+对照源为本次对话附件，路径相对于 ~/workspace/downloads/ybcs/extracted/：
+
+- src/legacy_gui_runtime/ybcs_offline_field_encounters.py：5120 行；SHA-256 94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a。
+- src/legacy_gui_runtime/ybcs_offline_world_catalog.py：658 行；SHA-256 34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703。
+
+第 7 章常量 61/63/65 位于 field_encounters 第 259–261 行；第 8 章常量 71/73/75 位于第 262–264 行。共享实体常量 STORY_SEVEN_ENTITY_ID=22610 位于第 325 行。源码没有 STORY_EIGHT_ENTITY_ID。
+
+### 2. 第 7 章遭遇清单
+
+| row_id | 类型 | 地图 | source_id | battle_zone_id | placement 行范围 |
+|---|---|---:|---:|---:|---|
+| B4-S-001 | STORY | 1500 | 61 | 61 | 2654–2693 |
+| B4-S-002 | STORY | 1500 | 63 | 63 | 2699–2731 |
+| B4-S-003 | STORY | 1500 | 65 | 65 | 2735–2775 |
+
+三条均使用 entity_id=22610，世界实体位置为 (73,81)，approach 为 (73,79)，但各自具有不同的模型、剧情 source、battle anchor 和前置条件。
+
+- source61：模型2016，名称“2等航海师”，battle_anchor=(63,107)，前置 source51、53。
+- source63：模型2116，名称“队长”，battle_anchor=(25,49)，前置 source61。
+- source65：模型2316，名称“海盗船长_阿肯”，battle_anchor=(26,42)，前置 source61、63；胜利返回 map1367 cell=(35,61)。
+
+map1500 的第 7 章部署来自明确标注的兼容代理策略，不是对已退役零售剧情入口表的 VERIFIED 恢复。YB-345 注释说明 source63 复用同一个原生世界实体，并在 source61 首次胜利后推进。source65 要求前两阶段均完成。
+
+### 3. 第 8 章遭遇清单
+
+| row_id | 类型 | 地图 | source_id | battle_zone_id | placement 行范围 |
+|---|---|---:|---:|---:|---|
+| B4-S-004 | STORY | 1367 | 71 | 71 | 2784–2821 |
+| B4-S-005 | STORY | 1368 | 73 | 73 | 2837–2883 |
+| B4-S-006 | STORY | 1369 | 75 | 75 | 2889–2930 |
+
+- source71：模型2315，名称“海盗成员D”，世界位置=(44,100)，approach=(44,98)，battle_anchor=(38,48)，前置 source61、63、65；胜利返回 map1368 cell=(34,70)。
+- source73：模型2011，名称“刺客”，世界位置=(34,70)，approach=(34,68)，battle_anchor=(19,81)，前置 source61、63、65、71；胜利返回 map1369 cell=(19,87)。
+- source75：模型2316，名称“海盗船长_阿肯”，世界位置=(19,87)，approach=(19,85)，battle_anchor=(60,34)，前置 source61、63、65、71、73；胜利返回 map1373 cell=(110,50)。
+
+source75 的 map1373 是胜利返回目的地，不是本次遭遇发生地图。下一条 source81 从源文件第2938行开始，属于第9章，本批排除。
+
+### 4. 章节归属与地图关联
+
+章节归属来自源码显式常量：
+
+- 第7章：STORY_SEVEN_ZONE_ID=61、STORY_SEVEN_SHIP_AMBUSH_ZONE_ID=63、STORY_SEVEN_CAPTAIN_ZONE_ID=65。
+- 第8章：STORY_EIGHT_DEATH_ISLAND_ZONE_ID=71、STORY_EIGHT_FORTRESS_ZONE_ID=73、STORY_EIGHT_CAPTAIN_ZONE_ID=75。
+
+部署地图顺序为：
+
+| 章节 | source_id | 旧地图 | 说明 |
+|---|---:|---:|---|
+| 7 | 61 | 1500 | 兼容代理地图 |
+| 7 | 63 | 1500 | 复用同一实体，前置 source61 |
+| 7 | 65 | 1500 | 复用同一实体，前置 source61、63 |
+| 8 | 71 | 1367 | 源码注释称为新地图2360的旧地图前身 |
+| 8 | 73 | 1368 | 源码注释称新地图2361与旧地图1368场景布局相同 |
+| 8 | 75 | 1369 | 第8章后续剧情阶段 |
+
+没有独立 Scenarioinfo 文件。2360/2361 的地图关系只记录为源码注释线索，不当作独立文件来源或 VERIFIED 证据。
+
+### 5. 触发方式及前置剧情
+
+六条均为 source_kind=story、minimum_level=15、minimum_hired_skill_level=2、single_clear=True。剧情 admission 还要求符合条件的当前 solskill offer 与有效的已雇佣 Ability。
+
+| source_id | server_driven_story_trigger | 触发方式 | 前置 source IDs |
+|---:|---|---|---|
+| 61 | 默认 False | 世界实体交互 | 51、53 |
+| 63 | 默认 False | 世界实体交互 | 61 |
+| 65 | 默认 False | 世界实体交互 | 61、63 |
+| 71 | 默认 False | 世界实体交互 | 61、63、65 |
+| 73 | True | 移动完成后的剧情延续 | 61、63、65、71 |
+| 75 | True | 移动完成后的剧情延续 | 61、63、65、71、73 |
+
+当 server_driven_story_trigger 为 False 时，entity_record() 发布 type-1 世界实体，旧客户端 08 精确实体交互按 Manhattan 距离严格小于4解析。source61/63/65/71 均属于此路径。
+
+source73/75 显式设置 True，不伪造可点击实体；普通移动完成后按地图寻找唯一合格剧情候选，并检查前置剧情。两条均未声明 trigger_cells，不补造坐标触发格。
+
+### 6. Lapis 绑定对照
+
+只读基线：
+
+- manifests/encounter-bindings-2.2.json
+- manifests/story-battle-scenes.json
+- docs/integration-notes/s1-encounter.md
+- docs/evidence-ledger.md
+
+Lapis S1 candidate_bindings 仍只有 1030→1、1070→3、1090→7、1100→9。本批地图1500、1367、1368、1369均无候选地图绑定。
+
+Lapis 静态场景目录存在 zone61、63、65、71、73、75，标题已逐条写入 CSV。这只证明静态场景元数据存在，不证明地图到 battleZone 的遭遇绑定。
+
+因此六条均标记 NO_LAPIS_BINDING；不把静态场景资源存在误判为 MATCH，也不声称存在直接冲突。
+
+### 7. 本批数量统计
+
+| 章节 | 野外 | 剧情 | 合计 |
+|---|---:|---:|---:|
+| 第7章 | 0 | 3 | 3 |
+| 第8章 | 0 | 3 | 3 |
+| **Batch 4** | **0** | **6** | **6** |
+
+N_field=0，N_story=6，N_CSV=6。新增六条均为23个逻辑字段，ybcs_evidence_level 全部为 RECOVERED_SECONDARY。
+
+### 8. MATCH / CONFLICT / UNRESOLVED / UNKNOWN
+
+| review_status | Batch 4 | Batch 1–4 累计 |
+|---|---:|---:|
+| MATCH | 0 | 3 |
+| DIRECT_CONFLICT | 0 | 0 |
+| TRIGGER_CONFLICT | 0 | 0 |
+| PARTIAL_OVERLAP | 0 | 0 |
+| UNRESOLVED_IDENTITY | 0 | 3 |
+| NO_LAPIS_BINDING | 6 | 54 |
+| LAPIS_ONLY | 0 | 0 |
+
+六条 NO_LAPIS_BINDING：B4-S-001 至 B4-S-006。本批没有发现可成立的直接冲突或身份未解决记录。Chapter UNKNOWN 本批为0，累计仍为 Batch 1 的22条。
+
+### 9. 待核实事项
+
+1. Set.lib 的实际 zone_name.txt 内容未提供，地图名称保持 UNKNOWN。
+2. map1500 是第7章兼容代理地图，不代表原版 canonical map identity。
+3. map1367/1368 与新地图2360/2361的关联来自源码注释，不是独立 Scenarioinfo 文件。
+4. source73 的七单位混合堡垒阵容属于明确的离线策略；旧、新 DEO 未发布可确认敌方人数，零售敌方数量仍未知。
+5. Lapis 六个静态战斗场景虽存在，但没有对应 S1 地图遭遇绑定。
+6. 六条复用实体 ID 22610；与 Lapis runtime entity ID 的事件级映射尚未建立。
+
+### 10. Batch 1–4 累计统计
+
+| 范围 | 野外 | 剧情 | 合计 |
+|---|---:|---:|---:|
+| Batch 1–3 | 35 | 19 | 54 |
+| Batch 4 | 0 | 6 | 6 |
+| **累计** | **35** | **25** | **60** |
+
+CSV 最终为61行（1行表头+60行数据），无空白数据行；标准 CSV 引号解析后每行均为23个逻辑列。
+
+本批只追加 CSV 第56–61行及本 Markdown 章节。未修改此前55行 CSV 和 Batch 1–3 Markdown 内容；未修改其他文件、main、Plan.md、Backlog、证据台账或运行时代码；未创建 PR、未合并、未写入主号仓库。Batch 5 未启动。
