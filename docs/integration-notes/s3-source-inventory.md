@@ -504,3 +504,102 @@ These are quantitative differences between separate offline/reconstruction polic
 - No S19 source, tuning, simulator, or class/skill catalog was modified.
 - No raw Set.lib or extracted .atr resource was committed.
 - Batch 3 (magic) and all later work require separate authorization.
+
+
+## 10. Batch 3 magic formula cross-validation (M01–M15)
+
+### 10.1 Scope and source functions
+
+- Scope: M01–M15 in Fixture A (authored) and Fixture B (controlled), 30 CSV rows.
+- YBCS: is_direct_offensive_magic (342–364) and resolve_offline_direct_magic_damage (442–481) in ybcs_magic_combat.py; apply_old_magic_attribute_percent (257–275) in ybcs_old_magic_attribute.py.
+- S19: SKILL_POLICY (283–289), skill (426–434), deterministicDamage (452–462), resolveSkillAttack (497–518) in reconstruction-combat-balance.ts.
+- YBCS evidence remains RECOVERED_SECONDARY; S19 remains RECONSTRUCTION_POLICY.
+- YBCS magic hit and magic critical were not calculated; both remain EVIDENCE_GAP.
+
+### 10.2 Fixture A — authored source results
+
+The actual Set.lib Ability and Magictbl rows were joined by ID. The target profession came from the defender Ability column 24. The element percentage was materialized for the fixture by calling OldMagicAttributeTable.percent_for_definition_attack(Att, target_profession, false), then passed as an explicit resolver argument. This does not recover the missing production caller wiring.
+
+YBCS M01–M14 all pass the supplied direct-offensive classifier and produce final damage: 106, 73, 78, 159, 140, 140, 135, 91, 78, 113, 108, 118, 160, 136.
+
+M15 (19101, Att=122, EA=5, EB=10, EC=0) is rejected before damage arithmetic. Resolver attempt raises: ValueError: magic 19101 is not a direct offensive definition.
+
+S19 authored skill-route availability:
+- M01–M04 and M06–M14: old definition IDs have no S19 SKILL_POLICY entry; resolveSkillAttack cannot be paired to those old IDs.
+- M05 (1101): S19 has a policy, but kind is physical, not magic. No paired S19 magic route.
+- M15 (19101): S19 policy has kind=magic, multiplier=0.45, hits=1 and a non-null accuracy-debuff support descriptor. A comparison-only authored-field projection (magicAttack=100 from Ability 2305, magicDefense=0 and maxHp=100 from defender Ability 501, magicAccuracy=180, neutral evasion/critical controls) entered resolveSkillAttack and produced 45 damage.
+
+Fixture A counts:
+- Paired final-damage matches: 0.
+- Paired numeric final-damage divergences: 0.
+- Path/classification divergence: 1 (M15: YBCS rejects, S19 enters).
+- Not comparable: 14 (13 old IDs absent from S19 policy, plus M05 whose S19 policy is physical).
+The 14 are not counted as matches or numeric divergences. No missing S19 result was fabricated.
+
+### 10.3 Fixture B — controlled effective-value results
+
+M01–M14 use the Batch 1 pre-defence offense anchors, explicit YBCS elemental percentage inputs, and S19 deterministicDamage(kind=magic, multiplier=1, critical=false). This is a controlled formula call, not resolveSkillAttack; the current S19 skill resolver has no EA-derived multiplier path.
+
+| Case | YBCS final | S19 pre-cap | S19 final | Delta (YBCS - S19) | Classification |
+|---|---:|---:|---:|---:|---|
+| M01 | 55 | 59 | 59 | -4 | FORMULA / ROUNDING |
+| M02 | 30 | 64 | 64 | -34 | FORMULA / ELEMENT_ORDER / ROUNDING |
+| M03 | 41 | 62 | 62 | -21 | FORMULA / ELEMENT_ORDER / ROUNDING |
+| M04 | 1 | 20 | 20 | -19 | FORMULA / CLAMP_CAP / ELEMENT_ORDER |
+| M05 | 40 | 40 | 40 | 0 | MATCH_FINAL / SKILL_KIND_MISMATCH |
+| M06 | 86 | 88 | 88 | -2 | FORMULA / ROUNDING |
+| M07 | 850 | 103 | 90 | +760 | ELEMENT_ORDER / FORMULA / CLAMP_CAP / ROUNDING |
+| M08 | 1 | 62 | 62 | -61 | ELEMENT_ORDER / ROUNDING / CLAMP_CAP |
+| M09 | 39 | 78 | 78 | -39 | ELEMENT_ORDER / FORMULA |
+| M10 | 77 | 106 | 90 | -13 | FORMULA / ELEMENT_ORDER / CLAMP_CAP / ROUNDING |
+| M11 | 180 | 120 | 90 | +90 | ELEMENT_ORDER / CLAMP_CAP |
+| M12 | 236 | 119 | 90 | +146 | ELEMENT_ORDER / FORMULA / CLAMP_CAP / ROUNDING |
+| M13 | 160 | 160 | 22 | +138 | CLAMP_CAP |
+| M14 | 1,400 | 140 | 90 | +1,310 | ELEMENT_ORDER / FORMULA / CLAMP_CAP |
+
+Fixture B counts:
+- Final integer damage matches: 1 / 14 paired cases (M05).
+- Final integer damage differs: 13 / 14 paired cases.
+- M15: one unpaired negative classifier control; no B numeric result or delta.
+- Out of 15 B cases: 1 match, 13 divergences, 1 not paired.
+
+Largest absolute controlled deltas:
+1. M14: YBCS 1,400 vs S19 90, delta +1,310 — ELEMENT_ORDER / FORMULA / CLAMP_CAP. YBCS applies 1,000% after defence; S19 has no element stage and caps at 45% of 200 HP.
+2. M07: YBCS 850 vs S19 90, delta +760 — ELEMENT_ORDER / FORMULA / CLAMP_CAP / ROUNDING. YBCS computes (135-50)*1,000%; S19 rounds 135-0.65*50 to 103 and then applies the 90 HP-ratio cap.
+3. M12: YBCS 236 vs S19 90, delta +146 — ELEMENT_ORDER / FORMULA / CLAMP_CAP / ROUNDING. YBCS computes (122-4)*200%; S19 rounds 122-0.65*4 to 119 and then applies the 90 HP-ratio cap.
+
+### 10.4 Element-percent application order
+
+YBCS resolve_offline_direct_magic_damage performs:
+1. raw_damage = min(32767, EA_or_base_effect + authored_magic_midpoint).
+2. defended_damage = min(32767, max(1, raw_damage - defender.magic_defense)).
+3. Calls apply_old_magic_attribute_percent(defended_damage, elemental_percent).
+4. The helper returns min(32767, max(1, defended_damage * percent // 100)).
+
+Thus this offline implementation applies elemental percentage after full magic-defence subtraction, using integer floor division, then clamps to 1..32767. Example: Fixture A M01: EA45 + authored30 = 75; minus defence4 = 71; 71*150//100 = 106.
+
+The percentage is explicitly supplied by this batch's Fixture A/B input. The production call site that looks up the table and passes the value into the resolver is still absent and remains EVIDENCE_GAP. This does not establish retired retail-server ordering or rounding.
+
+S19 has no elemental-percent/resistance stage in CombatantStats or deterministicDamage. It rounds magicAttack - 0.65*magicDefense, applies the minimum, then the 45%-of-target-HP single-strike cap. No element value is silently added to S19.
+
+### 10.5 EA / EB isolation finding
+
+S19 PlayableSkillDefinition.authored preserves EA/EB/EC, but the supplied balance resolver does not consume them as damage inputs:
+- skill() returns policy and authored MP/provenance only.
+- resolveSkillAttack() short-circuits only for kind === support or hits < 1; it does not inspect EA/EB/EC or reject a non-null support descriptor.
+- S19 SKILL_POLICY[19101] is kind=magic, multiplier 0.45, hits 1, with a non-null accuracy-debuff support descriptor.
+- Consequently M15 is rejected by YBCS because Att=122 requires EB=EC=0, but S19 resolveSkillAttack(19101) enters its magic damage path and produces 45 in the path-only projection.
+
+The requested expectation that both systems reject M15 is not met by the current S19 implementation. This is recorded as EB_ISOLATION, not silently corrected. No S19 code was changed. M05 is another mapping distinction: YBCS treats Att=8 as direct magic, while S19 policy 1101 is physical.
+
+The current S19 implementation also has no general authored EA damage path. The controlled B comparison therefore uses the explicit deterministicDamage path in the Batch 1 fixture schema; it must not be described as an EA-derived resolveSkillAttack formula.
+
+### 10.6 Preserved evidence gaps and boundary
+
+- Element-table lookup-to-resolver production caller: EVIDENCE_GAP; percentage here is an explicit fixture input.
+- YBCS magic hit and magic critical: EVIDENCE_GAP; no physical hit/critical formula was borrowed.
+- S19 EA-derived skill damage path: not present in supplied resolver; authored EA/EB/EC remain preserved data, while damage is reconstruction policy.
+- Old Magictbl IDs without S19 policy and M05 skill-kind mismatch: INPUT_MAPPING / EVIDENCE_GAP.
+- YBCS outputs remain RECOVERED_SECONDARY; S19 outputs remain RECONSTRUCTION_POLICY.
+- No .lib/.atr binary or extracted resource was committed. No S19 code, tuning, simulator or existing gameplay file was changed.
+- No full combat simulation was performed. Batch 4 and later work require separate authorization.
