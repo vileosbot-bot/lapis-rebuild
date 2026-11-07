@@ -813,7 +813,15 @@
   "offlineTransitionPolicy": {
     "query": {
       "stateChanges": false,
-      "returns": "bank_money balance"
+      "returns": "bank_money balance",
+      "sourceProject": "ybcs-offline",
+      "sourceArtifact": "ybcs_single_player_bank.py",
+      "sourceHash": "aef23a5432773aa3f132d83e939a8dcf88024bb013de5b0a3535261acdab0f10",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "evidenceLabel": "重构参考",
+      "runtimeVerified": false,
+      "sourceMember": "YbcsSinglePlayerBankService.accept",
+      "sourceRecord": "ybcs_single_player_bank.py:L262-L268; query returns bank balance without changing balances"
     },
     "deposit": {
       "success": "player_money -= amount; bank_money += amount",
@@ -821,7 +829,15 @@
         "amount <= player_money",
         "bank_money + amount <= 0xFFFFFFFF"
       ],
-      "failureStateChanges": false
+      "failureStateChanges": false,
+      "sourceProject": "ybcs-offline",
+      "sourceArtifact": "ybcs_single_player_bank.py",
+      "sourceHash": "aef23a5432773aa3f132d83e939a8dcf88024bb013de5b0a3535261acdab0f10",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "evidenceLabel": "重构参考",
+      "runtimeVerified": false,
+      "sourceMember": "YbcsSinglePlayerBankService.accept",
+      "sourceRecord": "ybcs_single_player_bank.py:L270-L294; deposit success and failure branches"
     },
     "withdraw": {
       "success": "player_money += amount; bank_money -= amount",
@@ -829,11 +845,27 @@
         "amount <= bank_money",
         "player_money + amount <= 0xFFFFFFFF"
       ],
-      "failureStateChanges": false
+      "failureStateChanges": false,
+      "sourceProject": "ybcs-offline",
+      "sourceArtifact": "ybcs_single_player_bank.py",
+      "sourceHash": "aef23a5432773aa3f132d83e939a8dcf88024bb013de5b0a3535261acdab0f10",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "evidenceLabel": "重构参考",
+      "runtimeVerified": false,
+      "sourceMember": "YbcsSinglePlayerBankService.accept",
+      "sourceRecord": "ybcs_single_player_bank.py:L297-L321; withdrawal success and failure branches"
     },
     "close": {
       "stateChanges": false,
-      "responsePayload": null
+      "responsePayload": null,
+      "sourceProject": "ybcs-offline",
+      "sourceArtifact": "ybcs_single_player_bank.py",
+      "sourceHash": "aef23a5432773aa3f132d83e939a8dcf88024bb013de5b0a3535261acdab0f10",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "evidenceLabel": "重构参考",
+      "runtimeVerified": false,
+      "sourceMember": "YbcsSinglePlayerBankService.accept",
+      "sourceRecord": "ybcs_single_player_bank.py:L256-L261; close returns no response payload"
     },
     "moneyConservation": "player_money + bank_money is unchanged by successful deposits and withdrawals",
     "sourceProject": "ybcs-offline",
