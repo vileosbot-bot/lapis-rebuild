@@ -406,3 +406,101 @@ The six S19 MVP skill rows (1101, 1201, 1301, 19101, 19201, 19301) were compared
 ### 8.7 Batch 1 boundary
 
 The Set.lib binary and extracted members remain outside the repository. This addendum contains only inventory counts, hashes, field-index evidence and authored-field comparisons. Fixture inputs are specified in s3-fixture-spec.md. Batch 2 formula cross-calculation remains unperformed and requires separate authorization.
+
+
+## 9. Batch 2 physical formula cross-validation (P01–P15)
+
+### 9.1 Execution scope and source functions
+
+- Scope: physical only, P01–P15 in Fixture A and Fixture B. Thirty comparison rows are stored in `docs/integration-notes/s3-physical-cross-validation.csv`.
+- No magic formula, elemental lookup, magic hit, or magic critical calculation was run.
+- YBCS exact functions executed from `ybcs_physical_combat.py`: `OfflinePhysicalCombatProfile.deterministic_raw_damage` (114–123), `resolve_offline_physical_damage` (382–407), `offline_physical_hit_chance` (410–430), `offline_physical_critical_chance` (433–439), and `resolve_offline_physical_action` (441–479).
+- S19 exact TypeScript methods executed from `web/src/combat/reconstruction-combat-balance.ts`: tuning (196–226), `hitChance` (437–445), `criticalChance` (447–450), `deterministicDamage` (452–462), and `resolveAttack` (470–490).
+- YBCS source evidence remains RECOVERED_SECONDARY / offline reconstruction reference. S19 combat tuning remains RECONSTRUCTION_POLICY. Neither side is promoted to VERIFIED.
+
+### 9.2 Calculation contract
+
+YBCS physical arithmetic:
+- Raw damage = floor((minimum_damage + maximum_damage) / 2).
+- Applied defence = defender.physical_defense only when attacker.authored_damage is true; otherwise zero.
+- Pre-critical damage = clamp(max(1, raw - applied_defence), upper bound 32767).
+- Hit chance = 100% when physical_accuracy is zero; otherwise clamp(physical_accuracy - defender.physical_evasion, 5%, 95%).
+- Critical chance = clamp(critical_rate, 0%, 95%). A critical hit doubles damage, then caps at 32767.
+- Hit and critical comparisons are strict less-than against integer rolls 0..99.
+
+S19 physical arithmetic:
+- Hit chance = clamp(0.84 + (accuracy - defender.evasion) * 0.002, 0.65, 0.97).
+- Critical chance = clamp(attacker.criticalChance - defender.criticalResistance, 0, 0.35).
+- Pre-critical damage = Math.round(attack - defense * 0.65), then minimum 1.
+- Critical damage = Math.round(pre-critical damage * 1.5).
+- Final single-strike damage is capped at max(1, floor(defender.maxHp * 0.45)).
+- resolveAttack uses the supplied first random value for hit and, only on a hit, the second value for critical.
+
+### 9.3 Fixture A authored-source adapter qualification
+
+Fixture A uses actual Ability rows and the exact YBCS `ability_physical_profile` construction. To run the S19 arithmetic on the same authored source, the S19 side uses a direct comparison-only `CombatantStats` projection:
+
+- attack = raw `ability.atr` physical-damage column 36 (zero remains zero; the YBCS unarmed fallback is not copied into S19);
+- defense = raw physical-defence column 37;
+- accuracy/evasion = raw columns 18/19;
+- criticalChance = raw column 20 divided by 100;
+- maxHp = raw Ability HP column 2, used only as S19's required 45% strike-cap input;
+- criticalResistance = neutral control value 0 because no corresponding YBCS field is present;
+- S19 random values = the same Fixture A integer rolls divided by 100.
+
+This is an explicit formula-isolation adapter, not S19 `playerStats`/`enemyStats` construction and not a claim that all 724 old Ability rows have S19 class equivalents. Its use is labelled INPUT_MAPPING in the CSV. The mapping is transparent so the comparison does not silently substitute S19 family tuning for the authored YBCS rows.
+
+Fixture B uses the approved direct controlled-effective YBCS profiles and fully populated S19 CombatantStats values from the Batch 1 spec. S19 maxHp is 200 except P15 (100), exactly as specified. The same per-case RNG values are used by both sides.
+
+### 9.4 Result summary — keep Fixture A and B separate
+
+Final-damage equality is evaluated on the actual single-strike result after hit/miss, critical and caps. Delta is YBCS final damage minus S19 final damage.
+
+| Fixture | Same final damage | Different final damage | Hit outcome same | Critical outcome same |
+|---|---:|---:|---:|---:|
+| A — authored | 6 / 15 | 9 / 15 | 15 / 15 | 15 / 15 |
+| B — controlled | 2 / 15 | 13 / 15 | 14 / 15 | 14 / 15 |
+
+Fixture A final-damage matches: P02, P03, P10, P11, P12, P15. P03/P10/P15 are both misses; their potential damage intermediates are not all equal. The CSV retains those potential values, so a miss does not masquerade as formula equivalence.
+
+Fixture B final-damage matches: P02 and P10. Hit outcomes differ only at P06: YBCS's zero-accuracy special case yields 100% and roll 99 hits; S19 clamps to 65% and random 0.99 misses. Critical outcomes differ only at P12: YBCS's 95% critical cap admits roll 50; S19's 35% cap rejects random 0.50.
+
+All 15 A rows have different numeric hit probabilities (YBCS 95%, S19 97%) but the sampled hit decisions match. Fixture B likewise exposes different hit-probability conversions; only P06 crosses the selected outcome boundary.
+
+### 9.5 Largest differences — per-fixture reporting
+
+Fixture A:
+| Case | YBCS | S19 | Delta | Principal classifications |
+|---|---:|---:|---:|---|
+| P14 | 242 | 67 | +175 | FORMULA, CRITICAL, ROUNDING, CLAMP_CAP, INPUT_MAPPING |
+| P04 | 20 | 2 | +18 | unarmed fallback/defence bypass, critical multiplier, minimum clamp |
+| P05 | 20 | 2 | +18 | unarmed fallback/defence bypass, critical multiplier, minimum clamp |
+
+Fixture B:
+| Case | YBCS | S19 | Delta | Principal classifications |
+|---|---:|---:|---:|---|
+| P15 | 32767 | 45 | +32722 | critical multiplier, i16 versus 45%-HP cap |
+| P12 | 200 | 90 | +110 | critical chance cap/outcome and 45%-HP cap |
+| P13 | 200 | 90 | +110 | critical multiplier and 45%-HP cap |
+
+The next largest controlled difference is P06 (+100), caused by the different zero-accuracy/minimum-hit rules and the sampled hit outcome.
+
+### 9.6 Interpretation and difference classification
+
+- FORMULA: full conditional YBCS defence subtraction versus S19's 0.65 defence effectiveness; plus YBCS unarmed fallback/defence bypass where applicable.
+- HIT_EVASION: the probability conversions differ even when the selected RNG values produce the same hit result.
+- CRITICAL: YBCS x2 versus S19 x1.5, and the 95% versus 35% critical caps.
+- ROUNDING: YBCS integer midpoint/floor and S19 Math.round at post-defence and critical stages.
+- CLAMP_CAP: YBCS minimum 1 / maximum 32767 versus S19 minimum 1 / 45%-of-target-HP single-strike cap.
+- INPUT_MAPPING: Fixture A's comparison-only direct CombatantStats projection described above.
+
+These are quantitative differences between separate offline/reconstruction policies. No result is described as one side being erroneous, and no formula is promoted as the retired retail-server formula.
+
+### 9.7 Preserved evidence gaps and boundary
+
+- The missing elemental-percent lookup-to-magic-resolver caller remains EVIDENCE_GAP.
+- YBCS magic hit and magic critical resolvers remain EVIDENCE_GAP.
+- Those gaps are outside this physical batch and are not filled by inference.
+- No S19 source, tuning, simulator, or class/skill catalog was modified.
+- No raw Set.lib or extracted .atr resource was committed.
+- Batch 3 (magic) and all later work require separate authorization.
