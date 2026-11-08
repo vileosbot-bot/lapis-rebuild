@@ -92,6 +92,44 @@ test('showcase skills preserve authored MP costs but use explicit reconstruction
   assert.equal(Math.floor(balance.playerStats(109).maxMp/poison.mpCost),6);
 });
 
+test('M15 19101 is support-only and cannot enter direct damage resolution',()=>{
+  const attacker=Object.freeze({...balance.playerStats(109),magicAttack:100,magicAccuracy:180,criticalChance:0});
+  const defender=Object.freeze({...balance.enemyStats({level:1,rank:'normal',role:'melee'}),maxHp:100,magicDefense:0,evasion:0,criticalResistance:0});
+  const blind=balance.skill(19101);
+  assert.equal(blind.kind,'magic');
+  assert.equal(blind.damageRoute,'support-only');
+  assert.equal(blind.support?.enemyAccuracyPenalty,0.15);
+  let randomCalls=0;
+  const result=balance.resolveSkillAttack(attacker,defender,19101,()=>{
+    randomCalls+=1;
+    return 0;
+  });
+  assert.deepEqual(result.strikes,[]);
+  assert.equal(result.totalDamage,0);
+  assert.equal(result.dotDamagePerTick,0);
+  assert.equal(result.dotTicks,0);
+  assert.equal(randomCalls,0,'support-only skills must not enter resolveAttack');
+});
+
+test('direct skill routes preserve 1101, 1201 and 19201 damage behavior',()=>{
+  const defender=balance.enemyStats({level:1,rank:'normal',role:'melee'});
+  const cases=[
+    {skillId:1101,attacker:balance.playerStats(100),hits:1,dotTicks:0},
+    {skillId:1201,attacker:balance.playerStats(100),hits:2,dotTicks:0},
+    {skillId:19201,attacker:balance.playerStats(109),hits:1,dotTicks:3},
+  ] as const;
+  for(const sample of cases){
+    assert.equal(balance.skill(sample.skillId).damageRoute,'direct');
+    const result=balance.resolveSkillAttack(sample.attacker,defender,sample.skillId,()=>0);
+    assert.equal(result.strikes.length,sample.hits);
+    assert.ok(result.totalDamage>0, `skill ${sample.skillId} must still deal direct damage`);
+    assert.equal(result.dotTicks,sample.dotTicks);
+    if(sample.skillId===19201)assert.ok(result.dotDamagePerTick>0);
+  }
+  assert.equal(balance.skill(1301).damageRoute,'support-only');
+  assert.equal(balance.skill(19301).damageRoute,'support-only');
+});
+
 test('equipment inputs improve the intended combat axis without changing authored anchors',()=>{
   const baseSword=balance.playerStats(100);
   const gearedSword=balance.playerStats(100,1,{attack:7,defense:2});
