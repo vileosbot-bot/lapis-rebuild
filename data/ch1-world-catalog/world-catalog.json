@@ -1,0 +1,3218 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "ybcs-ch1-world-catalog-prep",
+  "batch": "B1",
+  "evidenceLevel": "RECOVERED_SECONDARY",
+  "runtimeVerified": false,
+  "authority": "offline-secondary-reference-only; no runtime integration",
+  "catalog": {
+    "expectedExplorableMapsFromSourceDocstring": 108,
+    "expectedSameStemTripletBundlesFromSourceDocstring": 111,
+    "catalogBuilderSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L517-L558",
+    "catalogBuilderRequiresLiveResourceEnumeration": true,
+    "totalConfirmedEnumeratedMapIds": null,
+    "full108MemberRosterStatus": "not-recovered",
+    "partialCandidateMapIdCount": 55,
+    "ordinaryMoraIdCount": 49,
+    "additionalS1OnlyMapIdCount": 6,
+    "additionalS1OnlyMapIds": [
+      "map:old:1070",
+      "map:old:1320",
+      "map:old:1330",
+      "map:old:1343",
+      "map:old:1346",
+      "map:old:1352"
+    ],
+    "conditionalUnidentifiedCountIfAllCandidatesAreMembers": 53,
+    "conditionalGapIsNotVerifiedMembership": true,
+    "noSyntheticMapRows": true,
+    "knownPlaceholderIdsFromWorldSource": [
+      453,
+      498,
+      499
+    ],
+    "quarantinedResourceRows": null,
+    "quarantineListStatus": "not-recovered"
+  },
+  "ordinaryMoraPolicy": {
+    "policyId": "old-general-ordinary-world-graph-v2",
+    "rootMapId": "map:old:1000",
+    "maxPageRows": 20,
+    "sourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L54-L75",
+    "mapIds": [
+      "map:old:1000",
+      "map:old:1005",
+      "map:old:1010",
+      "map:old:1020",
+      "map:old:1027",
+      "map:old:1030",
+      "map:old:1040",
+      "map:old:1045",
+      "map:old:1050",
+      "map:old:1060",
+      "map:old:1090",
+      "map:old:1100",
+      "map:old:1200",
+      "map:old:1300",
+      "map:old:1310",
+      "map:old:1340",
+      "map:old:1341",
+      "map:old:1342",
+      "map:old:1345",
+      "map:old:1353",
+      "map:old:1361",
+      "map:old:1363",
+      "map:old:1365",
+      "map:old:1367",
+      "map:old:1368",
+      "map:old:1369",
+      "map:old:1371",
+      "map:old:1373",
+      "map:old:1381",
+      "map:old:1383",
+      "map:old:1500",
+      "map:old:1501",
+      "map:old:1502",
+      "map:old:1503",
+      "map:old:1504",
+      "map:old:2000",
+      "map:old:2100",
+      "map:old:2200",
+      "map:old:2300",
+      "map:old:2400",
+      "map:old:2450",
+      "map:old:2550",
+      "map:old:2600",
+      "map:old:2800",
+      "map:old:2900",
+      "map:old:2950",
+      "map:old:3000",
+      "map:old:3001",
+      "map:old:3002"
+    ],
+    "caution": "49 ordinary-Mora IDs are a route-policy whitelist, not the 108-map exploration roster and not an adjacency list"
+  },
+  "s1Crosswalk": {
+    "sourcePath": "docs/integration-notes/s1-encounter-binding-crosswalk.csv",
+    "gitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+    "recordCount": 63,
+    "wildRecordCount": 35,
+    "storyRecordCount": 28,
+    "distinctMapIds": 27,
+    "chapterDistribution": {
+      "1": {
+        "records": 6,
+        "wild": 3,
+        "story": 3,
+        "distinctMapCount": 4
+      },
+      "2": {
+        "records": 9,
+        "wild": 6,
+        "story": 3,
+        "distinctMapCount": 2
+      },
+      "3": {
+        "records": 5,
+        "wild": 1,
+        "story": 4,
+        "distinctMapCount": 3
+      },
+      "4": {
+        "records": 5,
+        "wild": 1,
+        "story": 4,
+        "distinctMapCount": 3
+      },
+      "5": {
+        "records": 5,
+        "wild": 3,
+        "story": 2,
+        "distinctMapCount": 2
+      },
+      "6": {
+        "records": 2,
+        "wild": 0,
+        "story": 2,
+        "distinctMapCount": 2
+      },
+      "7": {
+        "records": 3,
+        "wild": 0,
+        "story": 3,
+        "distinctMapCount": 1
+      },
+      "8": {
+        "records": 3,
+        "wild": 0,
+        "story": 3,
+        "distinctMapCount": 3
+      },
+      "9": {
+        "records": 1,
+        "wild": 0,
+        "story": 1,
+        "distinctMapCount": 1
+      },
+      "10": {
+        "records": 2,
+        "wild": 0,
+        "story": 2,
+        "distinctMapCount": 2
+      },
+      "UNKNOWN": {
+        "records": 22,
+        "wild": 21,
+        "story": 1,
+        "distinctMapCount": 5
+      }
+    },
+    "chapter1CoreMapIds": [
+      "map:old:1030",
+      "map:old:1060",
+      "map:old:1070",
+      "map:old:1090"
+    ],
+    "chapter2CrossReferenceMapIds": [
+      "map:old:1040",
+      "map:old:1045"
+    ],
+    "chapterLabelSource": "S1 crosswalk rather than map-wire numeric inference"
+  },
+  "mapCandidates": [
+    {
+      "mapId": "map:old:1000",
+      "mapWire": 1000,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L69",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": {
+        "x": 144,
+        "y": 248,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L90",
+        "validationStatus": "not-recovered",
+        "authority": "audited-offline-mora-candidate-only"
+      },
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L69",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1005",
+      "mapWire": 1005,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L69",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L69",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1010",
+      "mapWire": 1010,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L69",
+      "chapterRelations": [
+        "UNKNOWN"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-F-010",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22010",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1029-L1046; entity_id=22010; name=普罗首领R",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-011",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22710",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1047-L1064; entity_id=22710; name=格林普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-012",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22711",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1065-L1083; entity_id=22711; name=普罗首领R",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-013",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22012",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1084-L1102; entity_id=22012; name=格林普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-014",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22013",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1103-L1121; entity_id=22013; name=普罗首领R",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-015",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22014",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1122-L1140; entity_id=22014; name=格林普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L69",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1029-L1046; entity_id=22010; name=普罗首领R",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1047-L1064; entity_id=22710; name=格林普罗",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1065-L1083; entity_id=22711; name=普罗首领R",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1084-L1102; entity_id=22012; name=格林普罗",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1103-L1121; entity_id=22013; name=普罗首领R",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1122-L1140; entity_id=22014; name=格林普罗"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-F-010",
+            "B1-F-011",
+            "B1-F-012",
+            "B1-F-013",
+            "B1-F-014",
+            "B1-F-015"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1020",
+      "mapWire": 1020,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L69",
+      "chapterRelations": [
+        "UNKNOWN"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-F-016",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22020",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1141-L1158; entity_id=22020; name=普罗首领B",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-017",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22720",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1159-L1176; entity_id=22720; name=雷德普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-018",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22721",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1177-L1195; entity_id=22721; name=普罗首领B",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-019",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22022",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1196-L1214; entity_id=22022; name=雷德普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-020",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22023",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1215-L1233; entity_id=22023; name=普罗首领B",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-021",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22024",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1234-L1252; entity_id=22024; name=雷德普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L69",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1141-L1158; entity_id=22020; name=普罗首领B",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1159-L1176; entity_id=22720; name=雷德普罗",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1177-L1195; entity_id=22721; name=普罗首领B",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1196-L1214; entity_id=22022; name=雷德普罗",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1215-L1233; entity_id=22023; name=普罗首领B",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1234-L1252; entity_id=22024; name=雷德普罗"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-F-016",
+            "B1-F-017",
+            "B1-F-018",
+            "B1-F-019",
+            "B1-F-020",
+            "B1-F-021"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1027",
+      "mapWire": 1027,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L69",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L69",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1030",
+      "mapWire": 1030,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L69",
+      "chapterRelations": [
+        "1"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-F-001",
+          "chapter": "1",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22030",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1531-L1548; entity_id=22030; name=麻黄草",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "UNRESOLVED_IDENTITY"
+        },
+        {
+          "rowId": "B1-S-001",
+          "chapter": "1",
+          "encounterType": "STORY",
+          "eventId": "story-source:1",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L1715-L1786; STORY_ONE_CASTLE_GATE_ZONE_ID=1; entity_id=22608",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "MATCH"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L69",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1531-L1548; entity_id=22030; name=麻黄草",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L1715-L1786; STORY_ONE_CASTLE_GATE_ZONE_ID=1; entity_id=22608"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-F-001",
+            "B1-S-001"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1040",
+      "mapWire": 1040,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L69",
+      "chapterRelations": [
+        "2"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-F-004",
+          "chapter": "2",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22040",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1253-L1270; entity_id=22040; name=普罗首领G",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-005",
+          "chapter": "2",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22740",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1271-L1288; entity_id=22740; name=布鲁普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-006",
+          "chapter": "2",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22741",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1289-L1307; entity_id=22741; name=普罗首领G",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-007",
+          "chapter": "2",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22042",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1308-L1326; entity_id=22042; name=布鲁普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-008",
+          "chapter": "2",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22043",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1327-L1345; entity_id=22043; name=普罗首领G",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-009",
+          "chapter": "2",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22044",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1346-L1364; entity_id=22044; name=布鲁普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-S-004",
+          "chapter": "2",
+          "encounterType": "STORY",
+          "eventId": "story-source:11",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L1956-L2006; STORY_TWO_FORTRESS_GATE_ZONE_ID=11; entity_id=22611",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-S-006",
+          "chapter": "2",
+          "encounterType": "STORY",
+          "eventId": "story-source:15",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2058-L2103; STORY_TWO_FORTRESS_ZONE_ID=15; entity_id=22611",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L69",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1253-L1270; entity_id=22040; name=普罗首领G",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1271-L1288; entity_id=22740; name=布鲁普罗",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1289-L1307; entity_id=22741; name=普罗首领G",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1308-L1326; entity_id=22042; name=布鲁普罗",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1327-L1345; entity_id=22043; name=普罗首领G",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1346-L1364; entity_id=22044; name=布鲁普罗",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L1956-L2006; STORY_TWO_FORTRESS_GATE_ZONE_ID=11; entity_id=22611",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2058-L2103; STORY_TWO_FORTRESS_ZONE_ID=15; entity_id=22611"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-F-004",
+            "B1-F-005",
+            "B1-F-006",
+            "B1-F-007",
+            "B1-F-008",
+            "B1-F-009",
+            "B1-S-004",
+            "B1-S-006"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1045",
+      "mapWire": 1045,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L69",
+      "chapterRelations": [
+        "2"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-S-005",
+          "chapter": "2",
+          "encounterType": "STORY",
+          "eventId": "story-source:13",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2018-L2057; STORY_TWO_VALLEY_ZONE_ID=13; entity_id=22611",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L69",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2018-L2057; STORY_TWO_VALLEY_ZONE_ID=13; entity_id=22611"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-S-005"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1050",
+      "mapWire": 1050,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L69",
+      "chapterRelations": [
+        "UNKNOWN"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-F-022",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22050",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1365-L1382; entity_id=22050; name=花蛇",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-023",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22750",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1383-L1400; entity_id=22750; name=蛇",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-024",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22751",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1401-L1419; entity_id=22751; name=花蛇",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-025",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22052",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1420-L1438; entity_id=22052; name=蛇",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-026",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22053",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1439-L1457; entity_id=22053; name=花蛇",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-027",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22054",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1458-L1476; entity_id=22054; name=蛇",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L69",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1365-L1382; entity_id=22050; name=花蛇",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1383-L1400; entity_id=22750; name=蛇",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1401-L1419; entity_id=22751; name=花蛇",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1420-L1438; entity_id=22052; name=蛇",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1439-L1457; entity_id=22053; name=花蛇",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1458-L1476; entity_id=22054; name=蛇"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-F-022",
+            "B1-F-023",
+            "B1-F-024",
+            "B1-F-025",
+            "B1-F-026",
+            "B1-F-027"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1060",
+      "mapWire": 1060,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L69",
+      "chapterRelations": [
+        "1"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-F-002",
+          "chapter": "1",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22060",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1549-L1566; entity_id=22060; name=蛇",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L69",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1549-L1566; entity_id=22060; name=蛇"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-F-002"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1070",
+      "mapWire": 1070,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": false,
+      "ordinaryMoraSourceLocator": null,
+      "chapterRelations": [
+        "1"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-S-002",
+          "chapter": "1",
+          "encounterType": "STORY",
+          "eventId": "story-source:3",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L1790-L1838; STORY_ONE_DUNGEON_ZONE_ID=3; entity_id=22608",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "MATCH"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L1790-L1838; STORY_ONE_DUNGEON_ZONE_ID=3; entity_id=22608"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-S-002"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1090",
+      "mapWire": 1090,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L70",
+      "chapterRelations": [
+        "1"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-F-003",
+          "chapter": "1",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22090",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1567-L1584; entity_id=22090; name=野生草",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "UNRESOLVED_IDENTITY"
+        },
+        {
+          "rowId": "B1-S-003",
+          "chapter": "1",
+          "encounterType": "STORY",
+          "eventId": "story-source:7",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L1877-L1946; STORY_ONE_PALACE_ZONE_ID=7; entity_id=22608",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "MATCH"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L70",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1567-L1584; entity_id=22090; name=野生草",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L1877-L1946; STORY_ONE_PALACE_ZONE_ID=7; entity_id=22608"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-F-003",
+            "B1-S-003"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1100",
+      "mapWire": 1100,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L70",
+      "chapterRelations": [
+        "UNKNOWN"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-S-007",
+          "chapter": "UNKNOWN",
+          "encounterType": "STORY",
+          "eventId": "story-source:9",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L1844-L1873; ABANDONED_MINE_DUEL_ZONE_ID=9; entity_id=22618",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "UNRESOLVED_IDENTITY"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": {
+        "x": 57,
+        "y": 79,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L91",
+        "validationStatus": "not-recovered",
+        "authority": "audited-offline-mora-candidate-only"
+      },
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L70",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L1844-L1873; ABANDONED_MINE_DUEL_ZONE_ID=9; entity_id=22618"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-S-007"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1200",
+      "mapWire": 1200,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L70",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L70",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1300",
+      "mapWire": 1300,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L70",
+      "chapterRelations": [
+        "UNKNOWN"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B1-F-028",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22300",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1477-L1494; entity_id=22300; name=雷德普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-029",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22301",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1495-L1512; entity_id=22301; name=格林普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B1-F-030",
+          "chapter": "UNKNOWN",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22302",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1513-L1530; entity_id=22302; name=布鲁普罗",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L70",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1477-L1494; entity_id=22300; name=雷德普罗",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1495-L1512; entity_id=22301; name=格林普罗",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1513-L1530; entity_id=22302; name=布鲁普罗"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B1-F-028",
+            "B1-F-029",
+            "B1-F-030"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1310",
+      "mapWire": 1310,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L70",
+      "chapterRelations": [
+        "3"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B2-F-001",
+          "chapter": "3",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22400",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1585-L1603; entity_id=22400; name=斯塔克",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B2-S-001",
+          "chapter": "3",
+          "encounterType": "STORY",
+          "eventId": "story-source:21",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2118-L2157; STORY_THREE_BORDER_ZONE_ID=21; entity_id=22612",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L70",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1585-L1603; entity_id=22400; name=斯塔克",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2118-L2157; STORY_THREE_BORDER_ZONE_ID=21; entity_id=22612"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B2-F-001",
+            "B2-S-001"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1320",
+      "mapWire": 1320,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": false,
+      "ordinaryMoraSourceLocator": null,
+      "chapterRelations": [
+        "3"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B2-S-002",
+          "chapter": "3",
+          "encounterType": "STORY",
+          "eventId": "story-source:23",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2158-L2194; STORY_THREE_OUTER_LINE_ZONE_ID=23; entity_id=22612",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B2-S-003",
+          "chapter": "3",
+          "encounterType": "STORY",
+          "eventId": "story-source:25",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2195-L2231; STORY_THREE_INNER_LINE_ZONE_ID=25; entity_id=22612",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2158-L2194; STORY_THREE_OUTER_LINE_ZONE_ID=23; entity_id=22612",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2195-L2231; STORY_THREE_INNER_LINE_ZONE_ID=25; entity_id=22612"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B2-S-002",
+            "B2-S-003"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1330",
+      "mapWire": 1330,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": false,
+      "ordinaryMoraSourceLocator": null,
+      "chapterRelations": [
+        "3"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B2-S-004",
+          "chapter": "3",
+          "encounterType": "STORY",
+          "eventId": "story-source:27",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2232-L2285; STORY_THREE_HEADQUARTERS_ZONE_ID=27; entity_id=22612",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2232-L2285; STORY_THREE_HEADQUARTERS_ZONE_ID=27; entity_id=22612"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B2-S-004"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1340",
+      "mapWire": 1340,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L70",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L70",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1341",
+      "mapWire": 1341,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L70",
+      "chapterRelations": [
+        "4"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B2-F-002",
+          "chapter": "4",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22401",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1605-L1623; entity_id=22401; name=斯塔克B",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B2-S-005",
+          "chapter": "4",
+          "encounterType": "STORY",
+          "eventId": "story-source:31",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2286-L2323; STORY_FOUR_FIRST_FORMATION_ZONE_ID=31; entity_id=22613",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L70",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1605-L1623; entity_id=22401; name=斯塔克B",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2286-L2323; STORY_FOUR_FIRST_FORMATION_ZONE_ID=31; entity_id=22613"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B2-F-002",
+            "B2-S-005"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1342",
+      "mapWire": 1342,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L70",
+      "chapterRelations": [
+        "4"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B2-S-006",
+          "chapter": "4",
+          "encounterType": "STORY",
+          "eventId": "story-source:33",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2324-L2362; STORY_FOUR_SECOND_FORMATION_ZONE_ID=33; entity_id=22613",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B2-S-007",
+          "chapter": "4",
+          "encounterType": "STORY",
+          "eventId": "story-source:35",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2363-L2401; STORY_FOUR_THIRD_FORMATION_ZONE_ID=35; entity_id=22613",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L70",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2324-L2362; STORY_FOUR_SECOND_FORMATION_ZONE_ID=33; entity_id=22613",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2363-L2401; STORY_FOUR_THIRD_FORMATION_ZONE_ID=35; entity_id=22613"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B2-S-006",
+            "B2-S-007"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1343",
+      "mapWire": 1343,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": false,
+      "ordinaryMoraSourceLocator": null,
+      "chapterRelations": [
+        "4"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B2-S-008",
+          "chapter": "4",
+          "encounterType": "STORY",
+          "eventId": "story-source:37",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2402-L2459; STORY_FOUR_FINAL_FORMATION_ZONE_ID=37; entity_id=22613",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2402-L2459; STORY_FOUR_FINAL_FORMATION_ZONE_ID=37; entity_id=22613"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B2-S-008"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1345",
+      "mapWire": 1345,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L70",
+      "chapterRelations": [
+        "5"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B3-F-001",
+          "chapter": "5",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22402",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1625-L1644; map:old:1345; entity_id=22402; model_id=4015",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B3-F-002",
+          "chapter": "5",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22403",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1645-L1664; map:old:1345; entity_id=22403; model_id=4016",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B3-F-003",
+          "chapter": "5",
+          "encounterType": "WILD",
+          "eventId": "world-entity:22404",
+          "ybcsSourceLocator": "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1670-L1701; map:old:1345; entity_id=22404; model_id=4016; reinforcement model_id=4015; YB-341 offline-policy comment",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B3-S-001",
+          "chapter": "5",
+          "encounterType": "STORY",
+          "eventId": "story-source:41",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2460-L2503; STORY_FIVE_FORTRESS_ENTRY_ZONE_ID=41; source_id=41; entity_id=22614",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L70",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1625-L1644; map:old:1345; entity_id=22402; model_id=4015",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1645-L1664; map:old:1345; entity_id=22403; model_id=4016",
+            "YBCS_OFFLINE_FIELD_ENCOUNTERS:L1670-L1701; map:old:1345; entity_id=22404; model_id=4016; reinforcement model_id=4015; YB-341 offline-policy comment",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2460-L2503; STORY_FIVE_FORTRESS_ENTRY_ZONE_ID=41; source_id=41; entity_id=22614"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B3-F-001",
+            "B3-F-002",
+            "B3-F-003",
+            "B3-S-001"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1346",
+      "mapWire": 1346,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": false,
+      "ordinaryMoraSourceLocator": null,
+      "chapterRelations": [
+        "5"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B3-S-002",
+          "chapter": "5",
+          "encounterType": "STORY",
+          "eventId": "story-source:43",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2504-L2555; STORY_FIVE_HEADQUARTERS_ZONE_ID=43; source_id=43; entity_id=22614",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2504-L2555; STORY_FIVE_HEADQUARTERS_ZONE_ID=43; source_id=43; entity_id=22614"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B3-S-002"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1352",
+      "mapWire": 1352,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": false,
+      "ordinaryMoraSourceLocator": null,
+      "chapterRelations": [
+        "6"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B3-S-004",
+          "chapter": "6",
+          "encounterType": "STORY",
+          "eventId": "story-source:53",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2604-L2653; STORY_SIX_INNER_SHRINE_ZONE_ID=53; source_id=53; entity_id=22609; prerequisite source 51",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2604-L2653; STORY_SIX_INNER_SHRINE_ZONE_ID=53; source_id=53; entity_id=22609; prerequisite source 51"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B3-S-004"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1353",
+      "mapWire": 1353,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L70",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L70",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1361",
+      "mapWire": 1361,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L71",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": {
+        "x": 15,
+        "y": 55,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L92",
+        "validationStatus": "not-recovered",
+        "authority": "audited-offline-mora-candidate-only"
+      },
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L71",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1363",
+      "mapWire": 1363,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L71",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L71",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1365",
+      "mapWire": 1365,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L71",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L71",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1367",
+      "mapWire": 1367,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L71",
+      "chapterRelations": [
+        "8"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B4-S-004",
+          "chapter": "8",
+          "encounterType": "STORY",
+          "eventId": "story-source:71",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2784-L2821; STORY_EIGHT_DEATH_ISLAND_ZONE_ID=71; source_id=71; entity_id=22610",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": {
+        "x": 34,
+        "y": 112,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L93",
+        "validationStatus": "not-recovered",
+        "authority": "audited-offline-mora-candidate-only"
+      },
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L71",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2784-L2821; STORY_EIGHT_DEATH_ISLAND_ZONE_ID=71; source_id=71; entity_id=22610"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B4-S-004"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1368",
+      "mapWire": 1368,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L71",
+      "chapterRelations": [
+        "8"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B4-S-005",
+          "chapter": "8",
+          "encounterType": "STORY",
+          "eventId": "story-source:73",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2837-L2883; STORY_EIGHT_FORTRESS_ZONE_ID=73; source_id=73; entity_id=22610",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L71",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2837-L2883; STORY_EIGHT_FORTRESS_ZONE_ID=73; source_id=73; entity_id=22610"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B4-S-005"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1369",
+      "mapWire": 1369,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L71",
+      "chapterRelations": [
+        "8"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B4-S-006",
+          "chapter": "8",
+          "encounterType": "STORY",
+          "eventId": "story-source:75",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2889-L2930; STORY_EIGHT_CAPTAIN_ZONE_ID=75; source_id=75; entity_id=22610",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L71",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2889-L2930; STORY_EIGHT_CAPTAIN_ZONE_ID=75; source_id=75; entity_id=22610"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B4-S-006"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1371",
+      "mapWire": 1371,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L71",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L71",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1373",
+      "mapWire": 1373,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L71",
+      "chapterRelations": [
+        "9"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B5-S-001",
+          "chapter": "9",
+          "encounterType": "STORY",
+          "eventId": "story-source:81",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2938-L2981; entity expression at L2940; STORY_NINE_SICILY_ZONE_ID=81; source_id=81; computed entity_id=22611",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": {
+        "x": 17,
+        "y": 3,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L94",
+        "validationStatus": "not-recovered",
+        "authority": "audited-offline-mora-candidate-only"
+      },
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L71",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2938-L2981; entity expression at L2940; STORY_NINE_SICILY_ZONE_ID=81; source_id=81; computed entity_id=22611"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B5-S-001"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1381",
+      "mapWire": 1381,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L71",
+      "chapterRelations": [
+        "10"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B5-S-002",
+          "chapter": "10",
+          "encounterType": "STORY",
+          "eventId": "story-source:91",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2988-L3026; entity expression at L2990; STORY_TEN_LAKE_ZONE_ID=91; source_id=91; computed entity_id=22612",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L71",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2988-L3026; entity expression at L2990; STORY_TEN_LAKE_ZONE_ID=91; source_id=91; computed entity_id=22612"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B5-S-002"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1383",
+      "mapWire": 1383,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L71",
+      "chapterRelations": [
+        "10"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B5-S-003",
+          "chapter": "10",
+          "encounterType": "STORY",
+          "eventId": "story-source:93",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L3031-L3065; entity expression at L3033; STORY_TEN_CASTLE_ZONE_ID=93; source_id=93; computed entity_id=22613",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L71",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L3031-L3065; entity expression at L3033; STORY_TEN_CASTLE_ZONE_ID=93; source_id=93; computed entity_id=22613"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B5-S-003"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1500",
+      "mapWire": 1500,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L72",
+      "chapterRelations": [
+        "6",
+        "7"
+      ],
+      "s1CrosswalkReferences": [
+        {
+          "rowId": "B3-S-003",
+          "chapter": "6",
+          "encounterType": "STORY",
+          "eventId": "story-source:51",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2556-L2603; STORY_SIX_SHRINE_ZONE_ID=51; source_id=51; entity_id=22609; server_driven_story_trigger default False",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B4-S-001",
+          "chapter": "7",
+          "encounterType": "STORY",
+          "eventId": "story-source:61",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2654-L2693; STORY_SEVEN_ZONE_ID=61; source_id=61; entity_id=22610",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B4-S-002",
+          "chapter": "7",
+          "encounterType": "STORY",
+          "eventId": "story-source:63",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2699-L2731; STORY_SEVEN_SHIP_AMBUSH_ZONE_ID=63; source_id=63; entity_id=22610",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        },
+        {
+          "rowId": "B4-S-003",
+          "chapter": "7",
+          "encounterType": "STORY",
+          "eventId": "story-source:65",
+          "ybcsSourceLocator": "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2735-L2775; STORY_SEVEN_CAPTAIN_ZONE_ID=65; source_id=65; entity_id=22610",
+          "ybcsSourcePath": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "s1ReviewStatus": "NO_LAPIS_BINDING"
+        }
+      ],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L72",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": [
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2556-L2603; STORY_SIX_SHRINE_ZONE_ID=51; source_id=51; entity_id=22609; server_driven_story_trigger default False",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2654-L2693; STORY_SEVEN_ZONE_ID=61; source_id=61; entity_id=22610",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2699-L2731; STORY_SEVEN_SHIP_AMBUSH_ZONE_ID=63; source_id=63; entity_id=22610",
+            "_YBCS_OFFLINE_STORY_BATTLE_DEFINITIONS:L2735-L2775; STORY_SEVEN_CAPTAIN_ZONE_ID=65; source_id=65; entity_id=22610"
+          ],
+          "crosswalkGitBlobSha1": "141e6abbbecc62baf86e0d20fdd8cbfa008f4ef3",
+          "crosswalkRowIds": [
+            "B3-S-003",
+            "B4-S-001",
+            "B4-S-002",
+            "B4-S-003"
+          ],
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1501",
+      "mapWire": 1501,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L72",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": {
+        "x": 29,
+        "y": 55,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L98",
+        "validationStatus": "not-recovered",
+        "authority": "audited-offline-mora-candidate-only"
+      },
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L72",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1502",
+      "mapWire": 1502,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L72",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L72",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1503",
+      "mapWire": 1503,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L72",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L72",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:1504",
+      "mapWire": 1504,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L72",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L72",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2000",
+      "mapWire": 2000,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L72",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L72",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2100",
+      "mapWire": 2100,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L72",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L72",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2200",
+      "mapWire": 2200,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L72",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L72",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2300",
+      "mapWire": 2300,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L72",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L72",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2400",
+      "mapWire": 2400,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L72",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L72",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2450",
+      "mapWire": 2450,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L73",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L73",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2550",
+      "mapWire": 2550,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L73",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L73",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2600",
+      "mapWire": 2600,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L73",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L73",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2800",
+      "mapWire": 2800,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L73",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L73",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2900",
+      "mapWire": 2900,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L73",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L73",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:2950",
+      "mapWire": 2950,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L73",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L73",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:3000",
+      "mapWire": 3000,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L73",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L73",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:3001",
+      "mapWire": 3001,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L73",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L73",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "mapId": "map:old:3002",
+      "mapWire": 3002,
+      "evidenceScope": "candidate-map-identity-not-validated-catalog-membership",
+      "catalogMembershipStatus": "not-recovered",
+      "ordinaryMoraIncluded": true,
+      "ordinaryMoraSourceLocator": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py:L73",
+      "chapterRelations": [],
+      "s1CrosswalkReferences": [],
+      "zoneName": null,
+      "zoneNameStatus": "not-recovered",
+      "resourceBundle": {
+        "imf": null,
+        "smf": null,
+        "mmf": null,
+        "perMapFileHashesStatus": "not-recovered",
+        "resourceValidationStatus": "not-recovered"
+      },
+      "explorationSpawn": null,
+      "explorationSpawnStatus": "not-recovered",
+      "auditedOfflineMoraOverrideCandidate": null,
+      "physicalAdjacencyStatus": "not-recovered",
+      "sourceReferences": [
+        {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS:L73",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        }
+      ],
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    }
+  ],
+  "evidenceGaps": [
+    {
+      "kind": "catalog-roster",
+      "status": "not-recovered",
+      "description": "Cannot identify the exact 108 validated catalog map wires without enumerating SGRes/sz-*.imf. 55 source-named candidates are not 55 validated catalog members."
+    },
+    {
+      "kind": "localized-zone-names",
+      "status": "not-recovered",
+      "description": "Set.lib::zone_name.txt bytes not present in this worker execution surface; no names invented."
+    },
+    {
+      "kind": "per-map-resource-validity",
+      "status": "not-recovered",
+      "description": "MMF/SMF/IMF bytes not present; per-map validity, spawn components and quarantine list not determined."
+    },
+    {
+      "kind": "physical-adjacency",
+      "status": "not-recovered",
+      "description": "Catalog route pages and numeric region grouping never imply physical adjacency."
+    }
+  ]
+}
