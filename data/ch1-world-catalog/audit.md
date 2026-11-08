@@ -88,3 +88,78 @@ The 453/498/499 values at source L61 are only `_KNOWN_PLACEHOLDER_MAPS`, **not**
 
 ## Repository scope
 Only `data/ch1-world-catalog/world-catalog.json` and this `data/ch1-world-catalog/audit.md` are new in the B1 checkpoint. The remaining four files in the approved six-file deliverable are reserved for future batches. Original .lib/.imf/.mmf/.smf/.txt resources are never committed.
+
+## B2 — 108-map owner-local builder roster recovery (owner adjudication, 2026-11-08)
+
+### Attribution and fixed source boundary
+
+- **Source channel: 总管本地运行，本会话未重跑**.
+- Exact attribution on every validated member: **总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑**.
+- Producer: `src/legacy_gui_runtime/ybcs_offline_world_catalog.py` (`build_old_offline_world_catalog(root)` lines **517–558**), source file SHA-256 `34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703`. This SHA-256 identifies the **Python source file**, **not** an exported builder-run result file (no result-file SHA-256 was supplied).
+- Input root `extracted/`; original client was **not run** by this worker or the builder.
+- Owner-local builder outcome: **111 installed / 108 explorable / 3 quarantined**. All figures are from the owner's execution, not this worker's filesystem.
+- All B2 records retain `evidenceLevel=RECOVERED_SECONDARY`, `runtimeVerified=false`. `catalogMembershipStatus=validated` means **validated in the owner-local static builder run**, not VERIFIED retail/runtime evidence.
+
+### Full membership and B1 reconciliation
+
+| Measure | B1 checkpoint | B2 owner-local builder result |
+|---|---:|---:|
+| Source-named candidate map IDs | 55 | 55 preserved |
+| Newly identified catalog map IDs | 0 | **53** |
+| Identified complete explorable map members | not-recovered | **108** |
+| Runtime proof of original-client behavior | none | none |
+| Map names & safe-cell counts | not-recovered | **108 supplied** |
+| Regions | not-recovered | **8 groups + root page** |
+| Quarantine | not-recovered | **3 rows** |
+
+B2 supersedes B1's historical conditional `108-55=53` unknown-count discussion: the owner supplied a **full explicit 108-row enumerated builder output**; the previous 55 IDs all occur in the supplied 108 entries, and 53 additional member IDs were added. There are no synthetic numbered placeholders. Previously recorded S1 row IDs, chapter relations, ordinary-Mora membership and audited override **candidates** are preserved without changing their independent evidence semantics.
+
+### Owner-provided regions (region key / zone title / membership)
+
+| Key | Owner-local title | Maps |
+|---|---|---:|
+| `story-west` | 剧情场景·西线 | 18 |
+| `story-east` | 剧情场景·东线 | 11 |
+| `arena-event` | 竞技与活动场景 | 14 |
+| `mainland-south` | 大陆南部 | 17 |
+| `mainland-north` | 大陆北部 | 12 |
+| `islands-west` | 群岛与港口·西 | 12 |
+| `islands-east` | 群岛与港口·东 | 8 |
+| `city-services` | 城市设施与小游戏 | 15 |
+
+Separate root page: `map:old:1000` / `卡奥斯_村庄`, **one root map, not a region member**. Region membership totals **107**, plus root **1**, yields **108**. The eight region groups reflect the builder's paging/catalog grouping, **not** physical road connectivity.
+
+### Quarantine (excluded from all 108 members)
+
+| mapWire | Builder quarantine reason |
+|---:|---|
+| 453 | `ValueError: truncated SMF data` |
+| 498 | `ValueError: truncated SMF data` |
+| 499 | `ValueError: truncated SMF data` |
+
+The three map wires match `_KNOWN_PLACEHOLDER_MAPS` at source line 61. Reasons and membership come from **总管本地运行，本会话未重跑**, not from this worker opening those SMF bytes. The top-level JSON `quarantine` array holds separate records and those three wires are excluded from `mapCandidates`.
+
+### Preserve anomalies and not-recovered dimensions
+
+- Map `400`, `401`, `402`, `403`: all use the identical builder-returned name `卡日_葛罗坎_纱坦_出没地图`; keep four separate map IDs.
+- Map `406`/`407`/`408` have names `旧地图 0406` / `旧地图 0407` / `旧地图 0408`; map `1027` is `旧地图 1027`. No inferred replacement names.
+- Map `1501` has **safeCellCount=0**, preserved literally. A source `_AUDITED_SPAWN_OVERRIDES` candidate exists for this ID but the B2 table did not supply the builder's actual spawn; `explorationSpawn=null` remains.
+- No B2 per-map `spawn`, `componentSize`, `sparseClearance`, MMF/SMF/IMF file bytes, or per-file hashes were provided. All such fields stay `not-recovered`.
+- `zoneName` is taken from the **owner-supplied builder output**; this worker has not read `Set.lib::zone_name.txt` or claimed to reproduce its decoding.
+- Catalog membership and safe-cell counts are source-backed static **secondary evidence**, not a retail-authoritative map-warp policy.
+
+### B2 acceptance checks
+
+- Supplied rows: **108**, unique mapWire: **108**, sorted ascending: **yes**.
+- Existing B1 candidate rows: **55/55** retained, original S1 crosswalk/ordinary-Mora/override/source references preserved: **yes**.
+- Added rows: **53**.
+- Regional membership: **107** across eight groups (18 / 11 / 14 / 17 / 12 / 12 / 8 / 15); root: **1**.
+- Quarantined: **3** and none overlaps a catalog member.
+- Ordinary Mora whitelist remains **49**, unchanged.
+- B2 validated map rows with `RECOVERED_SECONDARY`, `runtimeVerified=false`, `catalogMembershipStatus=validated`: **108/108**.
+- Cross-file JSON parse and source provenance checks: **passed**.
+- No original resources imported, no game runtime touched, no PR/merge in B2.
+
+### Scope for next batches
+
+B2 includes exact owner-local membership, zone name, safe-cell count and region data only. Route/gates, NPC placements and Quest policy remain delegated to B4+ and need independent supplied evidence. The B1 section above remains a historical checkpoint; any earlier `not-recovered` roster statements therein describe **B1**, not the superseding **B2** result.
