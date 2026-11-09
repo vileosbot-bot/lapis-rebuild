@@ -486,3 +486,122 @@ All YBCS-derived evidence remains `RECOVERED_SECONDARY`; all runtime flags remai
 - Door marker coordinate comparison and 79 route approach geometries: **not-recovered** because B4-2 does not supply those coordinates.
 - No retail placement identity is claimed; all evidence remains `RECOVERED_SECONDARY`, all runtime flags remain `false`.
 - B5-A/B5-B only. No B6, no PR, no merge, no changes to the primary repository, and no runtime/gameplay integration.
+
+## B6 — Quest1–8 offline Quest policy
+
+### Scope and evidence boundary
+
+- Repository: vileosbot-bot/lapis-rebuild
+- Branch: data/ch1-world-catalog
+- Parent baseline: da154e72042f135d45aae4827ff62df8884c0ea7
+- Scope: Quest1–8 only; Quest0, Quest9 and NPCScript program47 remain deferred.
+- Outputs: data/ch1-world-catalog/quest-policy.json and quest-policy.ts; this B6 section is appended to audit.md.
+- No changes to B1/B2/B4/B5 accepted data files; no PR, merge, main update, rebase, force update, deployment or runtime gameplay execution.
+- All B6 records: RECOVERED_SECONDARY; runtimeVerified=false. VERIFIED record count: 0.
+
+Quest policy is a conservative offline representation of resource markers. It does not implement server-side acceptance, conditions, completion, recruitment, rewards, warp, battle, save or network behavior.
+
+### Source identity and anchors
+
+| Source | Size / lines | SHA-256 |
+|---|---:|---|
+| Quest.lib | 21,205 bytes | 23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397 |
+| ybcs_quest_runtime.py | 679 lines | b4f6e6f968a3e2cf3b203f52ba60698df60cba578d47162c88c4b710c4a11d0d |
+| ybcs_offline_npc_placements.py | 613 lines | 16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1 |
+| lapis_lib.py | 140 lines | f742e0f8d6425bed20118a3e69bac1041943efc31262e078cc3679b8e4bbfcae |
+| pkware_blast.py | 250 lines | 8500511a4017742bc8a3271aff7013b7cac0c369ca75575c9d8136d4d7239e00 |
+
+Quest runtime source anchors: _parse_script_lines L182; parse_quest_script L217; _first_numeric_actor L276; build_quest_chain L347-L437; build_dataset L438. The Quest1-specific NAME 100 example in the build_quest_chain docstring at L378 is not generalized. Each B6 marker carries the Actor token read from its own S4 marker record.
+
+Quest.lib member offsets were cross-checked against the approved S4 archive inventory:
+
+| Quest member | Archive member offset |
+|---|---:|
+| Quest1.TXT | 8956 |
+| Quest2.TXT | 9631 |
+| Quest3.TXT | 10547 |
+| Quest4.TXT | 11378 |
+| Quest5.TXT | 12221 |
+| Quest6.TXT | 12980 |
+| Quest7.TXT | 13765 |
+| Quest8.TXT | 14640 |
+
+### S4 source dataset and count definitions
+
+- S4 file: docs/integration-notes/s4-quest-recruit-data.json; Git blob: 5621cdee4a020c8648add1d82f26247a0c064374.
+- S4 audit: docs/integration-notes/s4-quest-recruit-audit.md; Git blob: 2812692524310603fbae5f69a9345393ad7d880e.
+- Quest scripts: 8; archive entries: 15; sourceRecord objects: 708.
+- sourceRecordCount counts objects carrying the S4 sourceRecord field, not the number of unique gameplay quests or server events.
+- Record-type counts: npcscript-inventory-only=1; quest-branch-marker=37; quest-command-line=412; quest-lib-directory-entry=15; quest-name-text-block=84; quest-recruitment-branch-evidence=8; quest-script-member=8; quest-text-line=143.
+
+| Marker category | Count | B6 handling |
+|---|---:|---|
+| SELECT | 8 | Included: one accept row per Quest |
+| STEP 2 SCRIPT | 8 | Included: one condition/transition boundary per Quest |
+| STEP 2 CANCEL | 7 | Excluded from chain stages; retained as source references |
+| STEP 3 CANCEL | 14 | First per Quest included as complete boundary; remaining 6 retained as source references |
+| Total branch markers | 37 | 24 selected chain markers + 13 additional CANCEL references |
+
+### B6 chain record accounting
+
+| Stage | Marker | Step | Rows | Meaning / limit |
+|---|---|---:|---:|---|
+| accept | SELECT | 1 | 8 | Client selection marker; not server acceptance proof |
+| condition | SCRIPT | 2 | 8 | Client transition/UI boundary; not a condition formula |
+| complete | first CANCEL | 3 | 8 | Client dialogue/close boundary; not completion acknowledgement |
+| reward | OFFLINE_POLICY | 3 | 8 | Explicit evidence-gap row; no reward formula asserted |
+| Total | | | 32 | Four rows per Quest1–8 |
+
+Actor tokens are preserved as marker-local strings, including non-numeric tokens where present. They are not converted to NPC template IDs, entity IDs or SMF object IDs. The first STEP 3 CANCEL is selected in source order; no extra CANCEL branch is promoted into another chain stage.
+
+### B5 semantic cross-reference boundary
+
+- B5 file: data/ch1-world-catalog/npc-placement-candidates.json; Git blob: 83361c3aaca19051187aa3ff90eeb2b5d3840af3.
+- B5 audit blob: 005fe6348e91a316e433d01f92f823a57c881baf.
+- B5 has 29 candidate rows, 23 distinct maps and 11 quest_semantic rows. B6 references only the eight Quest1–8 semantic labels.
+- Cross-reference uses the source-declared quest_semantic QuestN label only. It does not assert an Actor-token/entity/template identity join, and does not copy B5 placement/name/coordinate fields into the Quest chain.
+
+| Quest | B5 semantic | B5 source lines |
+|---:|---|---:|
+| 1 | quest1-actor100-companion-recruitment | 208-217 |
+| 2 | quest2-davis-actor101-companion-recruitment | 340-353 |
+| 3 | quest3-bill-actor107-companion-recruitment | 300-314 |
+| 4 | quest4-smith5003-actor102-companion-recruitment | 238-250 |
+| 5 | quest5-lian5014-actor103-companion-recruitment | 361-373 |
+| 6 | quest6-priest5008-actor105-companion-recruitment | 405-419 |
+| 7 | quest7-dragon-soldier5019-actor104-companion-recruitment | 378-388 |
+| 8 | quest8-wounded-archer106-companion-recruitment | 434-443 |
+
+### not-recovered register
+
+- server-quest-id-mapping: QuestScriptNumber is derived from the QuestN filename and is not mapped to an authoritative server-internal quest ID. Next evidence: Authoritative server quest-index mapping or a proven client/server index binding.
+- authoritative-quest-acceptance: SELECT proves a client-side selection marker and raw token only; the server acceptance response is not present in Quest.lib. Next evidence: Authoritative acceptance response or a recovered server quest-state transition.
+- condition-evaluation-formula: SCRIPT is a client transition/UI marker; no condition operands or formula are encoded in the exported resource. Next evidence: Server-side condition/flag evaluator and its input/output evidence.
+- completion-acknowledgement: CANCEL is a client dialogue/close boundary; it does not prove server completion acknowledgement. Next evidence: Authoritative completion response and quest-state update path.
+- recruitment-conditions: S4 explicitly records recruitmentConditions=null and recruitmentConditionsStatus=not-recovered. Next evidence: Recovered authoritative recruitment eligibility conditions.
+- recruitment-mutation: S4 explicitly records serverRecruitmentMutation=not-recovered; no party-roster mutation is inferred. Next evidence: Authoritative roster mutation path and persistence boundary.
+- reward-definition-and-award: Quest.lib contains no explicit reward item, currency, experience, or reward-packet definition. Next evidence: Authoritative reward table, award handler, or server response evidence.
+- actor-to-npc-identity-binding: Quest Actor tokens are retained as resource tokens and are not mapped to NPC template IDs, entity IDs, or SMF object IDs. Next evidence: Independent dispatcher/call-chain evidence proving the identifier namespace edge.
+- retail-npc-placement-table: B5 explicitly records that no retail server placement table was recovered; its 29 candidates are offline-policy only. Next evidence: Authoritative retail placement table or independently verified retail placement evidence.
+- choice-values-and-semantics: The S4 parser does not independently recover choices; empty choices arrays do not establish choice semantics. Next evidence: Raw choice encoding and the native parser/dispatcher semantics.
+- unknown-command-vocabulary: The parser classifies unrecognized non-directive lines as TEXT; an empty unknownCommands list does not prove unknown syntax is absent. Next evidence: Complete native token grammar and parser branch coverage.
+- authoritative-quest-state-flags: The current Quest resource/parser export does not recover authoritative quest flag storage or update messages. Next evidence: Quest-state flag storage, update messages, and server authority path.
+- quest-driven-warp-or-battle-callbacks: This B6 slice does not recover authoritative Quest-triggered warp/battle callbacks or their server responses. Next evidence: Relevant callback call chains and authoritative response evidence.
+
+### Deferred scope
+
+| Deferred item | Evidence retained | Reason |
+|---|---|---|
+| quest0 | quest0-step7-training-candidate; Quest0.TXT; offset 6240 | Quest0 is present in Quest.lib but is outside the approved Quest1-8 policy scope and the S4 B1 Quest1-8 export. |
+| quest9 | quest9-merchant5018-single-holy-medicine-offer; Quest9.TXT; offset 15337 | Quest9 is present in Quest.lib but is outside the approved Quest1-8 policy scope; no Quest9 chain is expanded in B6. |
+| npcscript-program47 | program47-spick-pet-onboarding; NPCScript.txt | Program47 Spick pet onboarding is an NPCScript/NPC-service semantic, not a Quest1-8 chain stage; it remains deferred. |
+
+### Static validation and output boundary
+
+- JSON dataset generated with 32 chain rows; stage counts accept=8, condition=8, complete=8, reward=8.
+- Branch marker accounting: 37 total; 24 selected; 13 additional CANCEL references excluded from chain stages.
+- B5 cross-references: 8 Quest1–8 semantic references; 3 remaining B5 semantic rows stay deferred.
+- Every chain, semantic cross-reference, deferred item and not-recovered item carries RECOVERED_SECONDARY / runtimeVerified=false.
+- quest-policy.ts exports a read-only validator for record counts and evidence boundaries; it exports no gameplay mutation API.
+- Existing B1/B2/B4/B5 audit text is preserved verbatim; this section is appended only.
+- No Quest.lib binary or extracted raw TXT is added to GitHub.
