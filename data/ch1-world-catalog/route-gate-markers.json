@@ -1,0 +1,5311 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "ybcs-ch1-route-gate-markers",
+  "batch": "B4-2",
+  "scope": {
+    "coreMapIds": [
+      "map:old:1030",
+      "map:old:1060",
+      "map:old:1070",
+      "map:old:1090",
+      "map:old:1040",
+      "map:old:1045"
+    ],
+    "routeTableScope": "all 93 _DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES rows",
+    "thisBatchIncludes": [
+      "93 declared route records",
+      "door-call references and measured door-marker summary"
+    ],
+    "deferredToB4_3": [
+      "offline exploration index",
+      "Terry ferry references",
+      "story-battle victory returns"
+    ]
+  },
+  "provenance": {
+    "sourceProject": "ybcs-offline",
+    "evidenceLevel": "RECOVERED_SECONDARY",
+    "runtimeVerified": false,
+    "sourceAttribution": "总管本地核实，本会话未重读"
+  },
+  "sourceInputs": [
+    {
+      "artifact": "ybcs_session_adapter.py",
+      "path": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+      "lines": 3274,
+      "sha256": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+      "attribution": "总管本地核实，本会话未重读",
+      "keyLocations": [
+        "YbcsOfflineSceneRoute:L223-L240",
+        "route table assignment:L242",
+        "route rows:L251-L934",
+        "table close:L935"
+      ]
+    },
+    {
+      "artifact": "ybcs_offline_route_resources.py",
+      "path": "src/legacy_gui_runtime/ybcs_offline_route_resources.py",
+      "lines": 629,
+      "sha256": "16936a583d5e7f6957bc181659b926ac7e66aa471ac3abe3d0ecdace33963119",
+      "attribution": "总管本地核实，本会话未重读",
+      "keyLocations": [
+        "MIN_RECIPROCAL_SPAWN_DISTANCE:L34",
+        "expand_routes_with_installed_portal_cells:L87起",
+        "align_route_spawns_to_reciprocal_portals:L362起"
+      ]
+    },
+    {
+      "artifact": "ybcs_map_movement.py",
+      "path": "src/legacy_gui_runtime/ybcs_map_movement.py",
+      "lines": 424,
+      "sha256": "27de2a0c39d0a6f9634199726415050a76db7bd362c40298a25a37c1411fef49",
+      "attribution": "总管本地核实，本会话未重读",
+      "keyLocations": [
+        "LEGACY_WALKABLE_VALUE:L28",
+        "cell_to_screen:L209",
+        "find_offline_route:L246"
+      ]
+    },
+    {
+      "artifact": "ybcs_main_city_door_markers.py",
+      "path": "src/legacy_gui_runtime/ybcs_main_city_door_markers.py",
+      "lines": 207,
+      "sha256": "309aeaeb55c37da4c0bc451427842569c5b7d16d96eb5fbdd5e4a541059798e",
+      "attribution": "总管本地核实，本会话未重读",
+      "keyLocations": [
+        "main_city_door_cells:L191-L197",
+        "tuple table line range:not supplied in this batch"
+      ]
+    }
+  ],
+  "graphStatistics": {
+    "routeRecordCount": 93,
+    "uniqueSourceMapCount": 50,
+    "uniqueTargetMapCount": 50,
+    "sourceTargetMapSetsEqual": true,
+    "uniqueDirectedEdgeCount": 93,
+    "reciprocalDirectedRecordCount": 92,
+    "reciprocalPairCount": 46,
+    "nonReciprocalRecords": [
+      {
+        "routeId": "main-city-route-009",
+        "sourceMapId": "map:old:3001",
+        "targetMapId": "map:old:1000",
+        "sourceLocator": "ybcs_session_adapter.py:L372"
+      }
+    ],
+    "selfLoopCount": 0,
+    "maxOutDegree": {
+      "mapId": "map:old:1000",
+      "count": 17
+    },
+    "secondOutDegree": {
+      "mapId": "map:old:1500",
+      "count": 5
+    },
+    "maxInDegree": {
+      "mapId": "map:old:1000",
+      "count": 18
+    },
+    "outDegreeTop": [
+      {
+        "mapId": "map:old:1000",
+        "count": 17
+      },
+      {
+        "mapId": "map:old:1500",
+        "count": 5
+      },
+      {
+        "mapId": "map:old:1020",
+        "count": 4
+      },
+      {
+        "mapId": "map:old:1010",
+        "count": 3
+      },
+      {
+        "mapId": "map:old:1040",
+        "count": 3
+      },
+      {
+        "mapId": "map:old:1050",
+        "count": 3
+      },
+      {
+        "mapId": "map:old:1060",
+        "count": 3
+      },
+      {
+        "mapId": "map:old:1341",
+        "count": 3
+      }
+    ],
+    "inDegreeTop": [
+      {
+        "mapId": "map:old:1000",
+        "count": 18
+      },
+      {
+        "mapId": "map:old:1500",
+        "count": 5
+      },
+      {
+        "mapId": "map:old:1020",
+        "count": 4
+      },
+      {
+        "mapId": "map:old:1010",
+        "count": 3
+      },
+      {
+        "mapId": "map:old:1040",
+        "count": 3
+      },
+      {
+        "mapId": "map:old:1050",
+        "count": 3
+      },
+      {
+        "mapId": "map:old:1060",
+        "count": 3
+      },
+      {
+        "mapId": "map:old:1341",
+        "count": 3
+      }
+    ]
+  },
+  "coreScopeStatistics": {
+    "coreMapCount": 6,
+    "coreMapIds": [
+      "map:old:1030",
+      "map:old:1060",
+      "map:old:1070",
+      "map:old:1090",
+      "map:old:1040",
+      "map:old:1045"
+    ],
+    "incidentRouteRecordCount": 14,
+    "bothEndpointsCoreRecordCount": 8,
+    "externalBoundaryRecordCount": 6,
+    "allCoreIncidentRecordsReciprocated": true,
+    "routeIds": [
+      "main-city-route-001",
+      "main-city-route-002",
+      "main-city-route-038",
+      "main-city-route-039",
+      "main-city-route-048",
+      "main-city-route-049",
+      "main-city-route-052",
+      "main-city-route-053",
+      "main-city-route-054",
+      "main-city-route-055",
+      "main-city-route-056",
+      "main-city-route-057",
+      "main-city-route-058",
+      "main-city-route-059"
+    ]
+  },
+  "categoryCounts": {
+    "physicalEntryExit": {
+      "sourceTotal": 93,
+      "coreScopeCount": 14
+    },
+    "bidirectionalDeclaredRecords": {
+      "sourceTotal": 92,
+      "coreScopeCount": 14
+    },
+    "nonReciprocalDeclaredRecords": {
+      "sourceTotal": 1,
+      "coreScopeCount": 0
+    },
+    "doorMarkerTupleRecords": {
+      "sourceTotal": 13,
+      "coreScopeCount": 0
+    },
+    "distinctDoorTargetInteriors": {
+      "sourceTotal": 12,
+      "coreScopeCount": 0
+    }
+  },
+  "doorMarkers": {
+    "sourceArtifact": "ybcs_main_city_door_markers.py",
+    "sourceHash": "309aeaeb55c37da4c0bc451427842569c5b7d16d96eb5fbdd5e4a541059798e",
+    "sourceLines": 207,
+    "sourceAttribution": "总管本地核实，本会话未重读",
+    "sourceDocstringReportedCount": 14,
+    "measuredTupleRecordCount": 13,
+    "measuredDistinctTargetInteriorCount": 12,
+    "countDiscrepancy": {
+      "present": true,
+      "explanation": "模块 docstring 报 14；总管本地对实际源文件 tuple 的计数为 13 条记录、12 个不同目标 interior。以实测 tuple 计数为准。"
+    },
+    "sourceMapId": "map:old:1000",
+    "bankInteriorMapId": "map:old:2400",
+    "bankFacadeRecordCount": 2,
+    "doorCallRouteRecordCount": 12,
+    "doorCallRouteIds": [
+      "main-city-route-012",
+      "main-city-route-014",
+      "main-city-route-016",
+      "main-city-route-018",
+      "main-city-route-020",
+      "main-city-route-023",
+      "main-city-route-025",
+      "main-city-route-027",
+      "main-city-route-029",
+      "main-city-route-030",
+      "main-city-route-032",
+      "main-city-route-034"
+    ],
+    "distinctTargetInteriors": [
+      {
+        "targetInteriorMapId": "map:old:2450",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-012",
+          "sourceLocator": "ybcs_session_adapter.py:L443",
+          "declaredCall": "door(2450)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:2200",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-014",
+          "sourceLocator": "ybcs_session_adapter.py:L457",
+          "declaredCall": "door(2200)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:2300",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-016",
+          "sourceLocator": "ybcs_session_adapter.py:L480",
+          "declaredCall": "door(2300)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:2400",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 2,
+        "routeCallReference": {
+          "routeId": "main-city-route-018",
+          "sourceLocator": "ybcs_session_adapter.py:L500",
+          "declaredCall": "door(2400)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:2550",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-020",
+          "sourceLocator": "ybcs_session_adapter.py:L514",
+          "declaredCall": "door(2550)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:2000",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-023",
+          "sourceLocator": "ybcs_session_adapter.py:L548",
+          "declaredCall": "door(2000)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:2800",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-025",
+          "sourceLocator": "ybcs_session_adapter.py:L563",
+          "declaredCall": "door(2800)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:2100",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-027",
+          "sourceLocator": "ybcs_session_adapter.py:L583",
+          "declaredCall": "door(2100)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:2950",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-029",
+          "sourceLocator": "ybcs_session_adapter.py:L601",
+          "declaredCall": "door(2950)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:2600",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-030",
+          "sourceLocator": "ybcs_session_adapter.py:L621",
+          "declaredCall": "door(2600)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:2900",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-032",
+          "sourceLocator": "ybcs_session_adapter.py:L639",
+          "declaredCall": "door(2900)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "targetInteriorMapId": "map:old:3002",
+        "sourceMapId": "map:old:1000",
+        "facadeRecordCount": 1,
+        "routeCallReference": {
+          "routeId": "main-city-route-034",
+          "sourceLocator": "ybcs_session_adapter.py:L654",
+          "declaredCall": "door(3002)"
+        },
+        "markerCellCoordinates": null,
+        "markerCellCoordinatesStatus": "not-provided-in-this-batch",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      }
+    ],
+    "markerTupleCoordinates": null,
+    "markerTupleCoordinatesStatus": "not-provided-in-this-batch",
+    "helper": {
+      "name": "main_city_door_cells",
+      "sourceLocator": "ybcs_main_city_door_markers.py:L191-L197",
+      "semantics": "Returns all native action-one cursor cells for an interior by concatenating its door-marker cells."
+    }
+  },
+  "routeRecords": [
+    {
+      "routeId": "main-city-route-001",
+      "routeIndex": 1,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1040",
+      "sourceMapName": "扎魔拉_要塞",
+      "targetMapId": "map:old:1045",
+      "targetMapName": "扎魔拉_要塞_地下_洞穴",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L251",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #1; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [],
+      "declaredApproachCells": [
+        [
+          1,
+          165
+        ],
+        [
+          1,
+          167
+        ],
+        [
+          2,
+          164
+        ],
+        [
+          2,
+          166
+        ],
+        [
+          3,
+          165
+        ]
+      ],
+      "declaredApproachCellCount": 5,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 9,
+        "y": 139
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": true,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-002",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": true,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-002",
+      "routeIndex": 2,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1045",
+      "sourceMapName": "扎魔拉_要塞_地下_洞穴",
+      "targetMapId": "map:old:1040",
+      "targetMapName": "扎魔拉_要塞",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L260",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #2; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        265,
+        11
+      ],
+      "declaredApproachCells": [
+        [
+          3,
+          149
+        ],
+        [
+          3,
+          151
+        ],
+        [
+          4,
+          148
+        ],
+        [
+          4,
+          150
+        ],
+        [
+          4,
+          152
+        ],
+        [
+          5,
+          147
+        ],
+        [
+          5,
+          149
+        ],
+        [
+          5,
+          151
+        ],
+        [
+          5,
+          153
+        ],
+        [
+          6,
+          148
+        ],
+        [
+          6,
+          150
+        ],
+        [
+          6,
+          152
+        ],
+        [
+          7,
+          149
+        ],
+        [
+          7,
+          151
+        ]
+      ],
+      "declaredApproachCellCount": 14,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 11,
+        "y": 157
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": true,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": false,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-001",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": true,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-003",
+      "routeIndex": 3,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1050",
+      "sourceMapName": "塔蓝_煤矿_地区",
+      "targetMapId": "map:old:1100",
+      "targetMapName": "塔蓝_煤矿_1_地区",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L282",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #3; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 5,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 11,
+        "y": 21
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": true,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-004",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-004",
+      "routeIndex": 4,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1100",
+      "sourceMapName": "塔蓝_煤矿_1_地区",
+      "targetMapId": "map:old:1050",
+      "targetMapName": "塔蓝_煤矿_地区",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L291",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #4; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        0
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 7,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 55,
+        "y": 67
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": true,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-003",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-005",
+      "routeIndex": 5,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1100",
+      "sourceMapName": "塔蓝_煤矿_1_地区",
+      "targetMapId": "map:old:1200",
+      "targetMapName": "塔蓝_煤矿_2_地区",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L305",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #5; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        14
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 8,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 13,
+        "y": 131
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-006",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-006",
+      "routeIndex": 6,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1200",
+      "sourceMapName": "塔蓝_煤矿_2_地区",
+      "targetMapId": "map:old:1100",
+      "targetMapName": "塔蓝_煤矿_1_地区",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L317",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #6; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        0
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 9,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 105,
+        "y": 17
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-005",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-007",
+      "routeIndex": 7,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:3000",
+      "sourceMapName": "新手修炼场1",
+      "targetMapId": "map:old:3001",
+      "targetMapName": "新手修炼场2",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L337",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #7; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        24
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 14,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 10,
+        "y": 48
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-008",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-008",
+      "routeIndex": 8,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:3001",
+      "sourceMapName": "新手修炼场2",
+      "targetMapId": "map:old:3000",
+      "targetMapName": "新手修炼场1",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L350",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #8; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        23
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 14,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 38,
+        "y": 46
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-007",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-009",
+      "routeIndex": 9,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:3001",
+      "sourceMapName": "新手修炼场2",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L372",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #9; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        98
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 8,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 31,
+        "y": 81
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": true,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "declared-one-way",
+      "reciprocalRouteId": null,
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-010",
+      "routeIndex": 10,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:3000",
+      "targetMapName": "新手修炼场1",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L392",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #10; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        101
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 16,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 12,
+        "y": 20
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-011",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-011",
+      "routeIndex": 11,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:3000",
+      "sourceMapName": "新手修炼场1",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L406",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #11; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        104
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 8,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 31,
+        "y": 81
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": true,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-010",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-012",
+      "routeIndex": 12,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2450",
+      "targetMapName": "武器修理店",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L443",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #12; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        100,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2450",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 36,
+        "y": 48
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-013",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-013",
+      "routeIndex": 13,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2450",
+      "sourceMapName": "武器修理店",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L449",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #13; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        49,
+        55
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 15,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 21,
+        "y": 93
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-012",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-014",
+      "routeIndex": 14,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2200",
+      "targetMapName": "装饰品店",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L457",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #14; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        102,
+        13
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2200",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 38,
+        "y": 46
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-015",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-015",
+      "routeIndex": 15,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2200",
+      "sourceMapName": "装饰品店",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L472",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #15; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 14,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 23,
+        "y": 135
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-014",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-016",
+      "routeIndex": 16,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2300",
+      "targetMapName": "消耗品店",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L480",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #16; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        103,
+        14
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2300",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 10,
+        "y": 48
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-017",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-017",
+      "routeIndex": 17,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2300",
+      "sourceMapName": "消耗品店",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L486",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #17; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        39,
+        44
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 16,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 27,
+        "y": 121
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-016",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-018",
+      "routeIndex": 18,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2400",
+      "targetMapName": "卡奥斯银行",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L500",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #18; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        104,
+        15
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2400",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 10,
+        "y": 56
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-019",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-019",
+      "routeIndex": 19,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2400",
+      "sourceMapName": "卡奥斯银行",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L506",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #19; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        49,
+        50,
+        51,
+        52,
+        53
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 14,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 51,
+        "y": 141
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-018",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-020",
+      "routeIndex": 20,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2550",
+      "targetMapName": "工会管理协会",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L514",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #20; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        112,
+        21
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2550",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 46,
+        "y": 62
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-021",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-021",
+      "routeIndex": 21,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2550",
+      "sourceMapName": "工会管理协会",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L520",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #21; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        18,
+        21,
+        22,
+        23,
+        24
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 14,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 87,
+        "y": 139
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-020",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-022",
+      "routeIndex": 22,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2950",
+      "sourceMapName": "礼品屋",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L531",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #22; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        53,
+        54,
+        55,
+        58,
+        59
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 15,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 54,
+        "y": 42
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-029",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-023",
+      "routeIndex": 23,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2000",
+      "targetMapName": "武器店",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L548",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #23; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        105,
+        16
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2000",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 36,
+        "y": 48
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-024",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-024",
+      "routeIndex": 24,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2000",
+      "sourceMapName": "武器店",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L554",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #24; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        47,
+        55
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 16,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 39,
+        "y": 197
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-023",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-025",
+      "routeIndex": 25,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2800",
+      "targetMapName": "魔法师之家",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L563",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #25; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        106,
+        17
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2800",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 36,
+        "y": 48
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-026",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-026",
+      "routeIndex": 26,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2800",
+      "sourceMapName": "魔法师之家",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L569",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #26; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        39,
+        44
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 17,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 28,
+        "y": 208
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-025",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-027",
+      "routeIndex": 27,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2100",
+      "targetMapName": "防具店",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L583",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #27; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        111,
+        20
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2100",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 10,
+        "y": 48
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-028",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-028",
+      "routeIndex": 28,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2100",
+      "sourceMapName": "防具店",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L589",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #28; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        47
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 14,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 95,
+        "y": 193
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-027",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-029",
+      "routeIndex": 29,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2950",
+      "targetMapName": "礼品屋",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L601",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #29; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        116,
+        25
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2950",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 10,
+        "y": 44
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-022",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-030",
+      "routeIndex": 30,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2600",
+      "targetMapName": "卡奥斯神殿",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L621",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #30; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        113,
+        22
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2600",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 27,
+        "y": 89
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-031",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-031",
+      "routeIndex": 31,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2600",
+      "sourceMapName": "卡奥斯神殿",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L627",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #31; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        61,
+        62,
+        63
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 34,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 130,
+        "y": 96
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-030",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-032",
+      "routeIndex": 32,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:2900",
+      "targetMapName": "龙兵之家(酒店)",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L639",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #32; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        110,
+        31
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:2900",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 11,
+        "y": 65
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-033",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-033",
+      "routeIndex": 33,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:2900",
+      "sourceMapName": "龙兵之家(酒店)",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L645",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #33; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        18,
+        19,
+        20,
+        21,
+        22,
+        25
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 18,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 110,
+        "y": 206
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-032",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-034",
+      "routeIndex": 34,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:3002",
+      "targetMapName": "OX_问题_屋",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L654",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #34; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        135,
+        32
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": null,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "main_city_door_cells(interior)",
+      "doorMarkerTargetInteriorId": "map:old:3002",
+      "doorMarkerCallPresent": true,
+      "declaredTargetSpawn": {
+        "x": 28,
+        "y": 42
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-035",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-035",
+      "routeIndex": 35,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:3002",
+      "sourceMapName": "OX_问题_屋",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L660",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #35; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        3
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 16,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 62,
+        "y": 238
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-034",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-036",
+      "routeIndex": 36,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:1010",
+      "targetMapName": "伊斯特_平原",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L677",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #36; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        129,
+        27
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 154,
+        "y": 14
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-037",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-037",
+      "routeIndex": 37,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1010",
+      "sourceMapName": "伊斯特_平原",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L686",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #37; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        2,
+        13
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 3,
+        "y": 236
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-036",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-038",
+      "routeIndex": 38,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:1040",
+      "targetMapName": "扎魔拉_要塞",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L690",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #38; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        130,
+        28
+      ],
+      "declaredApproachCells": [
+        [
+          24,
+          2
+        ],
+        [
+          23,
+          3
+        ],
+        [
+          25,
+          3
+        ],
+        [
+          22,
+          4
+        ],
+        [
+          24,
+          4
+        ],
+        [
+          26,
+          4
+        ],
+        [
+          21,
+          5
+        ],
+        [
+          23,
+          5
+        ],
+        [
+          25,
+          5
+        ],
+        [
+          27,
+          5
+        ],
+        [
+          22,
+          6
+        ],
+        [
+          24,
+          6
+        ],
+        [
+          26,
+          6
+        ],
+        [
+          23,
+          7
+        ],
+        [
+          25,
+          7
+        ],
+        [
+          24,
+          8
+        ],
+        [
+          24,
+          10
+        ],
+        [
+          25,
+          10
+        ]
+      ],
+      "declaredApproachCellCount": 18,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 63,
+        "y": 171
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-039",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-039",
+      "routeIndex": 39,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1040",
+      "sourceMapName": "扎魔拉_要塞",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L703",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #39; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        40,
+        14
+      ],
+      "declaredApproachCells": [
+        [
+          124,
+          168
+        ],
+        [
+          123,
+          169
+        ],
+        [
+          125,
+          169
+        ],
+        [
+          122,
+          170
+        ],
+        [
+          124,
+          170
+        ],
+        [
+          126,
+          170
+        ],
+        [
+          121,
+          171
+        ],
+        [
+          123,
+          171
+        ],
+        [
+          125,
+          171
+        ],
+        [
+          127,
+          171
+        ],
+        [
+          122,
+          172
+        ],
+        [
+          124,
+          172
+        ],
+        [
+          126,
+          172
+        ],
+        [
+          123,
+          173
+        ],
+        [
+          125,
+          173
+        ],
+        [
+          124,
+          174
+        ]
+      ],
+      "declaredApproachCellCount": 16,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 24,
+        "y": 1
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-038",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-040",
+      "routeIndex": 40,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:1020",
+      "targetMapName": "卡奥斯_北路",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L717",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #40; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        131,
+        29
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 4,
+        "y": 173
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-041",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-041",
+      "routeIndex": 41,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1020",
+      "sourceMapName": "卡奥斯_北路",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L718",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #41; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        0,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 79,
+        "y": 6
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-040",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-042",
+      "routeIndex": 42,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1000",
+      "sourceMapName": "卡奥斯_村庄",
+      "targetMapId": "map:old:1050",
+      "targetMapName": "塔蓝_煤矿_地区",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L719",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #42; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        133,
+        30
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 8,
+        "y": 267
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-043",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-043",
+      "routeIndex": 43,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1050",
+      "sourceMapName": "塔蓝_煤矿_地区",
+      "targetMapId": "map:old:1000",
+      "targetMapName": "卡奥斯_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L720",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #43; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        1,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 144,
+        "y": 248
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-042",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-044",
+      "routeIndex": 44,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1010",
+      "sourceMapName": "伊斯特_平原",
+      "targetMapId": "map:old:1005",
+      "targetMapName": "虫子_村庄",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L731",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #44; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        0,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 59,
+        "y": 7
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-045",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-045",
+      "routeIndex": 45,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1005",
+      "sourceMapName": "虫子_村庄",
+      "targetMapId": "map:old:1010",
+      "targetMapName": "伊斯特_平原",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L732",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #45; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        73,
+        22
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 5,
+        "y": 386
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-044",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-046",
+      "routeIndex": 46,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1010",
+      "sourceMapName": "伊斯特_平原",
+      "targetMapId": "map:old:1300",
+      "targetMapName": "阿斯托尼亚_山脉_入口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L733",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #46; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        1,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 3,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 99,
+        "y": 150
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-047",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-047",
+      "routeIndex": 47,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1300",
+      "sourceMapName": "阿斯托尼亚_山脉_入口",
+      "targetMapId": "map:old:1010",
+      "targetMapName": "伊斯特_平原",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L734",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #47; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        2,
+        13
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 3,
+        "y": 84
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-046",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-048",
+      "routeIndex": 48,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1020",
+      "sourceMapName": "卡奥斯_北路",
+      "targetMapId": "map:old:1030",
+      "targetMapName": "布日古斯_城",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L735",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #48; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        1,
+        12
+      ],
+      "declaredApproachCells": [
+        [
+          67,
+          4
+        ],
+        [
+          67,
+          13
+        ],
+        [
+          68,
+          13
+        ]
+      ],
+      "declaredApproachCellCount": 3,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 6,
+        "y": 137
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-049",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-049",
+      "routeIndex": 49,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1030",
+      "sourceMapName": "布日古斯_城",
+      "targetMapId": "map:old:1020",
+      "targetMapName": "卡奥斯_北路",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L736",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #49; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        32,
+        12
+      ],
+      "declaredApproachCells": [
+        [
+          6,
+          137
+        ],
+        [
+          7,
+          144
+        ]
+      ],
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 67,
+        "y": 4
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-048",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-050",
+      "routeIndex": 50,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1020",
+      "sourceMapName": "卡奥斯_北路",
+      "targetMapId": "map:old:1027",
+      "targetMapName": "旧地图 1027",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L744",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #50; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        367,
+        15
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 96,
+        "y": 127
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-051",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-051",
+      "routeIndex": 51,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1027",
+      "sourceMapName": "旧地图 1027",
+      "targetMapId": "map:old:1020",
+      "targetMapName": "卡奥斯_北路",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L745",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #51; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        372,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 33,
+        "y": 60
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-050",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-052",
+      "routeIndex": 52,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1030",
+      "sourceMapName": "布日古斯_城",
+      "targetMapId": "map:old:1060",
+      "targetMapName": "布日古斯_本城_入口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L746",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #52; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        9,
+        11
+      ],
+      "declaredApproachCells": [
+        [
+          44,
+          36
+        ]
+      ],
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 23,
+        "y": 128
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-053",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": true,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-053",
+      "routeIndex": 53,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1060",
+      "sourceMapName": "布日古斯_本城_入口",
+      "targetMapId": "map:old:1030",
+      "targetMapName": "布日古斯_城",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L747",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #53; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        115,
+        11
+      ],
+      "declaredApproachCells": [
+        [
+          23,
+          128
+        ],
+        [
+          34,
+          137
+        ]
+      ],
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 44,
+        "y": 36
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-052",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": true,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-054",
+      "routeIndex": 54,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1060",
+      "sourceMapName": "布日古斯_本城_入口",
+      "targetMapId": "map:old:1090",
+      "targetMapName": "布日古斯_城_走廊",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L760",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #54; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        45
+      ],
+      "declaredApproachCells": [
+        [
+          65,
+          43
+        ]
+      ],
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 42,
+        "y": 41
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-055",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": true,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-055",
+      "routeIndex": 55,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1090",
+      "sourceMapName": "布日古斯_城_走廊",
+      "targetMapId": "map:old:1060",
+      "targetMapName": "布日古斯_本城_入口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L761",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #55; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        26
+      ],
+      "declaredApproachCells": [
+        [
+          44,
+          26
+        ],
+        [
+          42,
+          40
+        ]
+      ],
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 64,
+        "y": 43
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-054",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": true,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-056",
+      "routeIndex": 56,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1060",
+      "sourceMapName": "布日古斯_本城_入口",
+      "targetMapId": "map:old:1070",
+      "targetMapName": "地下监狱_通路A",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L767",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #56; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [],
+      "declaredApproachCells": [
+        [
+          90,
+          123
+        ],
+        [
+          91,
+          125
+        ],
+        [
+          91,
+          127
+        ],
+        [
+          92,
+          124
+        ],
+        [
+          92,
+          126
+        ],
+        [
+          92,
+          128
+        ],
+        [
+          93,
+          123
+        ],
+        [
+          93,
+          125
+        ],
+        [
+          93,
+          127
+        ],
+        [
+          93,
+          129
+        ],
+        [
+          94,
+          124
+        ],
+        [
+          94,
+          126
+        ],
+        [
+          94,
+          128
+        ],
+        [
+          95,
+          125
+        ],
+        [
+          95,
+          127
+        ],
+        [
+          96,
+          126
+        ]
+      ],
+      "declaredApproachCellCount": 16,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 5,
+        "y": 51
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-057",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": true,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-057",
+      "routeIndex": 57,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1070",
+      "sourceMapName": "地下监狱_通路A",
+      "targetMapId": "map:old:1060",
+      "targetMapName": "布日古斯_本城_入口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L780",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #57; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [],
+      "declaredApproachCells": [
+        [
+          3,
+          51
+        ],
+        [
+          4,
+          50
+        ],
+        [
+          4,
+          52
+        ],
+        [
+          5,
+          49
+        ],
+        [
+          5,
+          51
+        ],
+        [
+          6,
+          48
+        ],
+        [
+          6,
+          50
+        ]
+      ],
+      "declaredApproachCellCount": 7,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 94,
+        "y": 126
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-056",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": true,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-058",
+      "routeIndex": 58,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1040",
+      "sourceMapName": "扎魔拉_要塞",
+      "targetMapId": "map:old:1310",
+      "targetMapName": "里德曼",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L788",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #58; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        25,
+        11
+      ],
+      "declaredApproachCells": [
+        [
+          14,
+          12
+        ],
+        [
+          15,
+          12
+        ]
+      ],
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 38,
+        "y": 90
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-059",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-059",
+      "routeIndex": 59,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1310",
+      "sourceMapName": "里德曼",
+      "targetMapId": "map:old:1040",
+      "targetMapName": "扎魔拉_要塞",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L789",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #59; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        0,
+        11
+      ],
+      "declaredApproachCells": [
+        [
+          38,
+          90
+        ],
+        [
+          38,
+          98
+        ]
+      ],
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "provided-for-core-scope",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 14,
+        "y": 12
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-058",
+      "touchesCoreScope": true,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-060",
+      "routeIndex": 60,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1050",
+      "sourceMapName": "塔蓝_煤矿_地区",
+      "targetMapId": "map:old:1500",
+      "targetMapName": "沙君特_港口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L796",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #60; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        0,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 33,
+        "y": 39
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-061",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-061",
+      "routeIndex": 61,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1500",
+      "sourceMapName": "沙君特_港口",
+      "targetMapId": "map:old:1050",
+      "targetMapName": "塔蓝_煤矿_地区",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L797",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #61; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        154,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 99,
+        "y": 140
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-060",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-062",
+      "routeIndex": 62,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1500",
+      "sourceMapName": "沙君特_港口",
+      "targetMapId": "map:old:1501",
+      "targetMapName": "沙君特港口_武器店",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L805",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #62; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        124
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 6,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 22,
+        "y": 35
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-063",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-063",
+      "routeIndex": 63,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1501",
+      "sourceMapName": "沙君特港口_武器店",
+      "targetMapId": "map:old:1500",
+      "targetMapName": "沙君特_港口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L810",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #63; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        20,
+        21
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 10,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 42,
+        "y": 64
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-062",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-064",
+      "routeIndex": 64,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1500",
+      "sourceMapName": "沙君特_港口",
+      "targetMapId": "map:old:1502",
+      "targetMapName": "沙君特港口_修理店",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L816",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #64; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        124
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 6,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 17,
+        "y": 39
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-065",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-065",
+      "routeIndex": 65,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1502",
+      "sourceMapName": "沙君特港口_修理店",
+      "targetMapId": "map:old:1500",
+      "targetMapName": "沙君特_港口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L821",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #65; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 15,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 57,
+        "y": 62
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-064",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-066",
+      "routeIndex": 66,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1500",
+      "sourceMapName": "沙君特_港口",
+      "targetMapId": "map:old:1503",
+      "targetMapName": "沙君特港口_消耗品店",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L828",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #66; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        55
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 6,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 21,
+        "y": 39
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-067",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-067",
+      "routeIndex": 67,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1503",
+      "sourceMapName": "沙君特港口_消耗品店",
+      "targetMapId": "map:old:1500",
+      "targetMapName": "沙君特_港口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L833",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #67; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 15,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 82,
+        "y": 84
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-066",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-068",
+      "routeIndex": 68,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1500",
+      "sourceMapName": "沙君特_港口",
+      "targetMapId": "map:old:1504",
+      "targetMapName": "沙君特港口_酒店",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L840",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #68; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        93
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 6,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 23,
+        "y": 37
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-069",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-069",
+      "routeIndex": 69,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1504",
+      "sourceMapName": "沙君特港口_酒店",
+      "targetMapId": "map:old:1500",
+      "targetMapName": "沙君特_港口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L845",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #69; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 15,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 27,
+        "y": 84
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-068",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-070",
+      "routeIndex": 70,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1310",
+      "sourceMapName": "里德曼",
+      "targetMapId": "map:old:1341",
+      "targetMapName": "阿特里",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L857",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #70; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        18,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 3,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 68,
+        "y": 169
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-071",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-071",
+      "routeIndex": 71,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1341",
+      "sourceMapName": "阿特里",
+      "targetMapId": "map:old:1310",
+      "targetMapName": "里德曼",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L858",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #71; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        1,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 16,
+        "y": 28
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-070",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-072",
+      "routeIndex": 72,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1341",
+      "sourceMapName": "阿特里",
+      "targetMapId": "map:old:1342",
+      "targetMapName": "阿特里_战场",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L859",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #72; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        0,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 47,
+        "y": 99
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-073",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-073",
+      "routeIndex": 73,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1342",
+      "sourceMapName": "阿特里_战场",
+      "targetMapId": "map:old:1341",
+      "targetMapName": "阿特里",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L860",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #73; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        66,
+        13
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 4,
+        "y": 16
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-072",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-074",
+      "routeIndex": 74,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1341",
+      "sourceMapName": "阿特里",
+      "targetMapId": "map:old:1345",
+      "targetMapName": "克里温",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L861",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #74; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        27,
+        13
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 68,
+        "y": 169
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-075",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-075",
+      "routeIndex": 75,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1345",
+      "sourceMapName": "克里温",
+      "targetMapId": "map:old:1341",
+      "targetMapName": "阿特里",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L862",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #75; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        189,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 68,
+        "y": 102
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-074",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-076",
+      "routeIndex": 76,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1353",
+      "sourceMapName": "凯波利德_部落",
+      "targetMapId": "map:old:1340",
+      "targetMapName": "阿斯托尼亚_山脉_分界森林",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L880",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #76; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        448,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 16,
+        "y": 100
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": true,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-077",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-077",
+      "routeIndex": 77,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1340",
+      "sourceMapName": "阿斯托尼亚_山脉_分界森林",
+      "targetMapId": "map:old:1353",
+      "targetMapName": "凯波利德_部落",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L885",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #77; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        3,
+        13
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 186,
+        "y": 200
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": true,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-076",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-078",
+      "routeIndex": 78,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1020",
+      "sourceMapName": "卡奥斯_北路",
+      "targetMapId": "map:old:1340",
+      "targetMapName": "阿斯托尼亚_山脉_分界森林",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L901",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #78; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        2,
+        13
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 185,
+        "y": 221
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": true,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-079",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-079",
+      "routeIndex": 79,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1340",
+      "sourceMapName": "阿斯托尼亚_山脉_分界森林",
+      "targetMapId": "map:old:1020",
+      "targetMapName": "卡奥斯_北路",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L906",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #79; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        1,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 102,
+        "y": 380
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": true,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-078",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-080",
+      "routeIndex": 80,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1361",
+      "sourceMapName": "布日古斯_港口",
+      "targetMapId": "map:old:1363",
+      "targetMapName": "布日古斯_港口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L913",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #80; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        85,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 13,
+        "y": 40
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-081",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-081",
+      "routeIndex": 81,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1363",
+      "sourceMapName": "布日古斯_港口",
+      "targetMapId": "map:old:1361",
+      "targetMapName": "布日古斯_港口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L914",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #81; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        77,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 23,
+        "y": 59
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-080",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-082",
+      "routeIndex": 82,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1363",
+      "sourceMapName": "布日古斯_港口",
+      "targetMapId": "map:old:1365",
+      "targetMapName": "海盗船_甲板",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L915",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #82; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        85,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 20,
+        "y": 57
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-083",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-083",
+      "routeIndex": 83,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1365",
+      "sourceMapName": "海盗船_甲板",
+      "targetMapId": "map:old:1363",
+      "targetMapName": "布日古斯_港口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L916",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #83; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        41,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 48,
+        "y": 110
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-082",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-084",
+      "routeIndex": 84,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1368",
+      "sourceMapName": "死亡之岛_海盗_基地_入口",
+      "targetMapId": "map:old:1367",
+      "targetMapName": "死亡之岛",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L920",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #84; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        78,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 28,
+        "y": 120
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-085",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-085",
+      "routeIndex": 85,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1367",
+      "sourceMapName": "死亡之岛",
+      "targetMapId": "map:old:1368",
+      "targetMapName": "死亡之岛_海盗_基地_入口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L921",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #85; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        115,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 34,
+        "y": 13
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-084",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-086",
+      "routeIndex": 86,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1368",
+      "sourceMapName": "死亡之岛_海盗_基地_入口",
+      "targetMapId": "map:old:1369",
+      "targetMapName": "死亡之岛_海盗_基地_外城",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L924",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #86; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        69,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 11,
+        "y": 105
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-087",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-087",
+      "routeIndex": 87,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1369",
+      "sourceMapName": "死亡之岛_海盗_基地_外城",
+      "targetMapId": "map:old:1368",
+      "targetMapName": "死亡之岛_海盗_基地_入口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L925",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #87; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        58,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 33,
+        "y": 124
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-086",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-088",
+      "routeIndex": 88,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1369",
+      "sourceMapName": "死亡之岛_海盗_基地_外城",
+      "targetMapId": "map:old:1371",
+      "targetMapName": "死亡之岛_地下_洞穴",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L926",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #88; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        63,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 3,
+        "y": 178
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-089",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-089",
+      "routeIndex": 89,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1371",
+      "sourceMapName": "死亡之岛_地下_洞穴",
+      "targetMapId": "map:old:1369",
+      "targetMapName": "死亡之岛_海盗_基地_外城",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L927",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #89; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        0
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 38,
+        "y": 16
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-088",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-090",
+      "routeIndex": 90,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1373",
+      "sourceMapName": "西西里奥_岛",
+      "targetMapId": "map:old:1381",
+      "targetMapName": "达莱易_湖",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L930",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #90; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        362,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 2,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 25,
+        "y": 88
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-091",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-091",
+      "routeIndex": 91,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1381",
+      "sourceMapName": "达莱易_湖",
+      "targetMapId": "map:old:1373",
+      "targetMapName": "西西里奥_岛",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L931",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #91; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        75,
+        11
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 25,
+        "y": 11
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-090",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-092",
+      "routeIndex": 92,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1381",
+      "sourceMapName": "达莱易_湖",
+      "targetMapId": "map:old:1383",
+      "targetMapName": "达莱易_城_入口",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L933",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #92; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        73,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 21,
+        "y": 80
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-093",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "routeId": "main-city-route-093",
+      "routeIndex": 93,
+      "category": "physical-entry-exit",
+      "sourceMapId": "map:old:1383",
+      "sourceMapName": "达莱易_城_入口",
+      "targetMapId": "map:old:1381",
+      "targetMapName": "达莱易_湖",
+      "targetStatus": "declared",
+      "sourceLocator": "ybcs_session_adapter.py:L934",
+      "sourceEvidence": {
+        "sourceProject": "ybcs-offline",
+        "sourceArtifact": "src/legacy_gui_runtime/ybcs_session_adapter.py",
+        "sourceHash": "d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448",
+        "sourceAttribution": "总管本地核实，本会话未重读",
+        "sourceRecord": "_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES row #93; YbcsOfflineSceneRoute L223-L240; table L251-L935",
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      "objectIds": [
+        72,
+        12
+      ],
+      "declaredApproachCells": null,
+      "declaredApproachCellCount": 1,
+      "declaredApproachCellsStatus": "not-provided-in-this-batch",
+      "approachCellsSource": "YbcsOfflineSceneRoute.approach_cells",
+      "doorMarkerTargetInteriorId": null,
+      "doorMarkerCallPresent": false,
+      "declaredTargetSpawn": {
+        "x": 17,
+        "y": 24
+      },
+      "targetSpawnClientValidated": false,
+      "targetSpawnResourceValidated": false,
+      "targetSpawnAtPortal": false,
+      "expandResourceCells": true,
+      "expandedApproachCells": null,
+      "expansionStatus": "not-run-in-B4-2",
+      "alignedTargetSpawn": null,
+      "alignmentStatus": "not-run-in-B4-2",
+      "directionality": "bidirectional-declared-pair",
+      "reciprocalRouteId": "main-city-route-092",
+      "touchesCoreScope": false,
+      "bothEndpointsInCoreScope": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    }
+  ],
+  "deferredB4_3": {
+    "status": "not-processed-in-B4-2",
+    "categories": [
+      "offline exploration index",
+      "Terry ferry routes",
+      "story-battle victory returns"
+    ]
+  },
+  "evidenceGaps": [
+    {
+      "kind": "non-core-approach-coordinate-tuples",
+      "status": "not-recovered",
+      "description": "The supplied route index gives approach-cell counts for non-core rows, but not their full coordinate tuples. Only the 14 core-scope routes received full tuples in this batch."
+    },
+    {
+      "kind": "door-marker-tuple-coordinates",
+      "status": "not-recovered",
+      "description": "The measured 13 tuple / 12 interior counts and route door() references are available; individual door-marker coordinates and tuple-level line locations were not supplied."
+    },
+    {
+      "kind": "expanded-approach-cells",
+      "status": "not-recovered",
+      "description": "Resource expansion was not run in B4-2; declared and expanded cells remain separate."
+    },
+    {
+      "kind": "aligned-target-spawns",
+      "status": "not-recovered",
+      "description": "Reciprocal spawn alignment was not run; declared spawns are preserved and alignedTargetSpawn remains null."
+    },
+    {
+      "kind": "physical-reachability-runtime",
+      "status": "not-recovered",
+      "description": "Static route declarations do not assert retail/runtime behavior."
+    }
+  ],
+  "safetyPolicy": {
+    "evidenceLevel": "RECOVERED_SECONDARY",
+    "runtimeVerified": false,
+    "noInferredEdges": true,
+    "noMapNumberAdjacencyInference": true,
+    "noVisualAdjacencyInference": true,
+    "noDirectoryGroupingInference": true,
+    "missingTargetRepresentation": {
+      "targetMapId": null,
+      "targetStatus": "not-recovered"
+    },
+    "sourceHashAttribution": "Hashes for the four route/door source files are owner-local checked; this worker did not re-read those four source files."
+  }
+}

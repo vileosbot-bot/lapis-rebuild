@@ -163,3 +163,79 @@ The three map wires match `_KNOWN_PLACEHOLDER_MAPS` at source line 61. Reasons a
 ### Scope for next batches
 
 B2 includes exact owner-local membership, zone name, safe-cell count and region data only. Route/gates, NPC placements and Quest policy remain delegated to B4+ and need independent supplied evidence. The B1 section above remains a historical checkpoint; any earlier `not-recovered` roster statements therein describe **B1**, not the superseding **B2** result.
+ 
+## B4-2 — 93 declared main-city route records and measured door-marker summary
+
+### Scope and provenance
+
+- This batch replaces the previous uncommitted 14-record draft attempt. No entities from that draft are included.
+- Main source table: `_DECLARED_YBCS_MAIN_CITY_SCENE_ROUTES` in `ybcs_session_adapter.py`; assignment L242, first row L251, final row L934, close L935. Source class `YbcsOfflineSceneRoute` is L223-L240.
+- Source file: 3,274 lines; SHA-256 `d35620d4611c93a6dc190332e5e7003eebc09f2c4b50b607ade3bf597f45b448`. Attribution: **总管本地核实，本会话未重读**.
+- The 93 route rows and their source lines come from the owner-provided AST mechanical transcript. This worker independently rebuilt the directed edge set and recomputed graph statistics from that transcript.
+- Route-resource helper source: `ybcs_offline_route_resources.py`, 629 lines, SHA-256 `16936a583d5e7f6957bc181659b926ac7e66aa471ac3abe3d0ecdace33963119`; attribution: **总管本地核实，本会话未重读**. `expand_routes_with_installed_portal_cells` starts L87; `align_route_spawns_to_reciprocal_portals` starts L362; minimum reciprocal spawn distance is 8 at L34.
+- Movement helper source: `ybcs_map_movement.py`, 424 lines, SHA-256 `27de2a0c39d0a6f9634199726415050a76db7bd362c40298a25a37c1411fef49`; attribution: **总管本地核实，本会话未重读**. Walkable value 1 at L28, `cell_to_screen` L209, `find_offline_route` L246.
+- Door-marker source: `ybcs_main_city_door_markers.py`, 207 lines, SHA-256 `309aeaeb55c37da4c0bc451427842569c5b7d16d96eb5fbdd5e4a541059798e`; attribution: **总管本地核实，本会话未重读**. `main_city_door_cells` L191-L197.
+
+### Recomputed graph statistics
+
+| Metric | Worker recomputation | Owner result |
+|---|---:|---:|
+| Declared route records | 93 | 93 |
+| Unique source maps | 50 | 50 |
+| Unique target maps | 50 | 50 |
+| Unique directed edges | 93 | 93 |
+| Reciprocal directed records | 92 | 92 |
+| Reciprocal pairs | 46 | 46 |
+| Non-reciprocal declarations | 1 | 1 |
+| Self loops | 0 | 0 |
+| Maximum out-degree | map 1000: 17 | map 1000: 17 |
+| Second out-degree | map 1500: 5 | map 1500: 5 |
+| Maximum in-degree | map 1000: 18 | map 1000: 18 |
+
+Source and target map sets are identical (50 each). The sole non-reciprocal declaration is row #09, `3001 -> 1000`, source L372. No reverse declaration `1000 -> 3001` appears among the 93 rows. This records a missing reverse declaration only; it does not claim reverse physical movement is impossible.
+
+### Core-six scope
+
+Core maps: 1030 / 1060 / 1070 / 1090 / 1040 / 1045. The 93-row table has 14 records touching this set: 8 with both endpoints inside and 6 crossing to an external map. All 14 have a reciprocal declaration, forming 7 pairs.
+
+The 14 route records are #01, #02, #38, #39, #48, #49, #52, #53, #54, #55, #56, #57, #58, #59. Their full declared approach-cell tuples are stored in `routeRecords` from the owner-provided coordinate schedule. The 14 tuples contain 91 cells in total. For other non-door rows, only the supplied approach-cell count is stored; full coordinate tuples remain `not-recovered` in this batch.
+
+### Declared values vs derived values
+
+- All route `declaredTargetSpawn` values are copied from the 93-row source transcript.
+- Only source rows explicitly marked resource-validated (R) are `targetSpawnResourceValidated=true`; absence of R is preserved as false/default.
+- `targetSpawnClientValidated=false` and `targetSpawnAtPortal=false` are class defaults, not independent validation claims.
+- `expandResourceCells=true` by class default except route #02 (L260), explicitly false. Route #01 (L251) is true.
+- `declaredApproachCells` are stored only for the 14 core records. For other ordinary route rows, the supplied count is retained without fabricating coordinates.
+- For the 12 route rows that call `door(interior)`, approach cells are derived from `main_city_door_cells(interior)`; this batch records the call and interior ID but does not invent the helper's returned cell tuples.
+- No resource expansion pass or reciprocal spawn alignment pass was run. `expandedApproachCells=null` and `alignedTargetSpawn=null` for all records. The declared spawn is not silently replaced by a derived spawn.
+- Movement screen transform is not applied to route-cell coordinates. IMF walkability value 1 is a source rule, not a claim that this batch re-ran BFS or checked all map resources.
+
+### Door-marker count correction
+
+The actual measured count, supplied and locally checked by the owner, is:
+
+- **13 tuple records**.
+- **12 distinct target interiors**.
+- Bank interior `map:old:2400` has **2 facade records**; the other 11 interiors have one each.
+- 12 `door(interior)` call sites appear in the main-city route table: rows #12, #14, #16, #18, #20, #23, #25, #27, #29, #30, #32, #34. All are sourced from map 1000 and none touches the six core maps.
+- The module docstring says 14; the measured tuple count is 13. The JSON stores `sourceDocstringReportedCount=14` separately and uses **13** as the measured count. The docstring value is not presented as an observed tuple count.
+- Individual marker coordinates and tuple-level source lines were not provided in this batch; those fields remain null/`not-recovered`.
+
+### B4-2 record counts
+
+| Category | sourceTotal | coreScopeCount |
+|---|---:|---:|
+| Physical entry/exit route records | 93 | 14 |
+| Bidirectional declared route records | 92 | 14 |
+| Non-reciprocal declared route records | 1 | 0 |
+| Door-marker tuple records | 13 | 0 |
+| Distinct door target interiors | 12 | 0 |
+
+These are overlapping classifications and must not be summed into a single edge count. Offline exploration index, Terry ferry references and story-battle victory returns are deferred to B4-3.
+
+### Evidence and safety
+
+All ybcs-derived route and door data in this batch are `RECOVERED_SECONDARY` and `runtimeVerified=false`. No retail runtime behavior is asserted. No edges are inferred from map-number proximity, visual adjacency or directory grouping. A missing target, if any, must be represented as `targetMapId=null` and `targetStatus=not-recovered`; all 93 supplied route rows have an explicit target.
+
+No gameplay source, `world-catalog.json`, main branch, primary account repository, PR or merge was changed in this batch.
