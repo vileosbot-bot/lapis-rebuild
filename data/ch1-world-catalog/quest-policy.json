@@ -1,0 +1,1982 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "ybcs-ch1-quest-policy",
+  "batch": "B6",
+  "scope": {
+    "description": "Conservative offline policy for the resource-backed Quest1-8 client dialogue chain. It records SELECT, STEP2 SCRIPT, the first STEP3 CANCEL, and an explicit reward evidence gap for each script; it does not implement or assert server gameplay behavior.",
+    "includedQuestScripts": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "deferredQuestScripts": [
+      0,
+      9
+    ],
+    "deferredNpcScriptPrograms": [
+      47
+    ],
+    "questChainRecordCount": 32,
+    "chainStageCounts": {
+      "accept": 8,
+      "condition": 8,
+      "complete": 8,
+      "reward": 8
+    },
+    "sourceRecordCount": 708,
+    "sourceBranchMarkerCount": 37,
+    "selectedChainBranchMarkerCount": 24,
+    "excludedAdditionalCancelMarkerCount": 13,
+    "noRetailPlacementTableRecovered": true
+  },
+  "provenance": {
+    "sourceProject": "ybcs-offline",
+    "sourceArtifact": "Quest.lib",
+    "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+    "sourceSizeBytes": 21205,
+    "archiveCheck": "0xd3eb5f05",
+    "archiveEntryCount": 15,
+    "evidenceLevel": "RECOVERED_SECONDARY",
+    "evidenceLabel": "重构参考",
+    "runtimeVerified": false,
+    "sourceFiles": [
+      {
+        "artifact": "Quest.lib",
+        "kind": "binary-archive",
+        "sizeBytes": 21205,
+        "sha256": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "lineCount": null,
+        "sourceAnchors": "Quest1-8 archive member offsets are listed in questScriptMembers."
+      },
+      {
+        "artifact": "ybcs_quest_runtime.py",
+        "kind": "parser-and-offline-chain-builder",
+        "lineCount": 679,
+        "sha256": "b4f6e6f968a3e2cf3b203f52ba60698df60cba578d47162c88c4b710c4a11d0d",
+        "sourceAnchors": [
+          {
+            "symbol": "_parse_script_lines",
+            "line": 182
+          },
+          {
+            "symbol": "parse_quest_script",
+            "line": 217
+          },
+          {
+            "symbol": "_first_numeric_actor",
+            "line": 276
+          },
+          {
+            "symbol": "build_quest_chain",
+            "lineStart": 347,
+            "lineEnd": 437
+          },
+          {
+            "symbol": "build_dataset",
+            "line": 438
+          },
+          {
+            "symbol": "Quest1-specific NAME 100 example in docstring",
+            "line": 378,
+            "handling": "B6 uses the Actor token attached to each individual source marker; the Quest1 example is not generalized."
+          }
+        ]
+      },
+      {
+        "artifact": "ybcs_offline_npc_placements.py",
+        "kind": "offline-policy-NPC-candidate-source",
+        "lineCount": 613,
+        "sha256": "16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1",
+        "sourceNature": "offline-policy; no retail placement table recovered"
+      },
+      {
+        "artifact": "lapis_lib.py",
+        "kind": "Quest.lib-archive-directory-decoder",
+        "lineCount": 140,
+        "sha256": "f742e0f8d6425bed20118a3e69bac1041943efc31262e078cc3679b8e4bbfcae"
+      },
+      {
+        "artifact": "pkware_blast.py",
+        "kind": "Quest.lib-member-decompressor",
+        "lineCount": 250,
+        "sha256": "8500511a4017742bc8a3271aff7013b7cac0c369ca75575c9d8136d4d7239e00"
+      }
+    ]
+  },
+  "sourceDatasets": {
+    "s4QuestRecruitment": {
+      "path": "docs/integration-notes/s4-quest-recruit-data.json",
+      "gitBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+      "auditPath": "docs/integration-notes/s4-quest-recruit-audit.md",
+      "auditGitBlobSha": "2812692524310603fbae5f69a9345393ad7d880e",
+      "dataset": "s4.questRecruit",
+      "questScriptCount": 8,
+      "archiveEntryCount": 15,
+      "sourceRecordCount": 708,
+      "sourceRecordTypeCounts": {
+        "npcscript-inventory-only": 1,
+        "quest-branch-marker": 37,
+        "quest-command-line": 412,
+        "quest-lib-directory-entry": 15,
+        "quest-name-text-block": 84,
+        "quest-recruitment-branch-evidence": 8,
+        "quest-script-member": 8,
+        "quest-text-line": 143
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    "b5NpcPlacementCandidates": {
+      "path": "data/ch1-world-catalog/npc-placement-candidates.json",
+      "gitBlobSha": "83361c3aaca19051187aa3ff90eeb2b5d3840af3",
+      "auditPath": "data/ch1-world-catalog/audit.md",
+      "auditGitBlobSha": "005fe6348e91a316e433d01f92f823a57c881baf",
+      "candidateRecordCount": 29,
+      "distinctMapCount": 23,
+      "questSemanticCount": 11,
+      "quest1To8SemanticCrossReferences": 8,
+      "deferredSemanticReferences": 3,
+      "noRetailPlacementTableRecovered": true,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    }
+  },
+  "questScriptMembers": [
+    {
+      "questId": 1,
+      "sourceMember": "Quest1.TXT",
+      "archiveMemberOffset": 8956,
+      "packedSize": 675,
+      "unpackedSize": 861,
+      "sourceLineCount": 38,
+      "commandCount": 36,
+      "actorTokenFromSelect": "100",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 2,
+      "sourceMember": "Quest2.TXT",
+      "archiveMemberOffset": 9631,
+      "packedSize": 916,
+      "unpackedSize": 1398,
+      "sourceLineCount": 72,
+      "commandCount": 70,
+      "actorTokenFromSelect": "101",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 3,
+      "sourceMember": "Quest3.TXT",
+      "archiveMemberOffset": 10547,
+      "packedSize": 831,
+      "unpackedSize": 1134,
+      "sourceLineCount": 51,
+      "commandCount": 50,
+      "actorTokenFromSelect": "107",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 4,
+      "sourceMember": "Quest4.TXT",
+      "archiveMemberOffset": 11378,
+      "packedSize": 843,
+      "unpackedSize": 1196,
+      "sourceLineCount": 62,
+      "commandCount": 60,
+      "actorTokenFromSelect": "102",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 5,
+      "sourceMember": "Quest5.TXT",
+      "archiveMemberOffset": 12221,
+      "packedSize": 759,
+      "unpackedSize": 997,
+      "sourceLineCount": 36,
+      "commandCount": 34,
+      "actorTokenFromSelect": "103",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 6,
+      "sourceMember": "Quest6.TXT",
+      "archiveMemberOffset": 12980,
+      "packedSize": 785,
+      "unpackedSize": 1118,
+      "sourceLineCount": 60,
+      "commandCount": 58,
+      "actorTokenFromSelect": "105",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 7,
+      "sourceMember": "Quest7.TXT",
+      "archiveMemberOffset": 13765,
+      "packedSize": 875,
+      "unpackedSize": 1314,
+      "sourceLineCount": 62,
+      "commandCount": 60,
+      "actorTokenFromSelect": "104",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 8,
+      "sourceMember": "Quest8.TXT",
+      "archiveMemberOffset": 14640,
+      "packedSize": 697,
+      "unpackedSize": 954,
+      "sourceLineCount": 46,
+      "commandCount": 44,
+      "actorTokenFromSelect": "106",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    }
+  ],
+  "branchMarkerAccounting": {
+    "totalMarkerCount": 37,
+    "counts": {
+      "select": 8,
+      "step2Script": 8,
+      "step2Cancel": 7,
+      "step3Cancel": 14
+    },
+    "chainIncludedMarkerCount": 24,
+    "excludedAdditionalCancelMarkerCount": 13,
+    "excludedStep2CancelMarkerCount": 7,
+    "excludedAdditionalStep3CancelMarkerCount": 6,
+    "perQuest": [
+      {
+        "questId": 1,
+        "sourceMember": "Quest1.TXT",
+        "selectionMarkers": 1,
+        "step2ScriptMarkers": 1,
+        "step2CancelMarkers": 1,
+        "step3CancelMarkers": 1,
+        "selectedFirstStep3CancelMarkers": 1,
+        "excludedCancelMarkers": 1,
+        "includedChainMarkers": 3
+      },
+      {
+        "questId": 2,
+        "sourceMember": "Quest2.TXT",
+        "selectionMarkers": 1,
+        "step2ScriptMarkers": 1,
+        "step2CancelMarkers": 1,
+        "step3CancelMarkers": 2,
+        "selectedFirstStep3CancelMarkers": 1,
+        "excludedCancelMarkers": 2,
+        "includedChainMarkers": 3
+      },
+      {
+        "questId": 3,
+        "sourceMember": "Quest3.TXT",
+        "selectionMarkers": 1,
+        "step2ScriptMarkers": 1,
+        "step2CancelMarkers": 1,
+        "step3CancelMarkers": 1,
+        "selectedFirstStep3CancelMarkers": 1,
+        "excludedCancelMarkers": 1,
+        "includedChainMarkers": 3
+      },
+      {
+        "questId": 4,
+        "sourceMember": "Quest4.TXT",
+        "selectionMarkers": 1,
+        "step2ScriptMarkers": 1,
+        "step2CancelMarkers": 1,
+        "step3CancelMarkers": 1,
+        "selectedFirstStep3CancelMarkers": 1,
+        "excludedCancelMarkers": 1,
+        "includedChainMarkers": 3
+      },
+      {
+        "questId": 5,
+        "sourceMember": "Quest5.TXT",
+        "selectionMarkers": 1,
+        "step2ScriptMarkers": 1,
+        "step2CancelMarkers": 0,
+        "step3CancelMarkers": 2,
+        "selectedFirstStep3CancelMarkers": 1,
+        "excludedCancelMarkers": 1,
+        "includedChainMarkers": 3
+      },
+      {
+        "questId": 6,
+        "sourceMember": "Quest6.TXT",
+        "selectionMarkers": 1,
+        "step2ScriptMarkers": 1,
+        "step2CancelMarkers": 1,
+        "step3CancelMarkers": 3,
+        "selectedFirstStep3CancelMarkers": 1,
+        "excludedCancelMarkers": 3,
+        "includedChainMarkers": 3
+      },
+      {
+        "questId": 7,
+        "sourceMember": "Quest7.TXT",
+        "selectionMarkers": 1,
+        "step2ScriptMarkers": 1,
+        "step2CancelMarkers": 2,
+        "step3CancelMarkers": 3,
+        "selectedFirstStep3CancelMarkers": 1,
+        "excludedCancelMarkers": 4,
+        "includedChainMarkers": 3
+      },
+      {
+        "questId": 8,
+        "sourceMember": "Quest8.TXT",
+        "selectionMarkers": 1,
+        "step2ScriptMarkers": 1,
+        "step2CancelMarkers": 0,
+        "step3CancelMarkers": 1,
+        "selectedFirstStep3CancelMarkers": 1,
+        "excludedCancelMarkers": 0,
+        "includedChainMarkers": 3
+      }
+    ],
+    "excludedCancelMarkerReferences": [
+      {
+        "questId": 1,
+        "step": 2,
+        "marker": "CANCEL",
+        "sourceMember": "Quest1.TXT",
+        "sourceLineRange": [
+          26,
+          27
+        ],
+        "s4JsonPointer": "questScripts[0].recruitmentEvidence.step2BranchMarkers[0]",
+        "exclusionReason": "Additional STEP 2 CANCEL branch; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 2,
+        "step": 2,
+        "marker": "CANCEL",
+        "sourceMember": "Quest2.TXT",
+        "sourceLineRange": [
+          56,
+          57
+        ],
+        "s4JsonPointer": "questScripts[1].recruitmentEvidence.step2BranchMarkers[0]",
+        "exclusionReason": "Additional STEP 2 CANCEL branch; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 2,
+        "step": 3,
+        "marker": "CANCEL",
+        "sourceMember": "Quest2.TXT",
+        "sourceLineRange": [
+          70,
+          72
+        ],
+        "s4JsonPointer": "questScripts[1].recruitmentEvidence.step3BranchMarkers[1]",
+        "exclusionReason": "Additional STEP 3 CANCEL branch after the first; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 3,
+        "step": 2,
+        "marker": "CANCEL",
+        "sourceMember": "Quest3.TXT",
+        "sourceLineRange": [
+          39,
+          40
+        ],
+        "s4JsonPointer": "questScripts[2].recruitmentEvidence.step2BranchMarkers[0]",
+        "exclusionReason": "Additional STEP 2 CANCEL branch; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 4,
+        "step": 2,
+        "marker": "CANCEL",
+        "sourceMember": "Quest4.TXT",
+        "sourceLineRange": [
+          50,
+          51
+        ],
+        "s4JsonPointer": "questScripts[3].recruitmentEvidence.step2BranchMarkers[0]",
+        "exclusionReason": "Additional STEP 2 CANCEL branch; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 5,
+        "step": 3,
+        "marker": "CANCEL",
+        "sourceMember": "Quest5.TXT",
+        "sourceLineRange": [
+          34,
+          36
+        ],
+        "s4JsonPointer": "questScripts[4].recruitmentEvidence.step3BranchMarkers[1]",
+        "exclusionReason": "Additional STEP 3 CANCEL branch after the first; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 6,
+        "step": 2,
+        "marker": "CANCEL",
+        "sourceMember": "Quest6.TXT",
+        "sourceLineRange": [
+          40,
+          41
+        ],
+        "s4JsonPointer": "questScripts[5].recruitmentEvidence.step2BranchMarkers[0]",
+        "exclusionReason": "Additional STEP 2 CANCEL branch; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 6,
+        "step": 3,
+        "marker": "CANCEL",
+        "sourceMember": "Quest6.TXT",
+        "sourceLineRange": [
+          54,
+          55
+        ],
+        "s4JsonPointer": "questScripts[5].recruitmentEvidence.step3BranchMarkers[1]",
+        "exclusionReason": "Additional STEP 3 CANCEL branch after the first; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 6,
+        "step": 3,
+        "marker": "CANCEL",
+        "sourceMember": "Quest6.TXT",
+        "sourceLineRange": [
+          58,
+          60
+        ],
+        "s4JsonPointer": "questScripts[5].recruitmentEvidence.step3BranchMarkers[2]",
+        "exclusionReason": "Additional STEP 3 CANCEL branch after the first; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 7,
+        "step": 2,
+        "marker": "CANCEL",
+        "sourceMember": "Quest7.TXT",
+        "sourceLineRange": [
+          38,
+          39
+        ],
+        "s4JsonPointer": "questScripts[6].recruitmentEvidence.step2BranchMarkers[0]",
+        "exclusionReason": "Additional STEP 2 CANCEL branch; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 7,
+        "step": 2,
+        "marker": "CANCEL",
+        "sourceMember": "Quest7.TXT",
+        "sourceLineRange": [
+          42,
+          43
+        ],
+        "s4JsonPointer": "questScripts[6].recruitmentEvidence.step2BranchMarkers[1]",
+        "exclusionReason": "Additional STEP 2 CANCEL branch; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 7,
+        "step": 3,
+        "marker": "CANCEL",
+        "sourceMember": "Quest7.TXT",
+        "sourceLineRange": [
+          56,
+          57
+        ],
+        "s4JsonPointer": "questScripts[6].recruitmentEvidence.step3BranchMarkers[1]",
+        "exclusionReason": "Additional STEP 3 CANCEL branch after the first; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      },
+      {
+        "questId": 7,
+        "step": 3,
+        "marker": "CANCEL",
+        "sourceMember": "Quest7.TXT",
+        "sourceLineRange": [
+          60,
+          62
+        ],
+        "s4JsonPointer": "questScripts[6].recruitmentEvidence.step3BranchMarkers[2]",
+        "exclusionReason": "Additional STEP 3 CANCEL branch after the first; retained in S4 source evidence, not promoted to a separate B6 chain stage."
+      }
+    ]
+  },
+  "chainRecords": [
+    {
+      "recordId": "quest1-early:accept",
+      "chainId": "quest1-early",
+      "questId": 1,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "accept",
+      "stageOrder": 1,
+      "marker": "SELECT",
+      "step": 1,
+      "actorOrMarker": "100",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 20,
+      "lineEnd": 22,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "STEP 1 SELECT marker is present. Preserve the marker-local raw Actor token dynamically; this does not establish server acceptance or an NPC identity.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest1.TXT",
+        "archiveMemberOffset": 8956,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[0].recruitmentEvidence.selectionBranch",
+        "sourceLineRange": [
+          20,
+          22
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest1-early:condition",
+      "chainId": "quest1-early",
+      "questId": 1,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "condition",
+      "stageOrder": 2,
+      "marker": "SCRIPT",
+      "step": 2,
+      "actorOrMarker": "100",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 30,
+      "lineEnd": 32,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "offline-policy",
+      "notes": "STEP 2 SCRIPT is retained as a client transition/UI boundary only; no condition operand or authoritative server reply is encoded here.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest1.TXT",
+        "archiveMemberOffset": 8956,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[0].recruitmentEvidence.step2BranchMarkers[1]",
+        "sourceLineRange": [
+          30,
+          32
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest1-early:complete",
+      "chainId": "quest1-early",
+      "questId": 1,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "complete",
+      "stageOrder": 3,
+      "marker": "CANCEL",
+      "step": 3,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 36,
+      "lineEnd": 38,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "The first STEP 3 CANCEL marker is retained as a client dialogue/close boundary; it does not prove an authoritative completion acknowledgement.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest1.TXT",
+        "archiveMemberOffset": 8956,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[0].recruitmentEvidence.step3BranchMarkers[0]",
+        "sourceLineRange": [
+          36,
+          38
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest1-early:reward",
+      "chainId": "quest1-early",
+      "questId": 1,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "reward",
+      "stageOrder": 4,
+      "marker": "OFFLINE_POLICY",
+      "step": 3,
+      "actorOrMarker": "",
+      "actorTokenSemantics": "not-applicable",
+      "lineStart": 0,
+      "lineEnd": 0,
+      "evidence": "E1/gap",
+      "serverBoundary": "offline-policy",
+      "notes": "Quest.lib contains no explicit reward item, currency, experience, or reward-packet definition; reward semantics remain not-recovered.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest1.TXT",
+        "archiveMemberOffset": 8956,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[0].recruitmentEvidence",
+        "sourceLineRange": null
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest2-early:accept",
+      "chainId": "quest2-early",
+      "questId": 2,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "accept",
+      "stageOrder": 1,
+      "marker": "SELECT",
+      "step": 1,
+      "actorOrMarker": "101",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 50,
+      "lineEnd": 52,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "STEP 1 SELECT marker is present. Preserve the marker-local raw Actor token dynamically; this does not establish server acceptance or an NPC identity.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest2.TXT",
+        "archiveMemberOffset": 9631,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[1].recruitmentEvidence.selectionBranch",
+        "sourceLineRange": [
+          50,
+          52
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest2-early:condition",
+      "chainId": "quest2-early",
+      "questId": 2,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "condition",
+      "stageOrder": 2,
+      "marker": "SCRIPT",
+      "step": 2,
+      "actorOrMarker": "101",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 60,
+      "lineEnd": 62,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "offline-policy",
+      "notes": "STEP 2 SCRIPT is retained as a client transition/UI boundary only; no condition operand or authoritative server reply is encoded here.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest2.TXT",
+        "archiveMemberOffset": 9631,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[1].recruitmentEvidence.step2BranchMarkers[1]",
+        "sourceLineRange": [
+          60,
+          62
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest2-early:complete",
+      "chainId": "quest2-early",
+      "questId": 2,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "complete",
+      "stageOrder": 3,
+      "marker": "CANCEL",
+      "step": 3,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 66,
+      "lineEnd": 67,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "The first STEP 3 CANCEL marker is retained as a client dialogue/close boundary; it does not prove an authoritative completion acknowledgement.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest2.TXT",
+        "archiveMemberOffset": 9631,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[1].recruitmentEvidence.step3BranchMarkers[0]",
+        "sourceLineRange": [
+          66,
+          67
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest2-early:reward",
+      "chainId": "quest2-early",
+      "questId": 2,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "reward",
+      "stageOrder": 4,
+      "marker": "OFFLINE_POLICY",
+      "step": 3,
+      "actorOrMarker": "",
+      "actorTokenSemantics": "not-applicable",
+      "lineStart": 0,
+      "lineEnd": 0,
+      "evidence": "E1/gap",
+      "serverBoundary": "offline-policy",
+      "notes": "Quest.lib contains no explicit reward item, currency, experience, or reward-packet definition; reward semantics remain not-recovered.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest2.TXT",
+        "archiveMemberOffset": 9631,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[1].recruitmentEvidence",
+        "sourceLineRange": null
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest3-early:accept",
+      "chainId": "quest3-early",
+      "questId": 3,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "accept",
+      "stageOrder": 1,
+      "marker": "SELECT",
+      "step": 1,
+      "actorOrMarker": "107",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 34,
+      "lineEnd": 35,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "STEP 1 SELECT marker is present. Preserve the marker-local raw Actor token dynamically; this does not establish server acceptance or an NPC identity.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest3.TXT",
+        "archiveMemberOffset": 10547,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[2].recruitmentEvidence.selectionBranch",
+        "sourceLineRange": [
+          34,
+          35
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest3-early:condition",
+      "chainId": "quest3-early",
+      "questId": 3,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "condition",
+      "stageOrder": 2,
+      "marker": "SCRIPT",
+      "step": 2,
+      "actorOrMarker": "107",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 43,
+      "lineEnd": 45,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "offline-policy",
+      "notes": "STEP 2 SCRIPT is retained as a client transition/UI boundary only; no condition operand or authoritative server reply is encoded here.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest3.TXT",
+        "archiveMemberOffset": 10547,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[2].recruitmentEvidence.step2BranchMarkers[1]",
+        "sourceLineRange": [
+          43,
+          45
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest3-early:complete",
+      "chainId": "quest3-early",
+      "questId": 3,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "complete",
+      "stageOrder": 3,
+      "marker": "CANCEL",
+      "step": 3,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 49,
+      "lineEnd": 51,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "The first STEP 3 CANCEL marker is retained as a client dialogue/close boundary; it does not prove an authoritative completion acknowledgement.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest3.TXT",
+        "archiveMemberOffset": 10547,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[2].recruitmentEvidence.step3BranchMarkers[0]",
+        "sourceLineRange": [
+          49,
+          51
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest3-early:reward",
+      "chainId": "quest3-early",
+      "questId": 3,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "reward",
+      "stageOrder": 4,
+      "marker": "OFFLINE_POLICY",
+      "step": 3,
+      "actorOrMarker": "",
+      "actorTokenSemantics": "not-applicable",
+      "lineStart": 0,
+      "lineEnd": 0,
+      "evidence": "E1/gap",
+      "serverBoundary": "offline-policy",
+      "notes": "Quest.lib contains no explicit reward item, currency, experience, or reward-packet definition; reward semantics remain not-recovered.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest3.TXT",
+        "archiveMemberOffset": 10547,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[2].recruitmentEvidence",
+        "sourceLineRange": null
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest4-early:accept",
+      "chainId": "quest4-early",
+      "questId": 4,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "accept",
+      "stageOrder": 1,
+      "marker": "SELECT",
+      "step": 1,
+      "actorOrMarker": "102",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 44,
+      "lineEnd": 46,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "STEP 1 SELECT marker is present. Preserve the marker-local raw Actor token dynamically; this does not establish server acceptance or an NPC identity.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest4.TXT",
+        "archiveMemberOffset": 11378,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[3].recruitmentEvidence.selectionBranch",
+        "sourceLineRange": [
+          44,
+          46
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest4-early:condition",
+      "chainId": "quest4-early",
+      "questId": 4,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "condition",
+      "stageOrder": 2,
+      "marker": "SCRIPT",
+      "step": 2,
+      "actorOrMarker": "102",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 54,
+      "lineEnd": 56,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "offline-policy",
+      "notes": "STEP 2 SCRIPT is retained as a client transition/UI boundary only; no condition operand or authoritative server reply is encoded here.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest4.TXT",
+        "archiveMemberOffset": 11378,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[3].recruitmentEvidence.step2BranchMarkers[1]",
+        "sourceLineRange": [
+          54,
+          56
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest4-early:complete",
+      "chainId": "quest4-early",
+      "questId": 4,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "complete",
+      "stageOrder": 3,
+      "marker": "CANCEL",
+      "step": 3,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 60,
+      "lineEnd": 62,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "The first STEP 3 CANCEL marker is retained as a client dialogue/close boundary; it does not prove an authoritative completion acknowledgement.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest4.TXT",
+        "archiveMemberOffset": 11378,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[3].recruitmentEvidence.step3BranchMarkers[0]",
+        "sourceLineRange": [
+          60,
+          62
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest4-early:reward",
+      "chainId": "quest4-early",
+      "questId": 4,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "reward",
+      "stageOrder": 4,
+      "marker": "OFFLINE_POLICY",
+      "step": 3,
+      "actorOrMarker": "",
+      "actorTokenSemantics": "not-applicable",
+      "lineStart": 0,
+      "lineEnd": 0,
+      "evidence": "E1/gap",
+      "serverBoundary": "offline-policy",
+      "notes": "Quest.lib contains no explicit reward item, currency, experience, or reward-packet definition; reward semantics remain not-recovered.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest4.TXT",
+        "archiveMemberOffset": 11378,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[3].recruitmentEvidence",
+        "sourceLineRange": null
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest5-early:accept",
+      "chainId": "quest5-early",
+      "questId": 5,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "accept",
+      "stageOrder": 1,
+      "marker": "SELECT",
+      "step": 1,
+      "actorOrMarker": "103",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 18,
+      "lineEnd": 20,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "STEP 1 SELECT marker is present. Preserve the marker-local raw Actor token dynamically; this does not establish server acceptance or an NPC identity.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest5.TXT",
+        "archiveMemberOffset": 12221,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[4].recruitmentEvidence.selectionBranch",
+        "sourceLineRange": [
+          18,
+          20
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest5-early:condition",
+      "chainId": "quest5-early",
+      "questId": 5,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "condition",
+      "stageOrder": 2,
+      "marker": "SCRIPT",
+      "step": 2,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 24,
+      "lineEnd": 26,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "offline-policy",
+      "notes": "STEP 2 SCRIPT is retained as a client transition/UI boundary only; no condition operand or authoritative server reply is encoded here.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest5.TXT",
+        "archiveMemberOffset": 12221,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[4].recruitmentEvidence.step2BranchMarkers[0]",
+        "sourceLineRange": [
+          24,
+          26
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest5-early:complete",
+      "chainId": "quest5-early",
+      "questId": 5,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "complete",
+      "stageOrder": 3,
+      "marker": "CANCEL",
+      "step": 3,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 30,
+      "lineEnd": 31,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "The first STEP 3 CANCEL marker is retained as a client dialogue/close boundary; it does not prove an authoritative completion acknowledgement.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest5.TXT",
+        "archiveMemberOffset": 12221,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[4].recruitmentEvidence.step3BranchMarkers[0]",
+        "sourceLineRange": [
+          30,
+          31
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest5-early:reward",
+      "chainId": "quest5-early",
+      "questId": 5,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "reward",
+      "stageOrder": 4,
+      "marker": "OFFLINE_POLICY",
+      "step": 3,
+      "actorOrMarker": "",
+      "actorTokenSemantics": "not-applicable",
+      "lineStart": 0,
+      "lineEnd": 0,
+      "evidence": "E1/gap",
+      "serverBoundary": "offline-policy",
+      "notes": "Quest.lib contains no explicit reward item, currency, experience, or reward-packet definition; reward semantics remain not-recovered.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest5.TXT",
+        "archiveMemberOffset": 12221,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[4].recruitmentEvidence",
+        "sourceLineRange": null
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest6-early:accept",
+      "chainId": "quest6-early",
+      "questId": 6,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "accept",
+      "stageOrder": 1,
+      "marker": "SELECT",
+      "step": 1,
+      "actorOrMarker": "105",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 34,
+      "lineEnd": 36,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "STEP 1 SELECT marker is present. Preserve the marker-local raw Actor token dynamically; this does not establish server acceptance or an NPC identity.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest6.TXT",
+        "archiveMemberOffset": 12980,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[5].recruitmentEvidence.selectionBranch",
+        "sourceLineRange": [
+          34,
+          36
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest6-early:condition",
+      "chainId": "quest6-early",
+      "questId": 6,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "condition",
+      "stageOrder": 2,
+      "marker": "SCRIPT",
+      "step": 2,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 44,
+      "lineEnd": 46,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "offline-policy",
+      "notes": "STEP 2 SCRIPT is retained as a client transition/UI boundary only; no condition operand or authoritative server reply is encoded here.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest6.TXT",
+        "archiveMemberOffset": 12980,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[5].recruitmentEvidence.step2BranchMarkers[1]",
+        "sourceLineRange": [
+          44,
+          46
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest6-early:complete",
+      "chainId": "quest6-early",
+      "questId": 6,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "complete",
+      "stageOrder": 3,
+      "marker": "CANCEL",
+      "step": 3,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 50,
+      "lineEnd": 51,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "The first STEP 3 CANCEL marker is retained as a client dialogue/close boundary; it does not prove an authoritative completion acknowledgement.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest6.TXT",
+        "archiveMemberOffset": 12980,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[5].recruitmentEvidence.step3BranchMarkers[0]",
+        "sourceLineRange": [
+          50,
+          51
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest6-early:reward",
+      "chainId": "quest6-early",
+      "questId": 6,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "reward",
+      "stageOrder": 4,
+      "marker": "OFFLINE_POLICY",
+      "step": 3,
+      "actorOrMarker": "",
+      "actorTokenSemantics": "not-applicable",
+      "lineStart": 0,
+      "lineEnd": 0,
+      "evidence": "E1/gap",
+      "serverBoundary": "offline-policy",
+      "notes": "Quest.lib contains no explicit reward item, currency, experience, or reward-packet definition; reward semantics remain not-recovered.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest6.TXT",
+        "archiveMemberOffset": 12980,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[5].recruitmentEvidence",
+        "sourceLineRange": null
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest7-early:accept",
+      "chainId": "quest7-early",
+      "questId": 7,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "accept",
+      "stageOrder": 1,
+      "marker": "SELECT",
+      "step": 1,
+      "actorOrMarker": "104",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 32,
+      "lineEnd": 34,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "STEP 1 SELECT marker is present. Preserve the marker-local raw Actor token dynamically; this does not establish server acceptance or an NPC identity.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest7.TXT",
+        "archiveMemberOffset": 13765,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[6].recruitmentEvidence.selectionBranch",
+        "sourceLineRange": [
+          32,
+          34
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest7-early:condition",
+      "chainId": "quest7-early",
+      "questId": 7,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "condition",
+      "stageOrder": 2,
+      "marker": "SCRIPT",
+      "step": 2,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 46,
+      "lineEnd": 48,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "offline-policy",
+      "notes": "STEP 2 SCRIPT is retained as a client transition/UI boundary only; no condition operand or authoritative server reply is encoded here.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest7.TXT",
+        "archiveMemberOffset": 13765,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[6].recruitmentEvidence.step2BranchMarkers[2]",
+        "sourceLineRange": [
+          46,
+          48
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest7-early:complete",
+      "chainId": "quest7-early",
+      "questId": 7,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "complete",
+      "stageOrder": 3,
+      "marker": "CANCEL",
+      "step": 3,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 52,
+      "lineEnd": 53,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "The first STEP 3 CANCEL marker is retained as a client dialogue/close boundary; it does not prove an authoritative completion acknowledgement.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest7.TXT",
+        "archiveMemberOffset": 13765,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[6].recruitmentEvidence.step3BranchMarkers[0]",
+        "sourceLineRange": [
+          52,
+          53
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest7-early:reward",
+      "chainId": "quest7-early",
+      "questId": 7,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "reward",
+      "stageOrder": 4,
+      "marker": "OFFLINE_POLICY",
+      "step": 3,
+      "actorOrMarker": "",
+      "actorTokenSemantics": "not-applicable",
+      "lineStart": 0,
+      "lineEnd": 0,
+      "evidence": "E1/gap",
+      "serverBoundary": "offline-policy",
+      "notes": "Quest.lib contains no explicit reward item, currency, experience, or reward-packet definition; reward semantics remain not-recovered.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest7.TXT",
+        "archiveMemberOffset": 13765,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[6].recruitmentEvidence",
+        "sourceLineRange": null
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest8-early:accept",
+      "chainId": "quest8-early",
+      "questId": 8,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "accept",
+      "stageOrder": 1,
+      "marker": "SELECT",
+      "step": 1,
+      "actorOrMarker": "106",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 32,
+      "lineEnd": 34,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "STEP 1 SELECT marker is present. Preserve the marker-local raw Actor token dynamically; this does not establish server acceptance or an NPC identity.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest8.TXT",
+        "archiveMemberOffset": 14640,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[7].recruitmentEvidence.selectionBranch",
+        "sourceLineRange": [
+          32,
+          34
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest8-early:condition",
+      "chainId": "quest8-early",
+      "questId": 8,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "condition",
+      "stageOrder": 2,
+      "marker": "SCRIPT",
+      "step": 2,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 38,
+      "lineEnd": 40,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "offline-policy",
+      "notes": "STEP 2 SCRIPT is retained as a client transition/UI boundary only; no condition operand or authoritative server reply is encoded here.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest8.TXT",
+        "archiveMemberOffset": 14640,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[7].recruitmentEvidence.step2BranchMarkers[0]",
+        "sourceLineRange": [
+          38,
+          40
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest8-early:complete",
+      "chainId": "quest8-early",
+      "questId": 8,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "complete",
+      "stageOrder": 3,
+      "marker": "CANCEL",
+      "step": 3,
+      "actorOrMarker": "ID",
+      "actorTokenSemantics": "原始Quest脚本NAME后的ACTOR token；未映射为NPC模板ID或NPC实体ID",
+      "lineStart": 44,
+      "lineEnd": 46,
+      "evidence": "E2/old-parser+E3/old-resource",
+      "serverBoundary": "client-dialogue",
+      "notes": "The first STEP 3 CANCEL marker is retained as a client dialogue/close boundary; it does not prove an authoritative completion acknowledgement.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest8.TXT",
+        "archiveMemberOffset": 14640,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[7].recruitmentEvidence.step3BranchMarkers[0]",
+        "sourceLineRange": [
+          44,
+          46
+        ]
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "recordId": "quest8-early:reward",
+      "chainId": "quest8-early",
+      "questId": 8,
+      "questIdSemantics": "QuestN filename number only; not a recovered server-internal quest ID",
+      "stage": "reward",
+      "stageOrder": 4,
+      "marker": "OFFLINE_POLICY",
+      "step": 3,
+      "actorOrMarker": "",
+      "actorTokenSemantics": "not-applicable",
+      "lineStart": 0,
+      "lineEnd": 0,
+      "evidence": "E1/gap",
+      "serverBoundary": "offline-policy",
+      "notes": "Quest.lib contains no explicit reward item, currency, experience, or reward-packet definition; reward semantics remain not-recovered.",
+      "sourceReference": {
+        "sourceArtifact": "Quest.lib",
+        "sourceMember": "Quest8.TXT",
+        "archiveMemberOffset": 14640,
+        "sourceHash": "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397",
+        "s4ExportPath": "docs/integration-notes/s4-quest-recruit-data.json",
+        "s4ExportBlobSha": "5621cdee4a020c8648add1d82f26247a0c064374",
+        "s4JsonPointer": "questScripts[7].recruitmentEvidence",
+        "sourceLineRange": null
+      },
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    }
+  ],
+  "b5SemanticCrossReferences": [
+    {
+      "questId": 1,
+      "semantic": "quest1-actor100-companion-recruitment",
+      "b5DatasetPath": "data/ch1-world-catalog/npc-placement-candidates.json",
+      "b5DatasetBlobSha": "83361c3aaca19051187aa3ff90eeb2b5d3840af3",
+      "b5RecordIndex": 3,
+      "b5JsonPointer": "/records/3",
+      "sourceArtifact": "ybcs_offline_npc_placements.py",
+      "sourceHash": "16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1",
+      "sourceLineRange": [
+        208,
+        217
+      ],
+      "sourceReference": "ybcs_offline_npc_placements.py:L208-L217",
+      "associationType": "semantic-cross-reference-only-not-identity-binding",
+      "joinBasis": "Source-declared quest_semantic label identifies the QuestN scope only; no Actor-token/entity/template/SMF numeric equality join is performed.",
+      "actorTokenJoinPerformed": false,
+      "entityIdentityAsserted": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 2,
+      "semantic": "quest2-davis-actor101-companion-recruitment",
+      "b5DatasetPath": "data/ch1-world-catalog/npc-placement-candidates.json",
+      "b5DatasetBlobSha": "83361c3aaca19051187aa3ff90eeb2b5d3840af3",
+      "b5RecordIndex": 12,
+      "b5JsonPointer": "/records/12",
+      "sourceArtifact": "ybcs_offline_npc_placements.py",
+      "sourceHash": "16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1",
+      "sourceLineRange": [
+        340,
+        353
+      ],
+      "sourceReference": "ybcs_offline_npc_placements.py:L340-L353",
+      "associationType": "semantic-cross-reference-only-not-identity-binding",
+      "joinBasis": "Source-declared quest_semantic label identifies the QuestN scope only; no Actor-token/entity/template/SMF numeric equality join is performed.",
+      "actorTokenJoinPerformed": false,
+      "entityIdentityAsserted": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 3,
+      "semantic": "quest3-bill-actor107-companion-recruitment",
+      "b5DatasetPath": "data/ch1-world-catalog/npc-placement-candidates.json",
+      "b5DatasetBlobSha": "83361c3aaca19051187aa3ff90eeb2b5d3840af3",
+      "b5RecordIndex": 9,
+      "b5JsonPointer": "/records/9",
+      "sourceArtifact": "ybcs_offline_npc_placements.py",
+      "sourceHash": "16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1",
+      "sourceLineRange": [
+        300,
+        314
+      ],
+      "sourceReference": "ybcs_offline_npc_placements.py:L300-L314",
+      "associationType": "semantic-cross-reference-only-not-identity-binding",
+      "joinBasis": "Source-declared quest_semantic label identifies the QuestN scope only; no Actor-token/entity/template/SMF numeric equality join is performed.",
+      "actorTokenJoinPerformed": false,
+      "entityIdentityAsserted": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 4,
+      "semantic": "quest4-smith5003-actor102-companion-recruitment",
+      "b5DatasetPath": "data/ch1-world-catalog/npc-placement-candidates.json",
+      "b5DatasetBlobSha": "83361c3aaca19051187aa3ff90eeb2b5d3840af3",
+      "b5RecordIndex": 5,
+      "b5JsonPointer": "/records/5",
+      "sourceArtifact": "ybcs_offline_npc_placements.py",
+      "sourceHash": "16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1",
+      "sourceLineRange": [
+        238,
+        250
+      ],
+      "sourceReference": "ybcs_offline_npc_placements.py:L238-L250",
+      "associationType": "semantic-cross-reference-only-not-identity-binding",
+      "joinBasis": "Source-declared quest_semantic label identifies the QuestN scope only; no Actor-token/entity/template/SMF numeric equality join is performed.",
+      "actorTokenJoinPerformed": false,
+      "entityIdentityAsserted": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 5,
+      "semantic": "quest5-lian5014-actor103-companion-recruitment",
+      "b5DatasetPath": "data/ch1-world-catalog/npc-placement-candidates.json",
+      "b5DatasetBlobSha": "83361c3aaca19051187aa3ff90eeb2b5d3840af3",
+      "b5RecordIndex": 14,
+      "b5JsonPointer": "/records/14",
+      "sourceArtifact": "ybcs_offline_npc_placements.py",
+      "sourceHash": "16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1",
+      "sourceLineRange": [
+        361,
+        373
+      ],
+      "sourceReference": "ybcs_offline_npc_placements.py:L361-L373",
+      "associationType": "semantic-cross-reference-only-not-identity-binding",
+      "joinBasis": "Source-declared quest_semantic label identifies the QuestN scope only; no Actor-token/entity/template/SMF numeric equality join is performed.",
+      "actorTokenJoinPerformed": false,
+      "entityIdentityAsserted": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 6,
+      "semantic": "quest6-priest5008-actor105-companion-recruitment",
+      "b5DatasetPath": "data/ch1-world-catalog/npc-placement-candidates.json",
+      "b5DatasetBlobSha": "83361c3aaca19051187aa3ff90eeb2b5d3840af3",
+      "b5RecordIndex": 21,
+      "b5JsonPointer": "/records/21",
+      "sourceArtifact": "ybcs_offline_npc_placements.py",
+      "sourceHash": "16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1",
+      "sourceLineRange": [
+        405,
+        419
+      ],
+      "sourceReference": "ybcs_offline_npc_placements.py:L405-L419",
+      "associationType": "semantic-cross-reference-only-not-identity-binding",
+      "joinBasis": "Source-declared quest_semantic label identifies the QuestN scope only; no Actor-token/entity/template/SMF numeric equality join is performed.",
+      "actorTokenJoinPerformed": false,
+      "entityIdentityAsserted": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 7,
+      "semantic": "quest7-dragon-soldier5019-actor104-companion-recruitment",
+      "b5DatasetPath": "data/ch1-world-catalog/npc-placement-candidates.json",
+      "b5DatasetBlobSha": "83361c3aaca19051187aa3ff90eeb2b5d3840af3",
+      "b5RecordIndex": 15,
+      "b5JsonPointer": "/records/15",
+      "sourceArtifact": "ybcs_offline_npc_placements.py",
+      "sourceHash": "16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1",
+      "sourceLineRange": [
+        378,
+        388
+      ],
+      "sourceReference": "ybcs_offline_npc_placements.py:L378-L388",
+      "associationType": "semantic-cross-reference-only-not-identity-binding",
+      "joinBasis": "Source-declared quest_semantic label identifies the QuestN scope only; no Actor-token/entity/template/SMF numeric equality join is performed.",
+      "actorTokenJoinPerformed": false,
+      "entityIdentityAsserted": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "questId": 8,
+      "semantic": "quest8-wounded-archer106-companion-recruitment",
+      "b5DatasetPath": "data/ch1-world-catalog/npc-placement-candidates.json",
+      "b5DatasetBlobSha": "83361c3aaca19051187aa3ff90eeb2b5d3840af3",
+      "b5RecordIndex": 26,
+      "b5JsonPointer": "/records/26",
+      "sourceArtifact": "ybcs_offline_npc_placements.py",
+      "sourceHash": "16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1",
+      "sourceLineRange": [
+        434,
+        443
+      ],
+      "sourceReference": "ybcs_offline_npc_placements.py:L434-L443",
+      "associationType": "semantic-cross-reference-only-not-identity-binding",
+      "joinBasis": "Source-declared quest_semantic label identifies the QuestN scope only; no Actor-token/entity/template/SMF numeric equality join is performed.",
+      "actorTokenJoinPerformed": false,
+      "entityIdentityAsserted": false,
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    }
+  ],
+  "deferred": [
+    {
+      "id": "quest0",
+      "status": "deferred",
+      "sourceMember": "Quest0.TXT",
+      "sourceMemberPresentInQuestLib": true,
+      "archiveMemberOffset": 6240,
+      "s4Quest1To8Exported": false,
+      "b5Semantic": "quest0-step7-training-candidate",
+      "b5RecordIndex": 1,
+      "b5SourceReference": "ybcs_offline_npc_placements.py:L187-L198",
+      "reason": "Quest0 is present in Quest.lib but is outside the approved Quest1-8 policy scope and the S4 B1 Quest1-8 export.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "quest9",
+      "status": "deferred",
+      "sourceMember": "Quest9.TXT",
+      "sourceMemberPresentInQuestLib": true,
+      "archiveMemberOffset": 15337,
+      "s4Quest1To8Exported": false,
+      "b5Semantic": "quest9-merchant5018-single-holy-medicine-offer",
+      "b5RecordIndex": 7,
+      "b5SourceReference": "ybcs_offline_npc_placements.py:L258-L273",
+      "reason": "Quest9 is present in Quest.lib but is outside the approved Quest1-8 policy scope; no Quest9 chain is expanded in B6.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "npcscript-program47",
+      "status": "deferred",
+      "sourceMember": "NPCScript.txt",
+      "sourceMemberPresentInQuestLib": true,
+      "npcScriptProgramIndex": 47,
+      "b5Semantic": "program47-spick-pet-onboarding",
+      "b5RecordIndex": 8,
+      "b5SourceReference": "ybcs_offline_npc_placements.py:L285-L295",
+      "reason": "Program47 Spick pet onboarding is an NPCScript/NPC-service semantic, not a Quest1-8 chain stage; it remains deferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    }
+  ],
+  "notRecovered": [
+    {
+      "id": "server-quest-id-mapping",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "QuestScriptNumber is derived from the QuestN filename and is not mapped to an authoritative server-internal quest ID.",
+      "nextEvidenceNeeded": "Authoritative server quest-index mapping or a proven client/server index binding.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "authoritative-quest-acceptance",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "SELECT proves a client-side selection marker and raw token only; the server acceptance response is not present in Quest.lib.",
+      "nextEvidenceNeeded": "Authoritative acceptance response or a recovered server quest-state transition.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "condition-evaluation-formula",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "SCRIPT is a client transition/UI marker; no condition operands or formula are encoded in the exported resource.",
+      "nextEvidenceNeeded": "Server-side condition/flag evaluator and its input/output evidence.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "completion-acknowledgement",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "CANCEL is a client dialogue/close boundary; it does not prove server completion acknowledgement.",
+      "nextEvidenceNeeded": "Authoritative completion response and quest-state update path.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "recruitment-conditions",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "S4 explicitly records recruitmentConditions=null and recruitmentConditionsStatus=not-recovered.",
+      "nextEvidenceNeeded": "Recovered authoritative recruitment eligibility conditions.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "recruitment-mutation",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "S4 explicitly records serverRecruitmentMutation=not-recovered; no party-roster mutation is inferred.",
+      "nextEvidenceNeeded": "Authoritative roster mutation path and persistence boundary.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "reward-definition-and-award",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "Quest.lib contains no explicit reward item, currency, experience, or reward-packet definition.",
+      "nextEvidenceNeeded": "Authoritative reward table, award handler, or server response evidence.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "actor-to-npc-identity-binding",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "Quest Actor tokens are retained as resource tokens and are not mapped to NPC template IDs, entity IDs, or SMF object IDs.",
+      "nextEvidenceNeeded": "Independent dispatcher/call-chain evidence proving the identifier namespace edge.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "retail-npc-placement-table",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "B5 explicitly records that no retail server placement table was recovered; its 29 candidates are offline-policy only.",
+      "nextEvidenceNeeded": "Authoritative retail placement table or independently verified retail placement evidence.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "choice-values-and-semantics",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "The S4 parser does not independently recover choices; empty choices arrays do not establish choice semantics.",
+      "nextEvidenceNeeded": "Raw choice encoding and the native parser/dispatcher semantics.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "unknown-command-vocabulary",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "The parser classifies unrecognized non-directive lines as TEXT; an empty unknownCommands list does not prove unknown syntax is absent.",
+      "nextEvidenceNeeded": "Complete native token grammar and parser branch coverage.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "authoritative-quest-state-flags",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "The current Quest resource/parser export does not recover authoritative quest flag storage or update messages.",
+      "nextEvidenceNeeded": "Quest-state flag storage, update messages, and server authority path.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "id": "quest-driven-warp-or-battle-callbacks",
+      "status": "not-recovered",
+      "affectedQuestScripts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "reason": "This B6 slice does not recover authoritative Quest-triggered warp/battle callbacks or their server responses.",
+      "nextEvidenceNeeded": "Relevant callback call chains and authoritative response evidence.",
+      "evidenceBoundary": "Quest.lib plus the previously accepted S4 Quest1-8 secondary export; no retail/server behavior is inferred.",
+      "evidenceLevel": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    }
+  ],
+  "safetyPolicy": [
+    "Every B6 record is RECOVERED_SECONDARY and runtimeVerified=false; no record is VERIFIED.",
+    "QuestN script number is a filename/resource identifier only, not a server-internal quest ID.",
+    "Actor tokens are retained as strings exactly as supplied by the marker-local S4 evidence; no NPC template/entity/SMF numeric join is performed.",
+    "B5 quest_semantic is used only as a source-declared QuestN semantic cross-reference; it does not prove Actor-to-entity identity.",
+    "B5 NPC placement candidates remain offline-policy and must not be described as retail NPC identity or retail placement.",
+    "No task acceptance, condition evaluation, completion acknowledgement, recruitment mutation, reward award, warp, battle, save, wire emission, or runtime NPC deployment is implemented.",
+    "The 13 additional CANCEL markers remain source references and are not promoted to independent B6 chain stages.",
+    "Quest0, Quest9, and NPCScript program47 remain deferred."
+  ]
+}

@@ -1,0 +1,2253 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "ybcs-ch1-offline-index-ferry-story-returns",
+  "batch": "B4-3",
+  "scope": {
+    "includedCategories": [
+      "offline-exploration-index",
+      "terry-ferry-references",
+      "story-battle-victory-returns"
+    ],
+    "excludedCategories": [
+      "main-city-scene-routes",
+      "door-marker-tuples",
+      "npc-placement",
+      "quest-policy"
+    ],
+    "coreMapIds": [
+      "map:old:1030",
+      "map:old:1060",
+      "map:old:1070",
+      "map:old:1090",
+      "map:old:1040",
+      "map:old:1045"
+    ]
+  },
+  "provenance": {
+    "sourceProject": "ybcs-offline",
+    "evidenceLevel": "RECOVERED_SECONDARY",
+    "runtimeVerified": false
+  },
+  "categoryCounts": {
+    "offlineExplorationIndex": {
+      "sourceTotal": 49,
+      "coreScopeCount": 5
+    },
+    "terryFerryReferences": {
+      "sourceTotal": 2,
+      "coreScopeCount": 0
+    },
+    "storyBattleVictoryReturns": {
+      "sourceTotal": 26,
+      "coreScopeCount": 5,
+      "distinctCoreTargetMapCount": 4
+    }
+  },
+  "offlineExplorationIndex": {
+    "policyId": "old-general-ordinary-world-graph-v2",
+    "policyMeaning": "GENERAL_ORDINARY_MORA_MAP_IDS; map eligibility for the general Mora dialog/index, not a physical adjacency list or a complete 108-map catalog",
+    "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+    "entries": [
+      {
+        "mapId": "map:old:1000",
+        "mapWire": 1000,
+        "zoneName": "卡奥斯_村庄",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1005",
+        "mapWire": 1005,
+        "zoneName": "虫子_村庄",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1010",
+        "mapWire": 1010,
+        "zoneName": "伊斯特_平原",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1020",
+        "mapWire": 1020,
+        "zoneName": "卡奥斯_北路",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1027",
+        "mapWire": 1027,
+        "zoneName": "旧地图 1027",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1030",
+        "mapWire": 1030,
+        "zoneName": "布日古斯_城",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": true,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1040",
+        "mapWire": 1040,
+        "zoneName": "扎魔拉_要塞",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": true,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1045",
+        "mapWire": 1045,
+        "zoneName": "扎魔拉_要塞_地下_洞穴",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": true,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1050",
+        "mapWire": 1050,
+        "zoneName": "塔蓝_煤矿_地区",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1060",
+        "mapWire": 1060,
+        "zoneName": "布日古斯_本城_入口",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": true,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1090",
+        "mapWire": 1090,
+        "zoneName": "布日古斯_城_走廊",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": true,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1100",
+        "mapWire": 1100,
+        "zoneName": "塔蓝_煤矿_1_地区",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1200",
+        "mapWire": 1200,
+        "zoneName": "塔蓝_煤矿_2_地区",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1300",
+        "mapWire": 1300,
+        "zoneName": "阿斯托尼亚_山脉_入口",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1310",
+        "mapWire": 1310,
+        "zoneName": "里德曼",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1340",
+        "mapWire": 1340,
+        "zoneName": "阿斯托尼亚_山脉_分界森林",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1341",
+        "mapWire": 1341,
+        "zoneName": "阿特里",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1342",
+        "mapWire": 1342,
+        "zoneName": "阿特里_战场",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1345",
+        "mapWire": 1345,
+        "zoneName": "克里温",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1353",
+        "mapWire": 1353,
+        "zoneName": "凯波利德_部落",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1361",
+        "mapWire": 1361,
+        "zoneName": "布日古斯_港口",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1363",
+        "mapWire": 1363,
+        "zoneName": "布日古斯_港口",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1365",
+        "mapWire": 1365,
+        "zoneName": "海盗船_甲板",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1367",
+        "mapWire": 1367,
+        "zoneName": "死亡之岛",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1368",
+        "mapWire": 1368,
+        "zoneName": "死亡之岛_海盗_基地_入口",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1369",
+        "mapWire": 1369,
+        "zoneName": "死亡之岛_海盗_基地_外城",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1371",
+        "mapWire": 1371,
+        "zoneName": "死亡之岛_地下_洞穴",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1373",
+        "mapWire": 1373,
+        "zoneName": "西西里奥_岛",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1381",
+        "mapWire": 1381,
+        "zoneName": "达莱易_湖",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1383",
+        "mapWire": 1383,
+        "zoneName": "达莱易_城_入口",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1500",
+        "mapWire": 1500,
+        "zoneName": "沙君特_港口",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1501",
+        "mapWire": 1501,
+        "zoneName": "沙君特港口_武器店",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1502",
+        "mapWire": 1502,
+        "zoneName": "沙君特港口_修理店",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1503",
+        "mapWire": 1503,
+        "zoneName": "沙君特港口_消耗品店",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:1504",
+        "mapWire": 1504,
+        "zoneName": "沙君特港口_酒店",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2000",
+        "mapWire": 2000,
+        "zoneName": "武器店",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2100",
+        "mapWire": 2100,
+        "zoneName": "防具店",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2200",
+        "mapWire": 2200,
+        "zoneName": "装饰品店",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2300",
+        "mapWire": 2300,
+        "zoneName": "消耗品店",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2400",
+        "mapWire": 2400,
+        "zoneName": "卡奥斯银行",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2450",
+        "mapWire": 2450,
+        "zoneName": "武器修理店",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2550",
+        "mapWire": 2550,
+        "zoneName": "工会管理协会",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2600",
+        "mapWire": 2600,
+        "zoneName": "卡奥斯神殿",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2800",
+        "mapWire": 2800,
+        "zoneName": "魔法师之家",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2900",
+        "mapWire": 2900,
+        "zoneName": "龙兵之家(酒店)",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:2950",
+        "mapWire": 2950,
+        "zoneName": "礼品屋",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:3000",
+        "mapWire": 3000,
+        "zoneName": "新手修炼场1",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:3001",
+        "mapWire": 3001,
+        "zoneName": "新手修炼场2",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "mapId": "map:old:3002",
+        "mapWire": 3002,
+        "zoneName": "OX_问题_屋",
+        "indexPolicyId": "old-general-ordinary-world-graph-v2",
+        "indexStatus": "included",
+        "coreScope": false,
+        "physicalRouteImplied": false,
+        "sourceLocator": "ybcs_offline_world_catalog.py:L67-L77",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_world_catalog.py",
+          "sourceHash": "34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703",
+          "sourceRecord": "GENERAL_ORDINARY_MORA_MAP_IDS frozenset L67-L77",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "zoneNameReference": {
+          "dataset": "data/ch1-world-catalog/world-catalog.json",
+          "commit": "2dd665ab43463c45cc20d20df222c736f05861fb",
+          "gitBlobSha1": "8d25bee302eb70076cf9e010113ac8b9de2b2fdc",
+          "attribution": "总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      }
+    ]
+  },
+  "terryFerryReferences": {
+    "sourceCount": 2,
+    "routeActionSemantics": "Only the two explicit static route literals are included; no wider ferry inventory or server business response is inferred.",
+    "sourceArtifact": "ybcs_offline_npc_transport.py",
+    "sourceHash": "ef885b8375dfdbe1696e9f4807906e580f51b0679f8954753da45f11eb9f5e92",
+    "routeRows": [
+      {
+        "routeId": "terry-ferry-1500-to-1373",
+        "direction": "outbound",
+        "sourceMapId": "map:old:1500",
+        "targetMapId": "map:old:1373",
+        "targetMapWire": 1373,
+        "npc": {
+          "entityId": 21500,
+          "sourceField": "npc_entity_id",
+          "constantName": "TERRY_PORT_ENTITY_ID",
+          "constantSourceLocator": "ybcs_offline_npc_transport.py:L16",
+          "npcProgramIndex": 48,
+          "placementCoordinates": null,
+          "placementStatus": "not-recovered"
+        },
+        "arrivalCell": {
+          "x": 110,
+          "y": 50,
+          "coordinateUnit": "map-cell",
+          "sourceField": "target_spawn",
+          "sourceLocator": "ybcs_offline_npc_transport.py:L50-L56",
+          "semantics": "arrival spawn adjacent to destination Terry; not the destination NPC cell",
+          "independentWalkabilityRecheck": "not-performed-in-B4-3"
+        },
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_npc_transport.py",
+          "sourceHash": "ef885b8375dfdbe1696e9f4807906e580f51b0679f8954753da45f11eb9f5e92",
+          "sourceRecord": "YBCS_TERRY_FERRY_ROUTES L50-L56",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "b6CrossReference": {
+          "dataset": "docs/integration-notes/s4-ferry-routes-data.json",
+          "commit": "d9832eb186d46c971e0dbf853426c76347a948c0",
+          "gitBlobSha1": "0e379cf471dbf94cc3fc093785a97c04c3e117dc",
+          "auditGitBlobSha1": "30fdc6af2dd383ac24d1c79ab4c5572a3e6f3069"
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "routeId": "terry-ferry-1373-to-1500",
+        "direction": "return",
+        "sourceMapId": "map:old:1373",
+        "targetMapId": "map:old:1500",
+        "targetMapWire": 1500,
+        "npc": {
+          "entityId": 21373,
+          "sourceField": "npc_entity_id",
+          "constantName": "TERRY_ISLAND_ENTITY_ID",
+          "constantSourceLocator": "ybcs_offline_npc_transport.py:L17",
+          "npcProgramIndex": 49,
+          "placementCoordinates": null,
+          "placementStatus": "not-recovered"
+        },
+        "arrivalCell": {
+          "x": 57,
+          "y": 121,
+          "coordinateUnit": "map-cell",
+          "sourceField": "target_spawn",
+          "sourceLocator": "ybcs_offline_npc_transport.py:L58-L64",
+          "semantics": "arrival spawn adjacent to destination Terry; not the destination NPC cell",
+          "independentWalkabilityRecheck": "not-performed-in-B4-3"
+        },
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_npc_transport.py",
+          "sourceHash": "ef885b8375dfdbe1696e9f4807906e580f51b0679f8954753da45f11eb9f5e92",
+          "sourceRecord": "YBCS_TERRY_FERRY_ROUTES L58-L64",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "b6CrossReference": {
+          "dataset": "docs/integration-notes/s4-ferry-routes-data.json",
+          "commit": "d9832eb186d46c971e0dbf853426c76347a948c0",
+          "gitBlobSha1": "0e379cf471dbf94cc3fc093785a97c04c3e117dc",
+          "auditGitBlobSha1": "30fdc6af2dd383ac24d1c79ab4c5572a3e6f3069"
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      }
+    ]
+  },
+  "storyBattleVictoryReturns": {
+    "sourceCount": 26,
+    "sourceArtifact": "ybcs_offline_field_encounters.py",
+    "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+    "targetMapCounts": {
+      "map:old:1060": 1,
+      "map:old:1090": 1,
+      "map:old:1100": 1,
+      "map:old:1030": 1,
+      "map:old:1040": 2,
+      "map:old:1310": 1,
+      "map:old:1320": 2,
+      "map:old:1330": 1,
+      "map:old:1341": 1,
+      "map:old:1342": 2,
+      "map:old:1343": 1,
+      "map:old:1345": 2,
+      "map:old:1346": 1,
+      "map:old:1352": 1,
+      "map:old:1500": 1,
+      "map:old:1367": 1,
+      "map:old:1368": 1,
+      "map:old:1369": 1,
+      "map:old:1373": 1,
+      "map:old:1381": 2,
+      "map:old:1383": 1
+    },
+    "returns": [
+      {
+        "returnId": "story-victory-return-01",
+        "returnMapId": "map:old:1060",
+        "returnMapWire": 1060,
+        "returnMapName": "布日古斯_本城_入口",
+        "returnCell": {
+          "x": 20,
+          "y": 120,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L1778-L1779",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L1778-L1779",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": true,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-02",
+        "returnMapId": "map:old:1090",
+        "returnMapWire": 1090,
+        "returnMapName": "布日古斯_城_走廊",
+        "returnCell": {
+          "x": 41,
+          "y": 41,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L1830-L1831",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L1830-L1831",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": true,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-03",
+        "returnMapId": "map:old:1100",
+        "returnMapWire": 1100,
+        "returnMapName": "塔蓝_煤矿_1_地区",
+        "returnCell": {
+          "x": 57,
+          "y": 79,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": null,
+        "serverDrivenStoryTriggerStatus": "not-explicitly-declared-on-this-record",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L1869-L1870",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L1869-L1870",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-04",
+        "returnMapId": "map:old:1030",
+        "returnMapWire": 1030,
+        "returnMapName": "布日古斯_城",
+        "returnCell": {
+          "x": 72,
+          "y": 28,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L1938-L1939",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L1938-L1939",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": true,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-05",
+        "returnMapId": "map:old:1040",
+        "returnMapWire": 1040,
+        "returnMapName": "扎魔拉_要塞",
+        "returnCell": {
+          "x": 62,
+          "y": 170,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2003-L2004",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2003-L2004",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": true,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-06",
+        "returnMapId": "map:old:1040",
+        "returnMapWire": 1040,
+        "returnMapName": "扎魔拉_要塞",
+        "returnCell": {
+          "x": 62,
+          "y": 170,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2054-L2055",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2054-L2055",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": true,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-07",
+        "returnMapId": "map:old:1310",
+        "returnMapWire": 1310,
+        "returnMapName": "里德曼",
+        "returnCell": {
+          "x": 37,
+          "y": 81,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2100-L2101",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2100-L2101",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-08",
+        "returnMapId": "map:old:1320",
+        "returnMapWire": 1320,
+        "returnMapName": "里德曼_战场",
+        "returnCell": {
+          "x": 59,
+          "y": 69,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2154-L2155",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2154-L2155",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-09",
+        "returnMapId": "map:old:1320",
+        "returnMapWire": 1320,
+        "returnMapName": "里德曼_战场",
+        "returnCell": {
+          "x": 59,
+          "y": 69,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2191-L2192",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2191-L2192",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-10",
+        "returnMapId": "map:old:1330",
+        "returnMapWire": 1330,
+        "returnMapName": "布鲁斯_阵营",
+        "returnCell": {
+          "x": 59,
+          "y": 69,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2228-L2229",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2228-L2229",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-11",
+        "returnMapId": "map:old:1341",
+        "returnMapWire": 1341,
+        "returnMapName": "阿特里",
+        "returnCell": {
+          "x": 123,
+          "y": 161,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2274-L2275",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2274-L2275",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-12",
+        "returnMapId": "map:old:1342",
+        "returnMapWire": 1342,
+        "returnMapName": "阿特里_战场",
+        "returnCell": {
+          "x": 50,
+          "y": 94,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2320-L2321",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2320-L2321",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-13",
+        "returnMapId": "map:old:1342",
+        "returnMapWire": 1342,
+        "returnMapName": "阿特里_战场",
+        "returnCell": {
+          "x": 50,
+          "y": 94,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2359-L2360",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2359-L2360",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-14",
+        "returnMapId": "map:old:1343",
+        "returnMapWire": 1343,
+        "returnMapName": "布鲁斯军_本营",
+        "returnCell": {
+          "x": 78,
+          "y": 118,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2398-L2399",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2398-L2399",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-15",
+        "returnMapId": "map:old:1345",
+        "returnMapWire": 1345,
+        "returnMapName": "克里温",
+        "returnCell": {
+          "x": 68,
+          "y": 164,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2446-L2447",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2446-L2447",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-16",
+        "returnMapId": "map:old:1346",
+        "returnMapWire": 1346,
+        "returnMapName": "克里温_要塞",
+        "returnCell": {
+          "x": 63,
+          "y": 87,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2500-L2501",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2500-L2501",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-17",
+        "returnMapId": "map:old:1345",
+        "returnMapWire": 1345,
+        "returnMapName": "克里温",
+        "returnCell": {
+          "x": 68,
+          "y": 164,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2545-L2546",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2545-L2546",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-18",
+        "returnMapId": "map:old:1352",
+        "returnMapWire": 1352,
+        "returnMapName": "沙哈格拉斯_神殿",
+        "returnCell": {
+          "x": 8,
+          "y": 68,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": null,
+        "serverDrivenStoryTriggerStatus": "not-explicitly-declared-on-this-record",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2595-L2596",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2595-L2596",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-19",
+        "returnMapId": "map:old:1500",
+        "returnMapWire": 1500,
+        "returnMapName": "沙君特_港口",
+        "returnCell": {
+          "x": 73,
+          "y": 81,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2644-L2645",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2644-L2645",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-20",
+        "returnMapId": "map:old:1367",
+        "returnMapWire": 1367,
+        "returnMapName": "死亡之岛",
+        "returnCell": {
+          "x": 35,
+          "y": 61,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": null,
+        "serverDrivenStoryTriggerStatus": "not-explicitly-declared-on-this-record",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2773-L2774",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2773-L2774",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-21",
+        "returnMapId": "map:old:1368",
+        "returnMapWire": 1368,
+        "returnMapName": "死亡之岛_海盗_基地_入口",
+        "returnCell": {
+          "x": 34,
+          "y": 70,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": null,
+        "serverDrivenStoryTriggerStatus": "not-explicitly-declared-on-this-record",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2819-L2820",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2819-L2820",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-22",
+        "returnMapId": "map:old:1369",
+        "returnMapWire": 1369,
+        "returnMapName": "死亡之岛_海盗_基地_外城",
+        "returnCell": {
+          "x": 19,
+          "y": 87,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2880-L2881",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2880-L2881",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-23",
+        "returnMapId": "map:old:1373",
+        "returnMapWire": 1373,
+        "returnMapName": "西西里奥_岛",
+        "returnCell": {
+          "x": 110,
+          "y": 50,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2927-L2928",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2927-L2928",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-24",
+        "returnMapId": "map:old:1381",
+        "returnMapWire": 1381,
+        "returnMapName": "达莱易_湖",
+        "returnCell": {
+          "x": 18,
+          "y": 80,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L2978-L2979",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L2978-L2979",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-25",
+        "returnMapId": "map:old:1383",
+        "returnMapWire": 1383,
+        "returnMapName": "达莱易_城_入口",
+        "returnCell": {
+          "x": 40,
+          "y": 50,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L3023-L3024",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L3023-L3024",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      },
+      {
+        "returnId": "story-victory-return-26",
+        "returnMapId": "map:old:1381",
+        "returnMapWire": 1381,
+        "returnMapName": "达莱易_湖",
+        "returnCell": {
+          "x": 12,
+          "y": 16,
+          "coordinateUnit": "map-cell"
+        },
+        "returnCellValidationStatus": "source-literal-only-not-rechecked-in-B4-3",
+        "serverDrivenStoryTrigger": true,
+        "serverDrivenStoryTriggerStatus": "explicit-true",
+        "sourceLocator": "ybcs_offline_field_encounters.py:L3062-L3063",
+        "sourceEvidence": {
+          "sourceProject": "ybcs-offline",
+          "sourceArtifact": "src/legacy_gui_runtime/ybcs_offline_field_encounters.py",
+          "sourceHash": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+          "sourceRecord": "victory_return_map_id and victory_return_cell at L3062-L3063",
+          "evidenceLevel": "RECOVERED_SECONDARY",
+          "runtimeVerified": false
+        },
+        "coreScope": false,
+        "evidenceLevel": "RECOVERED_SECONDARY",
+        "runtimeVerified": false
+      }
+    ]
+  },
+  "evidenceGaps": [
+    {
+      "kind": "ferry-npc-placement",
+      "status": "not-recovered",
+      "description": "The two route literals identify NPC entity IDs and program indices, but do not provide NPC world placement coordinates."
+    },
+    {
+      "kind": "ferry-arrival-walkability",
+      "status": "not-rechecked",
+      "description": "Arrival cells are source literals; B4-3 did not re-run map resource walkability checks."
+    },
+    {
+      "kind": "story-return-walkability",
+      "status": "not-rechecked",
+      "description": "Victory return cells are source literals; B4-3 did not re-run map resource walkability checks."
+    },
+    {
+      "kind": "server-driven-trigger-omissions",
+      "status": "not-explicitly-declared",
+      "description": "Four victory-return records omit an explicit server_driven_story_trigger field; no false value is inferred."
+    }
+  ],
+  "safetyPolicy": {
+    "evidenceLevel": "RECOVERED_SECONDARY",
+    "runtimeVerified": false,
+    "offlineIndexDoesNotImplyPhysicalConnectivity": true,
+    "arrivalCellDoesNotImplyNpcPlacement": true,
+    "storyReturnCellDoesNotImplyRouteEdge": true,
+    "noInferredMapEdges": true
+  }
+}
