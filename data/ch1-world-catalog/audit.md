@@ -295,3 +295,101 @@ Core-scope counts use index map membership for the index, either endpoint for fe
 - Missing ferry NPC placement remains `null/not-recovered`.
 - No coordinates are invented; no adjacency or route edges are inferred from index membership or victory return cells.
 - No original client was run; no main-city route JSON, world catalog JSON, gameplay code, PR or main branch was changed.
+
+## B4-4 — Cross-batch audit and consistency verdict
+
+### Audit scope and baseline
+
+- This is a cross-batch audit only. No new source-data extraction was performed.
+- Audited snapshots: B2 world catalog, B4-2 route/gate markers, and B4-3 offline-index/ferry/story-return data, all read at branch commit `7626731354459556cbaf6920da292019dc59e1da`.
+- Branch: `data/ch1-world-catalog`; parent checkpoint: B4-3 commit `7626731354459556cbaf6920da292019dc59e1da`.
+- No accepted JSON file was edited as part of this audit. Only this audit document receives the B4-4 section.
+
+### Cross-batch count reconciliation
+
+| Dataset / measure | B2 / B4-2 / B4-3 value | Cross-check |
+|---|---:|---|
+| Installed map resources | 111 | pass |
+| Explorable world-catalog members | 108 | pass |
+| Quarantined maps | 3 (453, 498, 499) | pass |
+| Region groups | 8 | pass |
+| Regional members | 107 | pass |
+| Root page | map 1000, 1 | pass |
+| Main-city declared route records | 93 | pass |
+| Unique route source / target maps | 50 / 50 | pass |
+| Reciprocal route records / pairs | 92 / 46 | pass |
+| Sole non-reciprocal declaration | 3001 -> 1000 | pass |
+| Route self-loops | 0 | pass |
+| Door-marker tuple records | 13 | pass |
+| Distinct door target interiors | 12 | pass |
+| Ordinary Mora offline-index members | 49 | pass |
+| Terry ferry route references | 2 | pass |
+| Story-battle victory-return assignments | 26 | pass |
+
+B2 region counts are story-west 18, story-east 11, arena-event 14, mainland-south 17, mainland-north 12, islands-west 12, islands-east 8, and city-services 15. Their sum is 107; adding the separate root page 1000 yields 108. The three quarantined map wires are excluded from those 108 members.
+
+### World-catalog cross-references
+
+- All 93 route source and target map IDs resolve to the B2 108-member catalog. The set of route map IDs contains 50 unique IDs; no dangling route map reference was found.
+- All 93 route source/target display names match the B2 world-catalog zone names; name mismatches: **0**.
+- All 12 door target interior IDs resolve to world-catalog members. The 12 door-call target IDs and the 12 interior-summary IDs are the same set.
+- All 49 offline-index IDs resolve to world-catalog members. The B4-3 index ID set is exactly equal to B2's GENERAL_ORDINARY_MORA_MAP_IDS set: no missing IDs, extra IDs, or duplicates.
+- Offline-index core-scope count is 5: 1030, 1040, 1045, 1060, 1090. Map 1070 is correctly absent.
+- All 26 story-return target maps resolve to world-catalog members; return-map display names match B2 zone names; name mismatches: **0**.
+- All ferry source and target maps resolve to world-catalog members. The two routes are 1500 -> 1373 and 1373 -> 1500; neither endpoint is in the six-map core scope.
+
+### Route graph and core-six reconciliation
+
+- B4-1's independently recomputed 93-row graph result is consistent with the persisted B4-2 JSON: 50 unique source maps, 50 unique target maps, 92 reciprocal directed records forming 46 pairs, one non-reciprocal declaration, and zero self-loops.
+- The only non-reciprocal declaration is route row #09, map 3001 -> map 1000. This means the reverse declaration is absent from this table; it does not assert that reverse physical movement is impossible.
+- Degree checks remain: map 1000 out-degree 17 / in-degree 18; map 1500 out-degree 5 / in-degree 5; map 1020 out-degree 4 / in-degree 4; maps 1010, 1040, 1050, 1060 and 1341 each out-degree 3 / in-degree 3.
+- The six-map core remains 1030, 1060, 1070, 1090, 1040 and 1045. Exactly 14 main-city route records touch this set: 8 have both endpoints inside and 6 cross its boundary. All 14 have reciprocal declarations and form 7 pairs.
+- The 49-entry ordinary Mora index, two NPC ferry references, and 26 story victory returns are separate evidence categories. They are not silently added as edges to the 93-row main-city route graph.
+
+### Door-marker count reconciliation
+
+- The measured source tuple count is **13 records**, with **12 distinct target interiors**.
+- There are **12** main-city route-table door() call sites, all sourced from map 1000; they cover the same 12 target interiors.
+- Interior 2400 (bank) has two facade records; the other 11 interiors have one each. The 12 interior summary facade counts sum to 13.
+- The source module docstring says 14. This is a documented source-docstring-versus-measured-tuple discrepancy, not the measured result. Persisted measured values remain 13 records / 12 interiors; 14 is retained only as the docstring-reported value.
+- The 13 tuple records are represented by 12 interior aggregate summaries with facade counts; individual marker-cell coordinate tuples were not supplied and remain not-recovered. No coordinates are invented.
+
+### B4-3 category reconciliation
+
+| Category | sourceTotal | coreScopeCount | Cross-check |
+|---|---:|---:|---|
+| Offline exploration index | 49 | 5 | exact set match with B2 |
+| Terry ferry references | 2 | 0 | exact two S4 B6 route literals |
+| Story-battle victory returns | 26 | 5 | all 26 map/cell literals represented |
+
+- The five core-scope story-return records target four distinct maps: 1060, 1090, 1030 and 1040 (1040 occurs twice).
+- The 26 story-return rows preserve 22 explicit `server_driven_story_trigger=true` values and 4 records where that field is not explicitly declared. The four omissions are not rewritten as false.
+- Ferry arrival cells are destination-adjacent arrival spawns, not NPC placement coordinates. Both ferry NPC placement coordinates remain not-recovered.
+- Story victory-return cells remain source literals; B4-3 did not claim a fresh walkability validation.
+
+### Evidence-level and safety consistency
+
+- Recursive audit of the three JSON datasets found **709 objects carrying evidence/runtime fields**. All 709 use exactly `evidenceLevel=RECOVERED_SECONDARY` and `runtimeVerified=false`; no positive higher evidence label or runtime-verified claim was found.
+- The source attribution distinction is preserved: source hashes and excerpts marked owner-local remain attributed as owner-local; this worker does not claim to have re-read those local-only sources.
+- The B1 55-candidate / partial-roster state is historical. B2 explicitly superseded it with the owner-local 108-member builder roster. It is not a current catalog-count conflict.
+- The 14 value in the door-marker source docstring is historical source wording; the accepted measured count is 13 tuple records / 12 interiors.
+- Missing dimensions remain explicit rather than fabricated: per-map resource hashes and spawn/component metrics; expanded approach cells and aligned route spawns; door marker coordinates; ferry NPC placement; independent walkability rechecks; and server responses.
+- All 93 declared main-city route records have explicit targets. The null/not-recovered target representation is therefore not needed for these 93 records; no missing target is fabricated.
+- No map-number proximity, visual adjacency, region grouping, ordinary-index membership, ferry arrival, or story-return cell is converted into an inferred physical adjacency edge.
+
+### B4-4 findings
+
+- Cross-batch blocking inconsistencies: **0**.
+- Dangling map references: **0**.
+- Route/map-name mismatches: **0**.
+- Offline-index set mismatches: **0**.
+- Story-return map/name/cell mismatches: **0**.
+- Door target-set mismatches: **0**.
+- Evidence/runtime-field exceptions: **0**.
+- Known documented discrepancy: source door-marker docstring says 14 while the measured tuple count is 13; accepted JSON and B4-2 audit correctly use 13 records / 12 interiors.
+
+### B4-4 verdict and repository boundary
+
+B4-1, B4-2 and B4-3 are mutually consistent within their declared scopes. No accepted JSON correction is indicated by this audit. B4-4 is audit-only: no new data extraction, no JSON edits, no gameplay-code edits, no main-branch changes, no primary-account repository changes, no PR creation and no merge. B5 is not started.
+
+All YBCS-derived evidence remains `RECOVERED_SECONDARY`; all runtime flags remain `false`.
