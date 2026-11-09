@@ -239,3 +239,59 @@ These are overlapping classifications and must not be summed into a single edge 
 All ybcs-derived route and door data in this batch are `RECOVERED_SECONDARY` and `runtimeVerified=false`. No retail runtime behavior is asserted. No edges are inferred from map-number proximity, visual adjacency or directory grouping. A missing target, if any, must be represented as `targetMapId=null` and `targetStatus=not-recovered`; all 93 supplied route rows have an explicit target.
 
 No gameplay source, `world-catalog.json`, main branch, primary account repository, PR or merge was changed in this batch.
+
+## B4-3 — Offline exploration index, Terry ferry references, and story-battle victory returns
+
+### Scope and source attribution
+
+This batch contains exactly the three approved categories: (1) offline exploration index, (2) two Terry ferry route references, and (3) 26 story-battle victory returns. No main-city route records, door-marker tuples, NPC placements, or Quest policy are added here.
+
+All YBCS-derived entries are `RECOVERED_SECONDARY` and `runtimeVerified=false`. No runtime or retail behavior is asserted.
+
+### Offline exploration index
+
+- Source: `src/legacy_gui_runtime/ybcs_offline_world_catalog.py`, 658 lines, SHA-256 `34b577a0d41be8b4a24e619d73498db3a637c8571ca31d5802370f82ef5c0703`; this source hash was independently re-read and matched earlier in B0.
+- Exact source: `GENERAL_ORDINARY_MORA_MAP_IDS` frozenset at L67-L77.
+- Count: **49 map IDs**; all 49 resolve to entries in the B2-accepted 108-map catalog. Five are in the six-map core scope: 1030, 1040, 1045, 1060 and 1090. Map 1070 is not included.
+- The 49-member set is the ordinary Mora map selection/index policy, not a physical adjacency list, not a route graph, and not the complete 108-map exploration catalog.
+- Display names are copied from the B2-accepted `world-catalog.json` (commit `2dd665ab43463c45cc20d20df222c736f05861fb`, Git blob SHA-1 `8d25bee302eb70076cf9e010113ac8b9de2b2fdc`). B2 names retain the attribution **总管本地运行 build_old_offline_world_catalog (extracted/)，本会话未重跑**.
+- No edge is inferred from index membership.
+
+### Terry ferry references
+
+- Source: `src/legacy_gui_runtime/ybcs_offline_npc_transport.py`, 93 lines, SHA-256 `ef885b8375dfdbe1696e9f4807906e580f51b0679f8954753da45f11eb9f5e92`; this source hash was independently re-read and matched earlier in B0.
+- Entity constants: L15-L17. Two route literals: outbound L50-L56 and return L58-L64.
+- Outbound: map 1500 → 1373; NPC entity 21500; NPCScript program 48; arrival `target_spawn=(110,50)`.
+- Return: map 1373 → 1500; NPC entity 21373; NPCScript program 49; arrival `target_spawn=(57,121)`.
+- The arrival cell is adjacent to the destination Terry; it is not the NPC's world placement cell. Both NPC placement coordinates remain `not-recovered`.
+- Existing S4 B6 cross-reference: `s4-ferry-routes-data.json` at commit `d9832eb186d46c971e0dbf853426c76347a948c0`, Git blob SHA-1 `0e379cf471dbf94cc3fc093785a97c04c3e117dc`; corresponding audit Git blob SHA-1 `30fdc6af2dd383ac24d1c79ab4c5572a3e6f3069`. The B6 export also records that this is exactly two route literals, not a complete transport inventory.
+- Ferry records touching the six core maps: **0**.
+
+### Story-battle victory returns
+
+- Source: `src/legacy_gui_runtime/ybcs_offline_field_encounters.py`, 5,120 lines, SHA-256 `94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a`; this source hash was independently re-read and matched earlier in B0.
+- Exactly **26** explicit `victory_return_map_id` assignments were found. Each exported row preserves its source map-ID line and the adjacent `victory_return_cell` line.
+- Core-scope target returns: **5** records: map 1060 (L1778), 1090 (L1830), 1030 (L1938), and map 1040 twice (L2003, L2054). No return targets 1045 or 1070.
+- All 26 source records include a literal return cell. These are source literals only; this batch did not re-run walkability or movement validation.
+- Four records do not explicitly declare `server_driven_story_trigger` (L1869, L2595, L2773, L2819); the JSON records this as not explicitly declared and does not infer false.
+- Story return cells are not converted into ordinary route edges.
+
+### B4-3 counts
+
+| Category | sourceTotal | coreScopeCount |
+|---|---:|---:|
+| Offline exploration index | 49 | 5 |
+| Terry ferry references | 2 | 0 |
+| Story-battle victory returns | 26 | 5 |
+
+Core-scope counts use index map membership for the index, either endpoint for ferry routes, and return target map for story victories. Categories are independent and are not summed into a single route count.
+
+### Validation and boundaries
+
+- Offline index entries: **49**, unique map IDs: **49**, all present in the B2 108-map catalog.
+- Ferry route references: **2**, exact directions and arrival cells preserved.
+- Story victory returns: **26**, all have an explicit map ID and return cell.
+- Every B4-3 record carries `RECOVERED_SECONDARY` and `runtimeVerified=false`.
+- Missing ferry NPC placement remains `null/not-recovered`.
+- No coordinates are invented; no adjacency or route edges are inferred from index membership or victory return cells.
+- No original client was run; no main-city route JSON, world catalog JSON, gameplay code, PR or main branch was changed.
