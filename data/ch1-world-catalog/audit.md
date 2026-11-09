@@ -393,3 +393,96 @@ B2 region counts are story-west 18, story-east 11, arena-event 14, mainland-sout
 B4-1, B4-2 and B4-3 are mutually consistent within their declared scopes. No accepted JSON correction is indicated by this audit. B4-4 is audit-only: no new data extraction, no JSON edits, no gameplay-code edits, no main-branch changes, no primary-account repository changes, no PR creation and no merge. B5 is not started.
 
 All YBCS-derived evidence remains `RECOVERED_SECONDARY`; all runtime flags remain `false`.
+
+## B5-A / B5-B — NPC placement candidates and cross-validation
+
+### Scope, source integrity and provenance
+
+- Scope: only B5-A candidate extraction and B5-B static cross-validation. No B6 work, PR, merge, gameplay-code integration or runtime deployment.
+- Source attachment: `ybcs_offline_npc_placements.py`, 613 lines.
+- SHA-256 verified against the supplied digest: `16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1`.
+- AST extraction: 29 `YbcsOfflineNpcPlacement` rows, 23 distinct `map_id` values, 24 rows with `npc_program_index`, and 11 rows with `quest_semantic`.
+- **Provenance is offline-policy.** The source module docstring says no retail server placement table was recovered. Names, exact cells and service roles are explicit single-player policy, not retail identity or recovered retail placement.
+- Every JSON record uses `provenance=offline-policy`, `evidenceLevel=RECOVERED_SECONDARY`, and `runtimeVerified=false`. No record is marked VERIFIED.
+- The source module says these are transient session outputs and must not be copied into `GameDomain` saves or updated as followers.
+
+### B5-A — Record inventory
+
+- Output: `data/ch1-world-catalog/npc-placement-candidates.json`.
+- Policy: `data/ch1-world-catalog/npc-placement-policy.ts`.
+- Human-readable provenance and inventory: `data/ch1-world-catalog/npc-placements.md`.
+- All source fields are preserved: `map_id`, `entity_id`, `name`, `model_id`, `first`, `second`, `role`, `dialog_text`, `quest_semantic`, `npc_program_index`. Absent optional source fields remain explicit `null`.
+- Coordinate convention is sourced from `entity_record()` at `ybcs_offline_npc_placements.py:L120-L134`: `first=x`, `second=y`.
+- Symbolic entity/model/semantic constants are retained with their defining source-line references. Ferry entity constants are resolved from `ybcs_offline_npc_transport.py:L16-L17`; no IDs are guessed.
+- Exact map mapping rule: parse the four-digit suffix from `map:old:NNNN`, then require both `mapCandidates.mapWire === NNNN` and `mapCandidates.mapId === original map_id`. No fuzzy mapping.
+
+| Source lines | map_id | entity_id | cell (first, second) | role | program | quest_semantic |
+|---|---|---:|---|---|---:|---|
+| L186 | map:old:1000 | 21000 | (30, 32) | guard | 22 | — |
+| L187-L198 | map:old:1000 | 21001 | (65, 165) | trainer | 23 | quest0-step7-training-candidate |
+| L199 | map:old:1000 | 21002 | (50, 76) | warehouse | 17 | — |
+| L208-L217 | map:old:1000 | 21003 | (32, 72) | quest1-companion-giver | — | quest1-actor100-companion-recruitment |
+| L224-L233 | map:old:1030 | 21103 | (76, 28) | story1-gate-soldier | — | — |
+| L238-L250 | map:old:2450 | 21245 | (23, 29) | smith-interior | 12 | quest4-smith5003-actor102-companion-recruitment |
+| L254 | map:old:2200 | 21220 | (17, 23) | accessory-interior | 11 | — |
+| L258-L273 | map:old:2300 | 21230 | (34, 34) | articles-interior | 15 | quest9-merchant5018-single-holy-medicine-offer |
+| L285-L295 | map:old:2300 | 21231 | (14, 30) | pet-onboarding-interior | 47 | program47-spick-pet-onboarding |
+| L300-L314 | map:old:2400 | 21240 | (20, 30) | bank-interior | 18 | quest3-bill-actor107-companion-recruitment |
+| L333 | map:old:2550 | 21255 | (28, 26) | guild-interior | 19 | — |
+| L336 | map:old:2950 | 21295 | (14, 22) | gift-shop-interior | 34 | — |
+| L340-L353 | map:old:2000 | 21200 | (28, 26) | weapon-interior | 13 | quest2-davis-actor101-companion-recruitment |
+| L356 | map:old:2800 | 21280 | (21, 21) | magic-interior | 16 | — |
+| L361-L373 | map:old:2800 | 21281 | (14, 30) | quest5-companion-giver | — | quest5-lian5014-actor103-companion-recruitment |
+| L378-L388 | map:old:2900 | 21290 | (19, 35) | mercenary-interior | 21 | quest7-dragon-soldier5019-actor104-companion-recruitment |
+| L400 | map:old:2100 | 21210 | (20, 26) | defense-interior | 14 | — |
+| L401 | map:old:1501 | 21501 | (32, 52) | sandgent-weapon-interior | 30 | — |
+| L402 | map:old:1502 | 21502 | (20, 46) | sandgent-smith-interior | 32 | — |
+| L403 | map:old:1503 | 21503 | (20, 46) | sandgent-consumables-interior | 31 | — |
+| L404 | map:old:1504 | 21504 | (20, 46) | sandgent-hotel-interior | 28 | — |
+| L405-L419 | map:old:2600 | 21260 | (35, 95) | shrine-interior | 20 | quest6-priest5008-actor105-companion-recruitment |
+| L420 | map:old:3002 | 21302 | (30, 34) | event-interior | 33 | — |
+| L421 | map:old:3000 | 21300 | (9, 21) | gift-shop | 34 | — |
+| L422 | map:old:3001 | 21301 | (13, 23) | room-guide | — | — |
+| L423 | map:old:1040 | 21104 | (50, 166) | road-guard | 22 | — |
+| L434-L443 | map:old:1040 | 21106 | (67, 153) | quest8-wounded-archer | — | quest8-wounded-archer106-companion-recruitment |
+| L448-L457 | map:old:1500 | 21500 | (57, 123) | ferry-port | 48 | — |
+| L458-L467 | map:old:1373 | 21373 | (111, 49) | ferry-island | 49 | — |
+
+### B5-B — Three cross-validations
+
+#### 1. NPCScript program-number correspondence — PASS
+
+- Reference: `docs/integration-notes/s4-npc-services-data.json` at the B5 base commit.
+- The S4 service directory contains 39 programs, numbered 11–49.
+- 24/24 candidate rows with a non-null `npc_program_index` match a program number in that directory; unmatched program indices: **0**.
+- Five candidate rows have no `npc_program_index` in the source; they remain null / not-declared-in-source.
+- The program index is only a service-program reference. It is not converted to an entity ID or coordinate, and the service directory is not used as placement evidence.
+- The 11 `quest_semantic` values remain source strings; no automatic join to Quest actor tokens or NPCScript program numbers is inferred.
+
+#### 2. B2 108-map membership — PASS
+
+- Reference: `data/ch1-world-catalog/world-catalog.json` at the B5 base commit.
+- 29/29 candidate rows map to B2; all 23 distinct source map IDs are present in the 108-member catalog.
+- Unmapped / `not-recovered` map IDs: **none**.
+- No map proximity, region grouping or name similarity was used as a fallback.
+
+#### 3. 93-route / door-marker coordinate conflict — PARTIAL, WITH EXPLICIT EVIDENCE GAPS
+
+- Reference: `data/ch1-world-catalog/route-gate-markers.json` at the B5 base commit.
+- All 93 declared route target-spawn coordinates were compared against candidate cells: **0 exact coordinate collisions**.
+- B4-2 provides declared approach coordinates for 14 route records (91 cells); those supplied cells were compared against candidate cells: **0 exact coordinate collisions**.
+- The other 79 route records have no approach coordinates in B4-2. Expanded approach cells and aligned target spawns were not run in B4-2; neither is invented here.
+- B4-2's measured door-marker data contains 13 tuple records across 12 distinct target interiors. Its marker-cell coordinates are explicitly `null` / `not-provided-in-this-batch`.
+- The door-marker source map is `map:old:1000`. Four NPC candidates are on that map (entity IDs 21000, 21001, 21002 and 21003); their exact collision against the 13 marker coordinate sets is **not-recovered**.
+- All 12 door target interiors have at least one NPC candidate (14 candidate rows in total across those interiors). This is only a map-reference check and does not prove spatial separation from door cells.
+- Therefore the overall geometry check is **PARTIAL / NOT_RECOVERED**, not a global no-conflict pass.
+
+### B5 verdict and boundary
+
+- Candidate extraction: **29 rows / 23 maps**.
+- Program correspondence: **24/24 pass**.
+- Map membership: **29/29 pass**.
+- Route coordinate comparison: **0 collisions among supplied route coordinates**.
+- Door marker coordinate comparison and 79 route approach geometries: **not-recovered** because B4-2 does not supply those coordinates.
+- No retail placement identity is claimed; all evidence remains `RECOVERED_SECONDARY`, all runtime flags remain `false`.
+- B5-A/B5-B only. No B6, no PR, no merge, no changes to the primary repository, and no runtime/gameplay integration.
