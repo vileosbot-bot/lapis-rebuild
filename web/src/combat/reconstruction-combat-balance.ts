@@ -5,6 +5,7 @@ import type {ClassFamily, ProvenanceLevel} from '../content/content-types.ts';
 export const COMBAT_BALANCE_PROVENANCE = 'RECONSTRUCTION_POLICY' as const;
 
 export type DamageKind = 'physical' | 'magic';
+export type SkillDamageRoute = 'direct' | 'support-only';
 export type EnemyRank = 'normal' | 'elite' | 'boss';
 export type EnemyRole = 'melee' | 'ranged' | 'caster';
 
@@ -56,6 +57,7 @@ export type SkillBalance = Readonly<{
   skillId: number;
   mpCost: number;
   kind: DamageKind | 'support';
+  damageRoute: SkillDamageRoute;
   multiplier: number;
   hits: number;
   accuracyModifier: number;
@@ -281,12 +283,12 @@ export const RECONSTRUCTION_COMBAT_BALANCE_TUNING: CombatBalanceTuning = Object.
 });
 
 const SKILL_POLICY: Readonly<Record<number, Omit<SkillBalance, 'mpCost' | 'authoredMpProvenance'>>> = Object.freeze({
-  1101: Object.freeze({skillId:1101, kind:'physical', multiplier:1.55, hits:1, accuracyModifier:-0.03, criticalBonus:0.04, dot:null, support:null, provenance:COMBAT_BALANCE_PROVENANCE}),
-  1201: Object.freeze({skillId:1201, kind:'physical', multiplier:0.84, hits:2, accuracyModifier:0, criticalBonus:0, dot:null, support:null, provenance:COMBAT_BALANCE_PROVENANCE}),
-  1301: Object.freeze({skillId:1301, kind:'support', multiplier:0, hits:0, accuracyModifier:0, criticalBonus:0, dot:null, support:Object.freeze({defenseMultiplier:1.45,durationActions:3}), provenance:COMBAT_BALANCE_PROVENANCE}),
-  19101: Object.freeze({skillId:19101, kind:'magic', multiplier:0.45, hits:1, accuracyModifier:0.04, criticalBonus:0, dot:null, support:Object.freeze({enemyAccuracyPenalty:0.15,durationActions:3}), provenance:COMBAT_BALANCE_PROVENANCE}),
-  19201: Object.freeze({skillId:19201, kind:'magic', multiplier:0.75, hits:1, accuracyModifier:0, criticalBonus:0, dot:Object.freeze({ticks:3,multiplierPerTick:0.18}), support:null, provenance:COMBAT_BALANCE_PROVENANCE}),
-  19301: Object.freeze({skillId:19301, kind:'support', multiplier:0, hits:0, accuracyModifier:0, criticalBonus:0, dot:null, support:Object.freeze({manaOnHit:6,durationActions:3}), provenance:COMBAT_BALANCE_PROVENANCE}),
+  1101: Object.freeze({skillId:1101, kind:'physical', damageRoute:'direct', multiplier:1.55, hits:1, accuracyModifier:-0.03, criticalBonus:0.04, dot:null, support:null, provenance:COMBAT_BALANCE_PROVENANCE}),
+  1201: Object.freeze({skillId:1201, kind:'physical', damageRoute:'direct', multiplier:0.84, hits:2, accuracyModifier:0, criticalBonus:0, dot:null, support:null, provenance:COMBAT_BALANCE_PROVENANCE}),
+  1301: Object.freeze({skillId:1301, kind:'support', damageRoute:'support-only', multiplier:0, hits:0, accuracyModifier:0, criticalBonus:0, dot:null, support:Object.freeze({defenseMultiplier:1.45,durationActions:3}), provenance:COMBAT_BALANCE_PROVENANCE}),
+  19101: Object.freeze({skillId:19101, kind:'magic', damageRoute:'support-only', multiplier:0.45, hits:1, accuracyModifier:0.04, criticalBonus:0, dot:null, support:Object.freeze({enemyAccuracyPenalty:0.15,durationActions:3}), provenance:COMBAT_BALANCE_PROVENANCE}),
+  19201: Object.freeze({skillId:19201, kind:'magic', damageRoute:'direct', multiplier:0.75, hits:1, accuracyModifier:0, criticalBonus:0, dot:Object.freeze({ticks:3,multiplierPerTick:0.18}), support:null, provenance:COMBAT_BALANCE_PROVENANCE}),
+  19301: Object.freeze({skillId:19301, kind:'support', damageRoute:'support-only', multiplier:0, hits:0, accuracyModifier:0, criticalBonus:0, dot:null, support:Object.freeze({manaOnHit:6,durationActions:3}), provenance:COMBAT_BALANCE_PROVENANCE}),
 });
 
 function finite(value: unknown, label: string): number {
@@ -496,7 +498,7 @@ export class ReconstructionCombatBalance {
 
   resolveSkillAttack(attacker: CombatantStats, defender: CombatantStats, skillId: number, random: () => number): AttackResolution {
     const skill = this.skill(skillId);
-    if (skill.kind === 'support' || skill.hits < 1) {
+    if (skill.damageRoute !== 'direct' || skill.kind === 'support' || skill.hits < 1) {
       return Object.freeze({strikes:Object.freeze([]),totalDamage:0,dotDamagePerTick:0,dotTicks:0,provenance:COMBAT_BALANCE_PROVENANCE});
     }
     const resolution = this.resolveAttack(attacker, defender, {
