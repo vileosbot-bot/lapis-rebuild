@@ -156,6 +156,8 @@ export class M4RuntimeIntegration{
   private lastSnapshot:Snapshot|null=null;
   private lastAudio='';
   private installed=false;
+  private pauseBattleOnNextEntry=false;
+  private originalSceneAttack:((skill:Skill|null)=>void)|null=null;
   private hudRoot!:HTMLDivElement;
   private menuRoot!:HTMLDivElement;
   private debugRoot!:HTMLDivElement;
@@ -203,6 +205,25 @@ export class M4RuntimeIntegration{
     this.applyClassProfile(false);
     window.addEventListener('lapis-state',event=>this.onSnapshot((event as CustomEvent<Snapshot>).detail));
     this.render(this.scene.snapshot());
+    this.installS14AcceptanceBridge();
+  }
+
+  private installS14AcceptanceBridge():void{
+    if(!navigator.webdriver)return;
+    queueMicrotask(()=>{
+      const bridge=(window as unknown as {lapisM4?:Record<string,unknown>}).lapisM4;
+      if(!bridge)throw new Error('Missing M4 window bridge while installing S14 acceptance fixtures');
+      Object.assign(bridge,{
+        acceptanceSetBattlePaused:(paused:boolean)=>this.acceptanceSetBattlePaused(paused),
+        acceptanceActionReady:()=>this.acceptanceActionReady(),
+        acceptanceCanAct:()=>this.acceptanceCanAct(),
+        acceptanceReachable:()=>this.acceptanceReachable(),
+        acceptanceIssueMoveTo:(x:number,y:number)=>this.acceptanceIssueMoveTo(x,y),
+        acceptanceIssueAttack:()=>this.acceptanceIssueAttack(),
+        acceptanceAdvanceLiveBattleStep:()=>this.acceptanceAdvanceLiveBattleStep(),
+        acceptanceAdvanceUntilActionOrEnd:(maxSteps:number)=>this.acceptanceAdvanceUntilActionOrEnd(maxSteps),
+      });
+    });
   }
 
   snapshot(){
@@ -287,6 +308,10 @@ export class M4RuntimeIntegration{
         authority:'offline-reconstruction' as const,
       }):undefined;
       originalEnter(entryOverride??trainingEntry);
+      if(this.pauseBattleOnNextEntry&&this.scene.inBattleView){
+        this.scene.battlePaused=true;
+        this.pauseBattleOnNextEntry=false;
+      }
       this.trainingLaunchPending=false;
       if(!this.scene.inBattleView){
         if(trainingBattleId!==null)this.activeTrainingBattleId=null;
@@ -299,33 +324,8 @@ export class M4RuntimeIntegration{
       this.present(batch);
     };
 
-    const originalAttack=this.scene.attack.bind(this.scene);
-    this.scene.attack=(skill:Skill|null)=>{
-      if(skill&&!this.skillAllowedForRuntime(this.scene.character,skill.skill_id)){
-        this.setNotice('当前职业不能使用该技能');return;
-      }
-      if(!skill){
-        const target=this.scene.state.enemies.find(enemy=>enemy.id===this.scene.selectedEnemy&&enemy.hp>0);
-        if(target&&!m7WizardOrdinaryAttackTargetable(target.m7Status.wizard)){
-          this.setNotice('石化目标不能被普通攻击');
-          return;
-        }
-      }
-      const before=this.scene.snapshot();
-      originalAttack(skill);
-      const after=this.scene.snapshot();
-      if(after.action===before.action&&after.mp===before.mp&&after.slot===before.slot)return;
-      const animation=this.scene.animation();
-      this.present(this.presentation.attack({rawTiming:animation.raw_timing,frameCount:animation.frames_per_direction}));
-      if(skill){
-        const target=this.scene.state.enemies.find(enemy=>enemy.id===this.scene.selectedEnemy&&enemy.hp>0);
-        const resources=(skill.magic_pattern?.magic_resources??[]).flatMap(resource=>{
-          const effect=this.scene.pack.effects[String(resource.magic_resource_id)];
-          return effect?[{resourceId:resource.magic_resource_id,rawTiming:effect.raw_timing,frameCount:effect.frame_count,role:resource.role,rawStartTick:resource.start_tick}]:[];
-        });
-        if(resources.length)this.present(this.presentation.magicEffect({resources,context:{caster:{...this.scene.anchor},target:target?{x:target.x,y:target.y}:null}}));
-      }
-    };
+    this.originalSceneAttack=this.scene.attack.bind(this.scene);
+    this.scene.attack=(skill:Skill|null)=>{this.performAttack(skill,false);};
   }
 
   private installInput():void{
@@ -614,6 +614,70 @@ export class M4RuntimeIntegration{
     );
     reconcileBattlePhase(this.scene.state);
     this.render(this.scene.snapshot());
+  }
+
+  acceptanceSetBattlePaused(paused:boolean):void{
+    if(!navigator.webdriver)throw new Error('S14 acceptance pause fixture is automation-only');
+    if(typeof paused!=='boolean')throw new Error('Invalid S14 acceptance pause value');
+    if(!this.scene.inBattleView){
+      this.pauseBattleOnNextEntry=paused;
+      return;
+    }
+    if(paused&&this.scene.state.phase!=='active')throw new Error('S14 acceptance pause fixture requires active battle');
+    this.scene.battlePaused=paused;
+    this.render(this.scene.snapshot());
+  }
+
+  acceptanceActionReady():boolean{
+    if(!navigator.webdriver)throw new Error('S14 acceptance readiness fixture is automation-only');
+    if(!this.scene.inBattleView||!this.scene.battlePaused)throw new Error('S14 acceptance readiness fixture requires paused battle');
+    // This matches the phase/action/cooldown guard used by the M7 runtime's private ready() before spend.
+    return actionReady(this.scene.state);
+  }
+
+  acceptanceCanAct():boolean{
+    if(!navigator.webdriver)throw new Error('S14 acceptance action fixture is automation-only');
+    return this.scene.acceptanceCanAct();
+  }
+
+  acceptanceReachable(){
+    if(!navigator.webdriver)throw new Error('S14 acceptance reachability fixture is automation-only');
+    return this.scene.acceptanceReachable();
+  }
+
+  acceptanceIssueMoveTo(x:number,y:number):void{
+    if(!navigator.webdriver)throw new Error('S14 acceptance movement fixture is automation-only');
+    if(!this.scene.acceptanceMoveTo(x,y))throw new Error('S14 acceptance movement command was rejected');
+    this.render(this.scene.snapshot());
+  }
+
+  acceptanceIssueAttack():void{
+    if(!navigator.webdriver)throw new Error('S14 acceptance attack fixture is automation-only');
+    if(!this.scene.inBattleView||!this.scene.battlePaused)throw new Error('S14 acceptance attack fixture requires paused battle');
+    if(!this.performAttack(null,true))throw new Error('S14 acceptance attack command was rejected');
+    this.render(this.scene.snapshot());
+  }
+
+  acceptanceAdvanceLiveBattleStep():void{
+    if(!navigator.webdriver)throw new Error('S14 acceptance battle-step fixture is automation-only');
+    if(!this.scene.inBattleView||!this.scene.battlePaused||this.scene.state.phase!=='active')throw new Error('S14 acceptance battle-step fixture requires paused active battle');
+    this.scene.acceptanceAdvanceBattleStep();
+    this.render(this.scene.snapshot());
+  }
+
+  acceptanceAdvanceUntilActionOrEnd(maxSteps:number):Readonly<{done:boolean;stepsAdvanced:number}>{
+    if(!navigator.webdriver)throw new Error('S14 acceptance batch-advance fixture is automation-only');
+    if(!Number.isInteger(maxSteps)||maxSteps<1||maxSteps>40)throw new Error('Invalid S14 acceptance maxSteps (expected integer 1..40)');
+    if(!this.scene.inBattleView||!this.scene.battlePaused)throw new Error('S14 acceptance batch-advance fixture requires paused battle');
+    if(document.hidden)throw new Error('S14 acceptance batch-advance fixture requires a visible document');
+    let stepsAdvanced=0;
+    while(stepsAdvanced<maxSteps&&this.scene.state.phase==='active'&&!this.scene.acceptanceCanAct()){
+      this.scene.acceptanceAdvanceBattleStep();
+      stepsAdvanced++;
+    }
+    const done=this.scene.state.phase!=='active'||this.scene.acceptanceCanAct();
+    this.render(this.scene.snapshot());
+    return {done,stepsAdvanced};
   }
 
   acceptanceSelectEnemy(targetId:string):void{
@@ -1394,6 +1458,39 @@ export class M4RuntimeIntegration{
       }
     }
     return false;
+  }
+
+  private performAttack(skill:Skill|null,acceptance:boolean):boolean{
+    if(skill&&!this.skillAllowedForRuntime(this.scene.character,skill.skill_id)){
+      this.setNotice('当前职业不能使用该技能');return false;
+    }
+    if(!skill){
+      const target=this.scene.state.enemies.find(enemy=>enemy.id===this.scene.selectedEnemy&&enemy.hp>0);
+      if(target&&!m7WizardOrdinaryAttackTargetable(target.m7Status.wizard)){
+        this.setNotice('石化目标不能被普通攻击');
+        return false;
+      }
+    }
+    const before=this.scene.snapshot();
+    if(acceptance){
+      if(!this.scene.acceptanceAttack(skill))return false;
+    }else{
+      if(!this.originalSceneAttack)throw new Error('Missing production scene attack handler');
+      this.originalSceneAttack(skill);
+    }
+    const after=this.scene.snapshot();
+    if(after.action===before.action&&after.mp===before.mp&&after.slot===before.slot)return false;
+    const animation=this.scene.animation();
+    this.present(this.presentation.attack({rawTiming:animation.raw_timing,frameCount:animation.frames_per_direction}));
+    if(skill){
+      const target=this.scene.state.enemies.find(enemy=>enemy.id===this.scene.selectedEnemy&&enemy.hp>0);
+      const resources=(skill.magic_pattern?.magic_resources??[]).flatMap(resource=>{
+        const effect=this.scene.pack.effects[String(resource.magic_resource_id)];
+        return effect?[{resourceId:resource.magic_resource_id,rawTiming:effect.raw_timing,frameCount:effect.frame_count,role:resource.role,rawStartTick:resource.start_tick}]:[];
+      });
+      if(resources.length)this.present(this.presentation.magicEffect({resources,context:{caster:{...this.scene.anchor},target:target?{x:target.x,y:target.y}:null}}));
+    }
+    return true;
   }
 
   private present(batch:BattlePresentationBatch):void{

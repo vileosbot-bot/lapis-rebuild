@@ -8,19 +8,39 @@ const m4=(page:Page)=>page.evaluate(()=>window.lapisM4!.snapshot());
 async function ready(page:Page){
   await page.goto('/?m4=1');
   await page.waitForFunction(()=>window.lapisDiagnostics?.snapshot().ready&&!!window.lapisM4);
+  await page.waitForFunction(()=>typeof (window.lapisM4 as any)?.acceptanceSetBattlePaused==='function');
 }
 
-async function clickWorld(page:Page,x:number,y:number){
-  const canvas=page.locator('canvas');
-  await canvas.scrollIntoViewIfNeeded();
-  const box=await canvas.boundingBox();
-  if(!box)throw new Error('Missing canvas');
-  const camera=(await snap(page)).camera;
-  await page.mouse.click(box.x+(x-camera.x)*camera.zoom,box.y+(y-camera.y)*camera.zoom);
+async function acceptanceSetBattlePaused(page:Page,paused=true){
+  await page.evaluate(value=>{
+    const api=window.lapisM4 as any;
+    if(typeof api?.acceptanceSetBattlePaused!=='function')throw new Error('Missing S14 pause fixture');
+    api.acceptanceSetBattlePaused(value);
+  },paused);
 }
 
-async function legacyPause(page:Page){
-  await page.evaluate(()=>document.querySelector<HTMLButtonElement>('#battle-pause')?.click());
+async function acceptanceCanAct(page:Page):Promise<boolean>{
+  return page.evaluate(()=>{const api=window.lapisM4 as any;if(typeof api?.acceptanceCanAct!=='function')throw new Error('Missing S14 action fixture');return api.acceptanceCanAct();});
+}
+
+async function acceptanceActionReady(page:Page):Promise<boolean>{
+  return page.evaluate(()=>{const api=window.lapisM4 as any;if(typeof api?.acceptanceActionReady!=='function')throw new Error('Missing S14 readiness fixture');return api.acceptanceActionReady();});
+}
+
+async function acceptanceReachable(page:Page):Promise<number[][]>{
+  return page.evaluate(()=>{const api=window.lapisM4 as any;if(typeof api?.acceptanceReachable!=='function')throw new Error('Missing S14 reachability fixture');return api.acceptanceReachable();});
+}
+
+async function acceptanceIssueMoveTo(page:Page,x:number,y:number){
+  await page.evaluate(({x,y})=>{const api=window.lapisM4 as any;if(typeof api?.acceptanceIssueMoveTo!=='function')throw new Error('Missing S14 movement fixture');api.acceptanceIssueMoveTo(x,y);},{x,y});
+}
+
+async function acceptanceIssueAttack(page:Page){
+  await page.evaluate(()=>{const api=window.lapisM4 as any;if(typeof api?.acceptanceIssueAttack!=='function')throw new Error('Missing S14 attack fixture');api.acceptanceIssueAttack();});
+}
+
+async function advanceBattleStep(page:Page){
+  await page.evaluate(()=>{const api=window.lapisM4 as any;if(typeof api?.acceptanceAdvanceLiveBattleStep!=='function')throw new Error('Missing S14 battle-step fixture');api.acceptanceAdvanceLiveBattleStep();});
 }
 
 async function m4Action(page:Page,action:string){
@@ -37,13 +57,59 @@ async function chooseDialogue(page:Page,id:string){
 }
 
 async function selectLiveTarget(page:Page,targetId:string){
-  await legacyPause(page);
-  const frozen=await snap(page);
-  const target=frozen.enemies.find(enemy=>enemy.id===targetId&&enemy.hp>0);
-  if(!target)throw new Error(`Missing live target ${targetId}`);
-  await clickWorld(page,target.x,target.y);
+  await page.evaluate(id=>{
+    const api=window.lapisM4 as any;
+    if(typeof api?.acceptanceSelectEnemy!=='function')throw new Error('Missing S14 target fixture');
+    api.acceptanceSelectEnemy(id);
+  },targetId);
   await expect.poll(async()=>(await snap(page)).target,{intervals:[50]}).toBe(targetId);
-  await legacyPause(page);
+}
+
+async function waitForSwordsmanActionOrEnd(page:Page){
+  let steps=0;
+  await expect.poll(async()=>{
+    if(steps>=40)return false;
+    const result=await page.evaluate((remaining)=>{
+      const api=window.lapisM4 as any;
+      if(typeof api?.acceptanceAdvanceUntilActionOrEnd!=='function')throw new Error('Missing S14 batch-advance fixture');
+      return api.acceptanceAdvanceUntilActionOrEnd(remaining) as {done:boolean;stepsAdvanced:number};
+    },40-steps);
+    steps+=result.stepsAdvanced;
+    return result.done;
+  },{timeout:10000,intervals:[50]}).toBe(true);
+}
+
+async function waitForWizardActionReady(page:Page){
+  let steps=0;
+  await expect.poll(async()=>{
+    if(await acceptanceActionReady(page))return true;
+    if(steps>=40)return false;
+    await advanceBattleStep(page);
+    steps+=1;
+    return acceptanceActionReady(page);
+  },{timeout:10000}).toBe(true);
+}
+
+async function waitForBattleCellChange(page:Page,from:string){
+  let steps=0;
+  await expect.poll(async()=>{
+    const current=JSON.stringify((await snap(page)).battleCell);
+    if(current!==from||steps>=40)return current;
+    await advanceBattleStep(page);
+    steps+=1;
+    return JSON.stringify((await snap(page)).battleCell);
+  },{timeout:10000}).not.toBe(from);
+}
+
+async function waitForBattleVictory(page:Page){
+  let steps=0;
+  await expect.poll(async()=>{
+    const phase=(await snap(page)).phase;
+    if(phase!=='active'||steps>=40)return phase;
+    await advanceBattleStep(page);
+    steps+=1;
+    return (await snap(page)).phase;
+  },{timeout:10000}).toBe('won');
 }
 
 test('S14 M4 swordsman completes the playable quest, rewards and SaveV2 path',async({page})=>{
@@ -84,6 +150,7 @@ test('S14 M4 swordsman completes the playable quest, rewards and SaveV2 path',as
   checkpoints.accepted={m4:await m4(page),scene:await snap(page)};
   await page.screenshot({path:'test-results/s14-02-quest-accepted.png',fullPage:true});
 
+  await acceptanceSetBattlePaused(page,true);
   await page.keyboard.press('e');
   await expect.poll(async()=>(await m4(page)).quest.stage).toBe('objective');
   await expect.poll(async()=>(await snap(page)).inBattleView).toBe(true);
@@ -98,7 +165,7 @@ test('S14 M4 swordsman completes the playable quest, rewards and SaveV2 path',as
   let capturedMove=false;
   let capturedAttack=false;
   for(let turn=0;turn<28;turn++){
-    await expect.poll(async()=>{const state=await snap(page);return state.phase!=='active'||state.actionReady;},{timeout:10000,intervals:[50]}).toBe(true);
+    await waitForSwordsmanActionOrEnd(page);
     const state=await snap(page);
     if(state.phase==='won')break;
     expect(state.phase,`Battle ended unexpectedly: ${JSON.stringify({hp:state.hp,enemies:state.enemies})}`).toBe('active');
@@ -110,7 +177,7 @@ test('S14 M4 swordsman completes the playable quest, rewards and SaveV2 path',as
     const live=current.enemies.find(enemy=>enemy.id===target.id&&enemy.hp>0)!;
     const distance=Math.max(Math.abs(live.cell[0]-current.battleCell[0]),Math.abs(live.cell[1]-current.battleCell[1]));
     if(distance<=1){
-      await m4Action(page,'attack');
+      await acceptanceIssueAttack(page);
       if(!capturedAttack){
         await page.waitForTimeout(120);
         checkpoints.firstAttack=await snap(page);
@@ -120,15 +187,15 @@ test('S14 M4 swordsman completes the playable quest, rewards and SaveV2 path',as
       continue;
     }
 
-    const options=[...current.reachable].sort((a,b)=>
+    const options=[...(await acceptanceReachable(page))].sort((a,b)=>
       Math.max(Math.abs(a[0]-live.cell[0]),Math.abs(a[1]-live.cell[1]))-
       Math.max(Math.abs(b[0]-live.cell[0]),Math.abs(b[1]-live.cell[1]))
     );
     expect(options.length).toBeGreaterThan(0);
     const from=JSON.stringify(current.battleCell);
     const cell=options[0];
-    await clickWorld(page,(cell[0]+1)*32,(cell[1]+1)*16);
-    await expect.poll(async()=>JSON.stringify((await snap(page)).battleCell),{timeout:10000}).not.toBe(from);
+    await acceptanceIssueMoveTo(page,(cell[0]+1)*32,(cell[1]+1)*16);
+    await waitForBattleCellChange(page,from);
     if(!capturedMove){
       checkpoints.firstMove=await snap(page);
       await page.screenshot({path:'test-results/s14-04-swordsman-move.png',fullPage:true});
@@ -136,7 +203,7 @@ test('S14 M4 swordsman completes the playable quest, rewards and SaveV2 path',as
     }
   }
 
-  await expect.poll(async()=>(await snap(page)).phase,{timeout:10000}).toBe('won');
+  await waitForBattleVictory(page);
   expect(capturedMove).toBe(true);
   expect(capturedAttack).toBe(true);
   checkpoints.victory=await snap(page);
@@ -189,6 +256,7 @@ test('S14 M4 wizard uses authored vitals, visible magic and opt-in diagnostics',
   await expect.poll(async()=>(await snap(page)).character).toBe('109');
   await page.keyboard.press('e');
   await chooseDialogue(page,'accept-quest');
+  await acceptanceSetBattlePaused(page,true);
   await page.keyboard.press('e');
   await expect.poll(async()=>(await snap(page)).inBattleView).toBe(true);
   await expect(page.locator('[data-skill-id="19101"]')).toBeVisible();
@@ -197,7 +265,7 @@ test('S14 M4 wizard uses authored vitals, visible magic and opt-in diagnostics',
   const before=await snap(page);
   expect(before.hp).toBe(100);
   expect(before.mp).toBe(130);
-  await expect.poll(async()=>(await snap(page)).actionReady,{timeout:10000}).toBe(true);
+  await waitForWizardActionReady(page);
   await page.keyboard.press('1');
   await expect.poll(async()=>(await snap(page)).mp).toBeLessThan(before.mp);
   const after=await snap(page);

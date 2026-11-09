@@ -234,9 +234,26 @@ export class LabScene extends Phaser.Scene {
   // retail command lock, so only route execution and non-hit transient actions
   // gate input in the reconstruction runtime.
   private busy():boolean{return this.route.length>0||(this.slot!=='03'&&this.timedAction>0);}
-  canAct():boolean{return this.inBattleView&&!this.battlePaused&&!document.hidden&&!this.busy()&&actionReady(this.state);}
+  private hasActionReadyResources():boolean{return !document.hidden&&!this.busy()&&actionReady(this.state);}
+  canAct():boolean{return this.inBattleView&&!this.battlePaused&&this.hasActionReadyResources();}
+  acceptanceActionReady():boolean{
+    if(!navigator.webdriver)throw new Error('S14 acceptance readiness fixture is automation-only');
+    if(!this.inBattleView||!this.battlePaused)throw new Error('S14 acceptance readiness fixture requires paused battle');
+    return actionReady(this.state);
+  }
+  acceptanceCanAct():boolean{
+    if(!navigator.webdriver)throw new Error('S14 acceptance action fixture is automation-only');
+    if(!this.inBattleView||!this.battlePaused)throw new Error('S14 acceptance action fixture requires paused battle');
+    return this.hasActionReadyResources();
+  }
   private occupiedCells():Cell[]{const group=activeEnemyEncounterGroup(this.state,this.anchor.x,this.anchor.y);return this.state.enemies.filter(e=>e.hp>0&&e.encounterGroup===group).map(e=>pixelCell(e.x,e.y));}
-  private reachable():Cell[][]{return this.canAct()?[...reachableCells(this.currentMap().collision,pixelCell(this.anchor.x,this.anchor.y),this.battleMoveLimit(),this.occupiedCells()).values()].filter(p=>p.length>1):[];}
+  private reachablePaths():Cell[][]{return [...reachableCells(this.currentMap().collision,pixelCell(this.anchor.x,this.anchor.y),this.battleMoveLimit(),this.occupiedCells()).values()].filter(p=>p.length>1);}
+  private reachable():Cell[][]{return this.canAct()?this.reachablePaths():[];}
+  acceptanceReachable():Cell[]{
+    if(!navigator.webdriver)throw new Error('S14 acceptance reachability fixture is automation-only');
+    if(!this.inBattleView||!this.battlePaused)throw new Error('S14 acceptance reachability fixture requires paused battle');
+    return this.hasActionReadyResources()?this.reachablePaths().map(path=>path.at(-1)!):[];
+  }
   toggleBattlePause(){if(this.inBattleView&&this.state.phase==='active')this.battlePaused=!this.battlePaused;}
   private battleMoveLimit():number{return Number(this.character)%10===9?P.wizardMoveCells:P.swordsmanMoveCells;}
 
@@ -665,27 +682,34 @@ export class LabScene extends Phaser.Scene {
     this.effectSprite?.setVisible(true);
   }
 
-  moveTo(x:number,y:number){
-    if(this.inBattleView&&!this.canAct()){this.notice('行动未就绪、正在执行或战斗已暂停');return;}
-    if(!Number.isFinite(x)||!Number.isFinite(y))return;
+  moveTo(x:number,y:number){this.moveToCore(x,y,false);}
+  acceptanceMoveTo(x:number,y:number):boolean{
+    if(!navigator.webdriver)throw new Error('S14 acceptance movement fixture is automation-only');
+    if(!this.inBattleView||!this.battlePaused)throw new Error('S14 acceptance movement fixture requires paused battle');
+    return this.moveToCore(x,y,true);
+  }
+  private moveToCore(x:number,y:number,acceptance:boolean):boolean{
+    if(this.inBattleView&&!(acceptance?this.acceptanceCanAct():this.canAct())){this.notice('行动未就绪、正在执行或战斗已暂停');return false;}
+    if(!Number.isFinite(x)||!Number.isFinite(y))return false;
     const c=this.currentMap().collision;
     const start=closestWalkable(c,nearestAnchor(this.anchor.x,this.anchor.y));
     const end=referenceScreenToCell(x,y);
     const found=this.inBattleView?tacticalRoute(c,start,end,this.battleMoveLimit(),this.occupiedCells()):findRoute(c,start,end);
-    if(!found){this.notice('无可通行路径');return;}
+    if(!found){this.notice('无可通行路径');return false;}
     const nextRoute=found.slice(1);
-    if(!nextRoute.length)return;
+    if(!nextRoute.length)return false;
     if(this.inBattleView){
-      if(this.state.phase!=='active'){this.notice('当前战斗已结束，请返回非战斗地图');return;}
-      if(!actionReady(this.state)){this.notice('行动槽尚未蓄满');return;}
+      if(this.state.phase!=='active'){this.notice('当前战斗已结束，请返回非战斗地图');return false;}
+      if(!actionReady(this.state)){this.notice('行动槽尚未蓄满');return false;}
       const limit=this.battleMoveLimit();
-      if(nextRoute.length>limit){this.notice(`超出本次战斗移动范围：${nextRoute.length} > ${limit}`);return;}
-      if(!consumeAction(this.state)){this.notice('行动槽尚未蓄满');return;}
+      if(nextRoute.length>limit){this.notice(`超出本次战斗移动范围：${nextRoute.length} > ${limit}`);return false;}
+      if(!consumeAction(this.state)){this.notice('行动槽尚未蓄满');return false;}
     }
     this.route=nextRoute;
     if(this.inBattleView){this.battleCameraMode='FOLLOW_PLAYER';this.battleCameraTarget=null;}
     this.setAction('01');
     this.playing=true;
+    return true;
   }
 
   moveKey(dx:number,dy:number){this.moveTo(this.anchor.x+dx*64,this.anchor.y+dy*32);}
@@ -772,39 +796,45 @@ export class LabScene extends Phaser.Scene {
     this.notice('已退出战斗画面，返回非战斗地图');
   }
 
-  attack(skill:Skill|null){
-    if(!this.inBattleView){this.notice('非战斗状态不能使用战斗指令');return;}
-    if(!this.canAct()){this.notice('请等待行动就绪');return;}
+  attack(skill:Skill|null){this.attackCore(skill,false);}
+  acceptanceAttack(skill:Skill|null):boolean{
+    if(!navigator.webdriver)throw new Error('S14 acceptance attack fixture is automation-only');
+    if(!this.inBattleView||!this.battlePaused)throw new Error('S14 acceptance attack fixture requires paused battle');
+    return this.attackCore(skill,true);
+  }
+  private attackCore(skill:Skill|null,acceptance:boolean):boolean{
+    if(!this.inBattleView){this.notice('非战斗状态不能使用战斗指令');return false;}
+    if(!(acceptance?this.acceptanceCanAct():this.canAct())){this.notice('请等待行动就绪');return false;}
     const target=this.state.enemies.find(e=>e.id===this.selectedEnemy&&e.hp>0);
     const buff=skill?.skill_id===1301||skill?.skill_id===19301;
     const range=skill&&skill.skill_id>=19000?P.battleSpellRangeCells:1;
-    if(!buff&&target&&tileDistance(pixelCell(this.anchor.x,this.anchor.y),pixelCell(target.x,target.y))>range){this.notice(`目标超出格子射程（${range}格）`);return;}
+    if(!buff&&target&&tileDistance(pixelCell(this.anchor.x,this.anchor.y),pixelCell(target.x,target.y))>range){this.notice(`目标超出格子射程（${range}格）`);return false;}
     const staffOrdinaryHit=!skill&&Number(this.character)%10===9&&this.inventory.weapon!==null;
     const beforeCasterMp=this.state.mp;
     const beforeTargetMp=target?.mp??0;
     const result=useAttack(this.state,this.selectedEnemy,this.anchor.x,this.anchor.y,skill,equipmentBonus(this.inventory,this.character).attack,{staffOrdinaryHit});
     this.notice(result.message);
-    if(result.ok){
-      if(staffOrdinaryHit&&target){
-        const drained=Math.max(0,beforeTargetMp-target.mp);
-        const gained=Math.max(0,this.state.mp-beforeCasterMp);
-        if(drained>0||gained>0)this.presentBattleFeedback({kind:'MP_DRAIN',target:'player',label:`吸收 MP +${gained}`,tone:'buff'});
-      }
-      if(!buff&&target)this.direction=directionFor(target.x-this.anchor.x,target.y-this.anchor.y);
-      this.setTransientAction('02');
-      this.route=[];
-      this.effectUntil=P.effectDurationMs;
-      if(result.event){
-        if(result.event.target!=='player')this.enemyVisualActors.get(result.event.target)?.playTransient('03');
-        this.presentBattleFeedback({kind:result.event.source==='poison'?'POISON_TICK':'DAMAGE',target:result.event.target,amount:result.event.amount,tone:result.event.source==='poison'?'poison':'damage'});
-      }
-      const rid=skill?.magic_pattern?.magic_resources?.[0]?.magic_resource_id;
-      if(rid&&this.pack.effects[String(rid)]){
-        this.setEffect(rid);
-        this.effectOrigin=!buff&&target?{x:target.x,y:target.y}:{...this.anchor};
-        this.playEffect();
-      }
+    if(!result.ok)return false;
+    if(staffOrdinaryHit&&target){
+      const drained=Math.max(0,beforeTargetMp-target.mp);
+      const gained=Math.max(0,this.state.mp-beforeCasterMp);
+      if(drained>0||gained>0)this.presentBattleFeedback({kind:'MP_DRAIN',target:'player',label:`吸收 MP +${gained}`,tone:'buff'});
     }
+    if(!buff&&target)this.direction=directionFor(target.x-this.anchor.x,target.y-this.anchor.y);
+    this.setTransientAction('02');
+    this.route=[];
+    this.effectUntil=P.effectDurationMs;
+    if(result.event){
+      if(result.event.target!=='player')this.enemyVisualActors.get(result.event.target)?.playTransient('03');
+      this.presentBattleFeedback({kind:result.event.source==='poison'?'POISON_TICK':'DAMAGE',target:result.event.target,amount:result.event.amount,tone:result.event.source==='poison'?'poison':'damage'});
+    }
+    const rid=skill?.magic_pattern?.magic_resources?.[0]?.magic_resource_id;
+    if(rid&&this.pack.effects[String(rid)]){
+      this.setEffect(rid);
+      this.effectOrigin=!buff&&target?{x:target.x,y:target.y}:{...this.anchor};
+      this.playEffect();
+    }
+    return true;
   }
 
   presentM7SkillAction(targetIds:readonly string[],magicResourceId?:number,selfTarget=false,explicitOrigin?:Readonly<{x:number;y:number}>){
@@ -949,29 +979,83 @@ export class LabScene extends Phaser.Scene {
     };
   }
 
-  update(time:number,delta:number){
-    if(!this.sprite)return;
-    const cameraDt=Math.min(delta,100);
-    const dt=this.inBattleView&&(this.battlePaused||document.hidden)?0:cameraDt;
-    if(this.route.length){
-      const target=referenceCellToScreen(this.route[0]),dx=target[0]-this.anchor.x,dy=target[1]-this.anchor.y,d=Math.hypot(dx,dy),step=P.movementPixelsPerSecond*dt/1000;
-      if(d<=step){
-        if(d>0)this.direction=directionFor(dx,dy);
-        this.anchor={x:target[0],y:target[1]};
-        this.route.shift();
-        if(!this.route.length)this.setAction('00');
-      }else{
-        this.direction=directionFor(dx,dy);
-        this.anchor.x+=dx/d*step;
-        this.anchor.y+=dy/d*step;
-      }
+  private advanceRouteMovement(dt:number):void{
+    if(!this.route.length)return;
+    const target=referenceCellToScreen(this.route[0]),dx=target[0]-this.anchor.x,dy=target[1]-this.anchor.y,d=Math.hypot(dx,dy),step=P.movementPixelsPerSecond*dt/1000;
+    if(d<=step){
+      if(d>0)this.direction=directionFor(dx,dy);
+      this.anchor={x:target[0],y:target[1]};
+      this.route.shift();
+      if(!this.route.length)this.setAction('00');
+    }else{
+      this.direction=directionFor(dx,dy);
+      this.anchor.x+=dx/d*step;
+      this.anchor.y+=dy/d*step;
     }
-    if(this.inBattleView)this.updateBattleCamera(cameraDt);
-    else if(this.cameraFollowEnabled)this.viewport?.follow(this.anchor,dt);
+  }
+
+  private advanceTimedAction(dt:number):void{
     if(this.timedAction>0){
       this.timedAction=Math.max(0,this.timedAction-dt);
       if(this.timedAction<=0)this.setAction('00');
     }
+  }
+
+  private advanceBattleState(dt:number):ReturnType<typeof initialState>['phase']{
+    const enemyPositionsBefore=new Map(this.state.enemies.map(enemy=>[enemy.id,{x:enemy.x,y:enemy.y}] as const));
+    const before=this.state.phase;
+    const events=updateBattle(this.state,dt,this.anchor.x,this.anchor.y,equipmentBonus(this.inventory,this.character).defense,
+      this.inBattleView?{collision:this.currentMap().collision,playerBusy:this.busy(),reserved:this.route}:undefined);
+    if(this.inBattleView)this.captureEnemyMotions(enemyPositionsBefore);
+    if(events.some(event=>event.kind==='hp-loss'&&event.target==='player')&&this.state.phase==='active')this.setTransientAction('03');
+    for(const event of events){
+      if(event.target==='player'&&event.source)this.enemyVisualActors.get(event.source)?.playTransient('02');
+      else if(event.target!=='player')this.enemyVisualActors.get(event.target)?.playTransient('03');
+      this.presentBattleFeedback({kind:event.source==='poison'?'POISON_TICK':'DAMAGE',target:event.target,amount:event.amount,tone:event.source==='poison'?'poison':'damage'});
+    }
+    return before;
+  }
+
+  private reselectBattleTargetIfNeeded():void{
+    const activeGroup=activeEnemyEncounterGroup(this.state,this.anchor.x,this.anchor.y);
+    const selected=this.state.enemies.find(enemy=>enemy.id===this.selectedEnemy);
+    if(this.inBattleView&&this.state.phase==='active'&&activeGroup!==null&&(!selected||selected.hp<=0||selected.encounterGroup!==activeGroup)){
+      const replacement=this.state.enemies.find(enemy=>enemy.hp>0&&enemy.encounterGroup===activeGroup);
+      if(replacement)this.selectedEnemy=replacement.id;
+    }
+  }
+
+  private handleBattlePhaseTransition(before:ReturnType<typeof initialState>['phase']):void{
+    if(before!==this.state.phase){
+      this.route=[];
+      this.updateGuideLabel();
+      this.notice(this.state.phase==='won'?'训练胜利。点击“退出战斗”返回非战斗地图。':'训练失败。点击“退出战斗”返回非战斗地图。');
+    }
+  }
+
+  acceptanceAdvanceBattleStep():void{
+    if(!navigator.webdriver)throw new Error('S14 acceptance battle-step fixture is automation-only');
+    if(!this.inBattleView||!this.battlePaused||this.state.phase!=='active')throw new Error('S14 acceptance battle-step fixture requires paused active battle');
+    if(document.hidden)throw new Error('S14 acceptance battle-step fixture requires a visible document');
+    for(const step of [100,100,50]){
+      this.advanceRouteMovement(step);
+      this.advanceTimedAction(step);
+      this.advanceEnemyMotions(step);
+    }
+    const before=this.advanceBattleState(250);
+    this.reselectBattleTargetIfNeeded();
+    this.handleBattlePhaseTransition(before);
+    this.updateBattleFeedback(250);
+  }
+
+  update(time:number,delta:number){
+    if(!this.sprite)return;
+    const cameraDt=Math.min(delta,100);
+    const dt=this.inBattleView&&(this.battlePaused||document.hidden)?0:cameraDt;
+    this.advanceRouteMovement(dt);
+    if(this.inBattleView)this.updateBattleCamera(cameraDt);
+    else if(this.cameraFollowEnabled)this.viewport?.follow(this.anchor,dt);
+    this.advanceTimedAction(dt);
     this.effectUntil=Math.max(0,this.effectUntil-dt);
     const a=this.animation();
     if(this.playing){
@@ -997,24 +1081,9 @@ export class LabScene extends Phaser.Scene {
       }
     }
     this.advanceEnemyMotions(dt);
-    const enemyPositionsBefore=new Map(this.state.enemies.map(enemy=>[enemy.id,{x:enemy.x,y:enemy.y}] as const));
-    const before=this.state.phase;
-    const events=updateBattle(this.state,dt,this.anchor.x,this.anchor.y,equipmentBonus(this.inventory,this.character).defense,
-      this.inBattleView?{collision:this.currentMap().collision,playerBusy:this.busy(),reserved:this.route}:undefined);
-    if(this.inBattleView)this.captureEnemyMotions(enemyPositionsBefore);
-    if(events.some(event=>event.kind==='hp-loss'&&event.target==='player')&&this.state.phase==='active')this.setTransientAction('03');
-    for(const event of events){
-      if(event.target==='player'&&event.source)this.enemyVisualActors.get(event.source)?.playTransient('02');
-      else if(event.target!=='player')this.enemyVisualActors.get(event.target)?.playTransient('03');
-      this.presentBattleFeedback({kind:event.source==='poison'?'POISON_TICK':'DAMAGE',target:event.target,amount:event.amount,tone:event.source==='poison'?'poison':'damage'});
-    }
+    const before=this.advanceBattleState(dt);
     for(const row of this.worldVisualActors.values())row.actor.update(dt);
-    const activeGroup=activeEnemyEncounterGroup(this.state,this.anchor.x,this.anchor.y);
-    const selected=this.state.enemies.find(enemy=>enemy.id===this.selectedEnemy);
-    if(this.inBattleView&&this.state.phase==='active'&&activeGroup!==null&&(!selected||selected.hp<=0||selected.encounterGroup!==activeGroup)){
-      const replacement=this.state.enemies.find(enemy=>enemy.hp>0&&enemy.encounterGroup===activeGroup);
-      if(replacement)this.selectedEnemy=replacement.id;
-    }
+    this.reselectBattleTargetIfNeeded();
     for(const enemy of this.state.enemies){
       const visible=this.inBattleView&&enemyVisibleInBattle(enemy);
       const actor=this.enemyVisualActors.get(enemy.id);
@@ -1026,11 +1095,7 @@ export class LabScene extends Phaser.Scene {
         this.enemyFallbackLabels.get(enemy.id)?.setPosition(enemy.x,enemy.y-18).setVisible(visible).setAlpha(visible?1:.25);
       }
     }
-    if(before!==this.state.phase){
-      this.route=[];
-      this.updateGuideLabel();
-      this.notice(this.state.phase==='won'?'训练胜利。点击“退出战斗”返回非战斗地图。':'训练失败。点击“退出战斗”返回非战斗地图。');
-    }
+    this.handleBattlePhaseTransition(before);
     this.updateBattleFeedback(dt);
     this.drawOverlay();
     if(this.inBattleView)this.drawBattleMinimap();else this.drawWorldMinimap();
