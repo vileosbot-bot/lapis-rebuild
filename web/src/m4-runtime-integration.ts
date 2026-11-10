@@ -2,7 +2,8 @@ import type {LabScene} from './scene.ts';
 import type {Skill} from './battle.ts';
 import {actionReady,consumeAction,reconcileBattlePhase,updateBattle} from './battle.ts';
 import {battleProfileForClass,magicReadinessCost} from './battle-profile.ts';
-import {nearestAnchor,referenceCellToScreen} from './coordinates.ts';
+import {nearestAnchor,referenceCellToScreen,walkable} from './coordinates.ts';
+import type {Cell} from './coordinates.ts';
 import {playableClassById,isEquipmentCompatibleWithClass} from './content/classes/class-catalog.ts';
 import rawSkills from '../../data/skills/mvp.json' with {type:'json'};
 import {BattlePresentation} from './presentation/battle-presentation.ts';
@@ -31,6 +32,7 @@ import {
 import {ReconstructionWorldAuthority} from './world/world-authority.ts';
 import type {WorldRuntimeState} from './world/world-authority.ts';
 import type {EncounterRequest,WorldState} from './world/world-model.ts';
+import type {BattleEntry} from './runtime-boundaries.ts';
 import {canInteract} from './world/world-model.ts';
 import {applyWarp} from './world/warp-policy.ts';
 import {START_STATE,TRAINING_BATTLE_ZONE_ID,TRAINING_QUEST_ID,WORLD_ENTITIES} from './world/world-content.ts';
@@ -77,6 +79,41 @@ type BattleInputSceneContract=LabScene&{
   cancelBattleTargeting?:()=>boolean;
 };
 const QUEST_STAGES:readonly QuestStage[]=['not_started','accepted','objective','ready_to_turn_in','complete'];
+
+const CH1_STORY_ONE_GATE_CELLS:readonly Cell[]=Object.freeze([
+  [72,26] as const,[71,27] as const,[73,27] as const,[70,28] as const,[72,28] as const,
+  [74,28] as const,[71,29] as const,[73,29] as const,[72,30] as const,
+]);
+const CH1_STORY_ONE_ARCH_CELL:Cell=Object.freeze([72,26] as const);
+const CH1_STORY_ONE_APPROACH_CELLS:readonly Cell[]=Object.freeze([
+  [71,27] as const,[73,27] as const,[70,28] as const,[72,28] as const,
+  [74,28] as const,[71,29] as const,[73,29] as const,[72,30] as const,
+]);
+const CH1_STORY_ONE_SOURCE=Object.freeze({
+  id:'story-source-1',
+  fieldMapId:1030,
+  battleZoneId:1,
+  sourceArtifact:'src/legacy_gui_runtime/ybcs_offline_field_encounters.py',
+  sourceSha256:'94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a',
+  gateCellsLocator:'ybcs_offline_field_encounters.py:L277-L289',
+  battleZoneLocator:'ybcs_offline_field_encounters.py:L240',
+  deploymentLocalCell:[34,44] as const,
+  deploymentHostileCell:[52,24] as const,
+  replayable:true as const,
+  bossVictory:true as const,
+  evidenceLevel:'RECOVERED_SECONDARY' as const,
+  runtimeVerified:false as const,
+  retailMapBindingVerified:false as const,
+});
+type Chapter1StoryBattleContext=Readonly<{
+  sourceId:typeof CH1_STORY_ONE_SOURCE.id;
+  fieldMapId:typeof CH1_STORY_ONE_SOURCE.fieldMapId;
+  gateCell:Cell;
+  battleZoneId:typeof CH1_STORY_ONE_SOURCE.battleZoneId;
+  entryProvenance:'RECOVERED_SECONDARY';
+  authority:'offline-reconstruction';
+  runtimeVerified:false;
+}>;
 const CLASS_RESOLVER:EquipmentCompatibilityResolver=(characterId,item)=>{
   try{return isEquipmentCompatibleWithClass(characterId,item.itemId,item.slot);}catch{return false;}
 };
@@ -159,6 +196,9 @@ export class M4RuntimeIntegration{
   private activeDialogue:NpcDialogueSession|null=null;
   private activeChapter1Dialogue:Ch1NpcDialogueSession|null=null;
   private chapter1Quest1Selection:Ch1Quest1SelectionState|null=null;
+  private activeChapter1StoryBattle:Chapter1StoryBattleContext|null=null;
+  private chapter1StoryOneApproachCells:readonly Cell[]=Object.freeze([]);
+  private chapter1StoryOneArchRuntimeCollisionWalkable=false;
   private trainingManagerOpen=false;
   private battleExitConfirm=false;
   private battleTargetingState:M7SkillTargetingState=createM7SkillTargetingState();
@@ -192,6 +232,19 @@ export class M4RuntimeIntegration{
     this.chapter1World=this.runtimeMode==='chapter1'?createCh1WorldPolicy(scene.pack):null;
     this.chapter1Authority=this.chapter1World?new Ch1WorldAuthority():null;
     this.chapter1Quest1Selection=this.chapter1Authority?.initialQuest1State()??null;
+    if(this.chapter1World){
+      const fieldMap=scene.pack.maps[String(CH1_STORY_ONE_SOURCE.fieldMapId)];
+      if(!fieldMap)throw new Error('Chapter 1 Story source 1 requires field map 1030');
+      if(!scene.pack.maps[String(CH1_STORY_ONE_SOURCE.battleZoneId)])throw new Error('Chapter 1 Story source 1 requires battleZone 1 resource');
+      this.chapter1StoryOneApproachCells=Object.freeze(CH1_STORY_ONE_APPROACH_CELLS.map(cell=>Object.freeze([cell[0],cell[1]]) as Cell));
+      const blockedApproaches=this.chapter1StoryOneApproachCells.filter(cell=>!walkable(fieldMap.collision,cell));
+      if(blockedApproaches.length)throw new Error('Chapter 1 Story source 1 approach cells are not walkable in the loaded map pack: '+blockedApproaches.map(cell=>cell.join(',')).join(';'));
+      // The source classifies (72,26) as a non-walkable arch, even though this
+      // reconstructed map pack currently marks that collision cell walkable.
+      // Keep it in the nine-cell source set but exclude it from the eight-cell
+      // movement-complete trigger whitelist.
+      this.chapter1StoryOneArchRuntimeCollisionWalkable=walkable(fieldMap.collision,CH1_STORY_ONE_ARCH_CELL);
+    }
     let m5:M5PlayableWorld|null=null;
     try{
       if(this.runtimeMode!=='chapter1'&&scene.pack.maps['7']&&scene.pack.animations['1001']&&scene.pack.animations['4524']&&scene.pack.animations['4544'])m5=createM5PlayableWorld(scene.pack);
@@ -284,6 +337,37 @@ export class M4RuntimeIntegration{
         initial:{mapId:this.chapter1World.initial.mapId,requestedCell:this.chapter1World.initial.requestedCell,effectiveCell:this.chapter1World.initial.effectiveCell,snapDistanceSquared:this.chapter1World.initial.snapDistanceSquared},
         victoryReturn:{mapId:this.chapter1World.victoryReturn.mapId,cell:this.chapter1World.victoryReturn.effectiveCell},
         provenance:'RECOVERED_SECONDARY',runtimeVerified:false,
+      }:null,
+      chapter1StorySource1:this.chapter1World?{
+        sourceId:CH1_STORY_ONE_SOURCE.id,
+        fieldMapId:CH1_STORY_ONE_SOURCE.fieldMapId,
+        battleZoneId:CH1_STORY_ONE_SOURCE.battleZoneId,
+        gateCells:CH1_STORY_ONE_GATE_CELLS.map(cell=>[cell[0],cell[1]]),
+        approachCells:this.chapter1StoryOneApproachCells.map(cell=>[cell[0],cell[1]]),
+        sourceBlockedArchCell:[CH1_STORY_ONE_ARCH_CELL[0],CH1_STORY_ONE_ARCH_CELL[1]],
+        archCellRuntimeCollisionWalkable:this.chapter1StoryOneArchRuntimeCollisionWalkable,
+        deploymentLocalCell:[...CH1_STORY_ONE_SOURCE.deploymentLocalCell],
+        deploymentHostileCell:[...CH1_STORY_ONE_SOURCE.deploymentHostileCell],
+        deploymentApplied:false,
+        replayable:CH1_STORY_ONE_SOURCE.replayable,
+        bossVictory:CH1_STORY_ONE_SOURCE.bossVictory,
+        gateCellsLocator:CH1_STORY_ONE_SOURCE.gateCellsLocator,
+        battleZoneLocator:CH1_STORY_ONE_SOURCE.battleZoneLocator,
+        sourceArtifact:CH1_STORY_ONE_SOURCE.sourceArtifact,
+        sourceSha256:CH1_STORY_ONE_SOURCE.sourceSha256,
+        mapToBattleZoneRetailVerified:CH1_STORY_ONE_SOURCE.retailMapBindingVerified,
+        triggerSemantics:'movement-complete-gate-cell-offline-policy',
+        evidenceLevel:CH1_STORY_ONE_SOURCE.evidenceLevel,
+        runtimeVerified:CH1_STORY_ONE_SOURCE.runtimeVerified,
+      }:null,
+      chapter1StoryBattle:this.activeChapter1StoryBattle?{
+        sourceId:this.activeChapter1StoryBattle.sourceId,
+        fieldMapId:this.activeChapter1StoryBattle.fieldMapId,
+        gateCell:[...this.activeChapter1StoryBattle.gateCell],
+        battleZoneId:this.activeChapter1StoryBattle.battleZoneId,
+        entryProvenance:this.activeChapter1StoryBattle.entryProvenance,
+        authority:this.activeChapter1StoryBattle.authority,
+        runtimeVerified:this.activeChapter1StoryBattle.runtimeVerified,
       }:null,
       quest:{...this.world.quest},
       chapter1Quest1:this.chapter1Quest1Selection?{...this.chapter1Quest1Selection}:null,
@@ -1258,6 +1342,7 @@ export class M4RuntimeIntegration{
     if(returnState)this.applyWorldState(returnState);else this.world={...this.world,world:this.currentWorldState()};
     this.pendingEncounter=null;
     this.activeTrainingBattleId=null;
+    this.activeChapter1StoryBattle=null;
     this.trainingLaunchPending=false;
     this.lastSnapshot=null;
     this.render(this.scene.snapshot());
@@ -1553,7 +1638,7 @@ export class M4RuntimeIntegration{
     }
     if(!snapshot.inBattleView){
       this.world={...this.world,world:this.currentWorldState()};
-      if(this.handleM5Spatial()||this.handleChapter1Spatial())return;
+      if(this.handleM5Spatial()||this.handleChapter1Spatial()||this.handleChapter1StoryGate(snapshot))return;
     }
     this.lastSnapshot=snapshot;
     this.render(snapshot);
@@ -1616,6 +1701,50 @@ export class M4RuntimeIntegration{
     const mapSelector=document.getElementById('map') as HTMLSelectElement|null;
     if(mapSelector)mapSelector.value=String(committed.mapId);
     this.lastSnapshot=null;
+    this.render(this.scene.snapshot());
+    return true;
+  }
+
+  private handleChapter1StoryGate(snapshot:Snapshot):boolean{
+    if(!this.chapter1World||this.scene.inBattleView||snapshot.inBattleView)return false;
+    if(snapshot.mapId!==CH1_STORY_ONE_SOURCE.fieldMapId||this.activeChapter1StoryBattle)return false;
+    const previous=this.lastSnapshot;
+    if(!previous||previous.inBattleView||previous.mapId!==CH1_STORY_ONE_SOURCE.fieldMapId)return false;
+    // A gate is eligible only on the edge where a real field movement route
+    // completes. Merely starting, standing, opening Quest1, or changing UI
+    // state on a gate coordinate is not a Story battle trigger.
+    if(previous.routeLength<=0||snapshot.routeLength!==0)return false;
+
+    const actor=this.currentWorldState();
+    if(actor.mapId!==CH1_STORY_ONE_SOURCE.fieldMapId)return false;
+    const gateCell=this.chapter1StoryOneApproachCells.find(
+      cell=>cell[0]===actor.x&&cell[1]===actor.y,
+    );
+    if(!gateCell)return false;
+    if(this.pendingEncounter||this.activeTrainingBattleId!==null)return false;
+
+    const entry:BattleEntry=Object.freeze({
+      battleZoneId:CH1_STORY_ONE_SOURCE.battleZoneId,
+      provenance:'RECOVERED_SECONDARY',
+      authority:'offline-reconstruction',
+    });
+    this.activeChapter1StoryBattle=Object.freeze({
+      sourceId:CH1_STORY_ONE_SOURCE.id,
+      fieldMapId:CH1_STORY_ONE_SOURCE.fieldMapId,
+      gateCell:Object.freeze([gateCell[0],gateCell[1]]) as Cell,
+      battleZoneId:CH1_STORY_ONE_SOURCE.battleZoneId,
+      entryProvenance:'RECOVERED_SECONDARY',
+      authority:'offline-reconstruction',
+      runtimeVerified:false,
+    });
+    this.setNotice('Story source 1 gate：movement-complete 命中 '+actor.x+','+actor.y+'，进入 battleZone 1 / RECOVERED_SECONDARY / runtimeVerified=false');
+    this.scene.enterBattle(entry);
+    if(!this.scene.inBattleView||this.scene.state.battleZoneId!==CH1_STORY_ONE_SOURCE.battleZoneId){
+      this.activeChapter1StoryBattle=null;
+      this.setNotice('Story source 1 battleZone 1 入口未能启动；未回退到其他 battleZone。');
+      this.render(this.scene.snapshot());
+      return true;
+    }
     this.render(this.scene.snapshot());
     return true;
   }
