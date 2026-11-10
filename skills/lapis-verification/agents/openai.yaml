@@ -1,0 +1,3 @@
+interface:
+  display_name: "Lapis Verification"
+  short_description: "按 Feature Map 执行网页验收并交付可复核证据。"
