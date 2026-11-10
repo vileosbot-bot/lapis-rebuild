@@ -114,6 +114,24 @@ type Chapter1StoryBattleContext=Readonly<{
   authority:'offline-reconstruction';
   runtimeVerified:false;
 }>;
+type Chapter1StoryBattleOutcome='won'|'lost'|'retreated';
+type Chapter1StoryBattleResolution=Readonly<{
+  sourceId:typeof CH1_STORY_ONE_SOURCE.id;
+  outcome:Chapter1StoryBattleOutcome;
+  fieldMapId:typeof CH1_STORY_ONE_SOURCE.fieldMapId;
+  gateCell:Cell;
+  battleZoneId:typeof CH1_STORY_ONE_SOURCE.battleZoneId;
+  returnMapId:number;
+  returnCell:Cell;
+  rewardSettlement:'not-applied';
+  victoryCondition:'m4-battle-phase-won';
+  bossVictorySourceFlag:true;
+  bossVictoryRuntimeEnforced:false;
+  replayPolicy:'after-leave-all-nine-gate-cells';
+  triggerSemantics:'movement-complete-gate-cell-offline-policy';
+  evidenceLevel:'RECOVERED_SECONDARY';
+  runtimeVerified:false;
+}>;
 const CLASS_RESOLVER:EquipmentCompatibilityResolver=(characterId,item)=>{
   try{return isEquipmentCompatibleWithClass(characterId,item.itemId,item.slot);}catch{return false;}
 };
@@ -197,6 +215,8 @@ export class M4RuntimeIntegration{
   private activeChapter1Dialogue:Ch1NpcDialogueSession|null=null;
   private chapter1Quest1Selection:Ch1Quest1SelectionState|null=null;
   private activeChapter1StoryBattle:Chapter1StoryBattleContext|null=null;
+  private chapter1StoryLastResolution:Chapter1StoryBattleResolution|null=null;
+  private chapter1StorySuppressedUntilLeaveGate=false;
   private chapter1StoryOneApproachCells:readonly Cell[]=Object.freeze([]);
   private chapter1StoryOneArchRuntimeCollisionWalkable=false;
   private trainingManagerOpen=false;
@@ -350,7 +370,10 @@ export class M4RuntimeIntegration{
         deploymentHostileCell:[...CH1_STORY_ONE_SOURCE.deploymentHostileCell],
         deploymentApplied:false,
         replayable:CH1_STORY_ONE_SOURCE.replayable,
+        replayPolicy:'after-leave-all-nine-gate-cells',
         bossVictory:CH1_STORY_ONE_SOURCE.bossVictory,
+        bossVictoryRuntimeEnforced:false,
+        victoryReturnCondition:'m4-battle-phase-won',
         gateCellsLocator:CH1_STORY_ONE_SOURCE.gateCellsLocator,
         battleZoneLocator:CH1_STORY_ONE_SOURCE.battleZoneLocator,
         sourceArtifact:CH1_STORY_ONE_SOURCE.sourceArtifact,
@@ -368,6 +391,24 @@ export class M4RuntimeIntegration{
         entryProvenance:this.activeChapter1StoryBattle.entryProvenance,
         authority:this.activeChapter1StoryBattle.authority,
         runtimeVerified:this.activeChapter1StoryBattle.runtimeVerified,
+      }:null,
+      chapter1StorySuppressedUntilLeaveGate:this.chapter1StorySuppressedUntilLeaveGate,
+      chapter1StoryLastResolution:this.chapter1StoryLastResolution?{
+        sourceId:this.chapter1StoryLastResolution.sourceId,
+        outcome:this.chapter1StoryLastResolution.outcome,
+        fieldMapId:this.chapter1StoryLastResolution.fieldMapId,
+        gateCell:[...this.chapter1StoryLastResolution.gateCell],
+        battleZoneId:this.chapter1StoryLastResolution.battleZoneId,
+        returnMapId:this.chapter1StoryLastResolution.returnMapId,
+        returnCell:[...this.chapter1StoryLastResolution.returnCell],
+        rewardSettlement:this.chapter1StoryLastResolution.rewardSettlement,
+        victoryCondition:this.chapter1StoryLastResolution.victoryCondition,
+        bossVictorySourceFlag:this.chapter1StoryLastResolution.bossVictorySourceFlag,
+        bossVictoryRuntimeEnforced:this.chapter1StoryLastResolution.bossVictoryRuntimeEnforced,
+        replayPolicy:this.chapter1StoryLastResolution.replayPolicy,
+        triggerSemantics:this.chapter1StoryLastResolution.triggerSemantics,
+        evidenceLevel:this.chapter1StoryLastResolution.evidenceLevel,
+        runtimeVerified:this.chapter1StoryLastResolution.runtimeVerified,
       }:null,
       quest:{...this.world.quest},
       chapter1Quest1:this.chapter1Quest1Selection?{...this.chapter1Quest1Selection}:null,
@@ -1147,20 +1188,45 @@ export class M4RuntimeIntegration{
   }
 
   private retreatFromBattle():void{
+    const storyBattle=this.activeChapter1StoryBattle;
     this.clearBattleTargeting(false);
     this.scene.leaveBattle();
     this.scene.gold=this.rewards.gold;
     this.world={...this.world,world:this.currentWorldState()};
     this.pendingEncounter=null;
     this.activeTrainingBattleId=null;
+    this.activeChapter1StoryBattle=null;
     this.trainingLaunchPending=false;
     this.lastSnapshot=null;
-    this.suppressEncounterUntilLeave=true;
+    this.suppressEncounterUntilLeave=!storyBattle;
+    if(storyBattle){
+      const returnCell=storyBattle.gateCell;
+      this.chapter1StorySuppressedUntilLeaveGate=true;
+      this.chapter1StoryLastResolution=Object.freeze({
+        sourceId:storyBattle.sourceId,
+        outcome:'retreated',
+        fieldMapId:storyBattle.fieldMapId,
+        gateCell:Object.freeze([returnCell[0],returnCell[1]]) as Cell,
+        battleZoneId:storyBattle.battleZoneId,
+        returnMapId:storyBattle.fieldMapId,
+        returnCell:Object.freeze([returnCell[0],returnCell[1]]) as Cell,
+        rewardSettlement:'not-applied',
+        victoryCondition:'m4-battle-phase-won',
+        bossVictorySourceFlag:true,
+        bossVictoryRuntimeEnforced:false,
+        replayPolicy:'after-leave-all-nine-gate-cells',
+        triggerSemantics:'movement-complete-gate-cell-offline-policy',
+        evidenceLevel:'RECOVERED_SECONDARY',
+        runtimeVerified:false,
+      });
+    }
     if(this.spatial){
       const actor=this.currentWorldState();
       this.spatial.start({mapId:actor.mapId,cell:[actor.x,actor.y]});
     }
-    this.setNotice('已退出战斗：未结算奖励，任务目标保持未完成。离开怪物触发范围后可再次进入战斗。');
+    this.setNotice(storyBattle
+      ?'已撤离 Story source 1：未结算奖励，返回 map1030 原 gate 位置；离开九格 gate 区域后可再次触发 / RECOVERED_SECONDARY / runtimeVerified=false。'
+      :'已退出战斗：未结算奖励，任务目标保持未完成。离开怪物触发范围后可再次进入战斗。');
     this.render(this.scene.snapshot());
   }
 
@@ -1324,10 +1390,39 @@ export class M4RuntimeIntegration{
     if(!this.scene.inBattleView)return;
     const phase=this.scene.state.phase;
     if(phase==='active'){this.setNotice('战斗尚未结束');return;}
+    if(phase==='safe'){this.setNotice('战斗状态尚未初始化');return;}
     this.battleExitConfirm=false;
-    if(phase==='lost')this.suppressEncounterUntilLeave=true;
+    const storyBattle=this.activeChapter1StoryBattle;
+    if(phase==='lost'&&!storyBattle)this.suppressEncounterUntilLeave=true;
     let returnState:WorldState|null=null;
-    if(this.pendingEncounter){
+    if(storyBattle){
+      // boss_victory=true remains source metadata. This offline policy returns
+      // on the existing M4 terminal phase 'won'; it does not infer a retail
+      // boss identity or claim that the source-specific boss condition ran.
+      const victorySpawn=this.chapter1World?.victoryReturn;
+      if(phase==='won'&&!victorySpawn)throw new Error('Chapter 1 Story victory requires story-victory-return-01 policy');
+      const returnMapId=phase==='won'?victorySpawn!.mapId:storyBattle.fieldMapId;
+      const returnCell=phase==='won'?victorySpawn!.effectiveCell:storyBattle.gateCell;
+      if(phase==='won')returnState={mapId:returnMapId,x:returnCell[0],y:returnCell[1]};
+      this.chapter1StorySuppressedUntilLeaveGate=phase!=='won';
+      this.chapter1StoryLastResolution=Object.freeze({
+        sourceId:storyBattle.sourceId,
+        outcome:phase,
+        fieldMapId:storyBattle.fieldMapId,
+        gateCell:Object.freeze([storyBattle.gateCell[0],storyBattle.gateCell[1]]) as Cell,
+        battleZoneId:storyBattle.battleZoneId,
+        returnMapId,
+        returnCell:Object.freeze([returnCell[0],returnCell[1]]) as Cell,
+        rewardSettlement:'not-applied',
+        victoryCondition:'m4-battle-phase-won',
+        bossVictorySourceFlag:true,
+        bossVictoryRuntimeEnforced:false,
+        replayPolicy:'after-leave-all-nine-gate-cells',
+        triggerSemantics:'movement-complete-gate-cell-offline-policy',
+        evidenceLevel:'RECOVERED_SECONDARY',
+        runtimeVerified:false,
+      });
+    }else if(this.pendingEncounter){
       const outcome=phase==='won'?'won':'lost';
       const resolution=this.worldAuthority.resolveBattle(this.world,{battleZoneId:this.scene.state.battleZoneId??-1,outcome});
       this.world=resolution.state;
@@ -1707,7 +1802,14 @@ export class M4RuntimeIntegration{
 
   private handleChapter1StoryGate(snapshot:Snapshot):boolean{
     if(!this.chapter1World||this.scene.inBattleView||snapshot.inBattleView)return false;
-    if(snapshot.mapId!==CH1_STORY_ONE_SOURCE.fieldMapId||this.activeChapter1StoryBattle)return false;
+    if(snapshot.mapId!==CH1_STORY_ONE_SOURCE.fieldMapId)return false;
+    const actor=this.currentWorldState();
+    if(this.chapter1StorySuppressedUntilLeaveGate){
+      const stillInsideGate=CH1_STORY_ONE_GATE_CELLS.some(cell=>cell[0]===actor.x&&cell[1]===actor.y);
+      if(stillInsideGate)return false;
+      this.chapter1StorySuppressedUntilLeaveGate=false;
+    }
+    if(this.activeChapter1StoryBattle)return false;
     const previous=this.lastSnapshot;
     if(!previous||previous.inBattleView||previous.mapId!==CH1_STORY_ONE_SOURCE.fieldMapId)return false;
     // A gate is eligible only on the edge where a real field movement route
@@ -1715,7 +1817,6 @@ export class M4RuntimeIntegration{
     // state on a gate coordinate is not a Story battle trigger.
     if(previous.routeLength<=0||snapshot.routeLength!==0)return false;
 
-    const actor=this.currentWorldState();
     if(actor.mapId!==CH1_STORY_ONE_SOURCE.fieldMapId)return false;
     const gateCell=this.chapter1StoryOneApproachCells.find(
       cell=>cell[0]===actor.x&&cell[1]===actor.y,
@@ -1728,6 +1829,7 @@ export class M4RuntimeIntegration{
       provenance:'RECOVERED_SECONDARY',
       authority:'offline-reconstruction',
     });
+    this.chapter1StoryLastResolution=null;
     this.activeChapter1StoryBattle=Object.freeze({
       sourceId:CH1_STORY_ONE_SOURCE.id,
       fieldMapId:CH1_STORY_ONE_SOURCE.fieldMapId,

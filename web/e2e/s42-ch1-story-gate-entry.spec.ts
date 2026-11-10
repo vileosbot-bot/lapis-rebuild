@@ -51,7 +51,10 @@ test('B4-1 Story source 1 movement-complete gate enters explicit battleZone 1 in
     deploymentHostileCell:[52,24],
     deploymentApplied:false,
     replayable:true,
+    replayPolicy:'after-leave-all-nine-gate-cells',
     bossVictory:true,
+    bossVictoryRuntimeEnforced:false,
+    victoryReturnCondition:'m4-battle-phase-won',
     mapToBattleZoneRetailVerified:false,
     triggerSemantics:'movement-complete-gate-cell-offline-policy',
     evidenceLevel:'RECOVERED_SECONDARY',
@@ -117,5 +120,208 @@ test('B4-1 Story source 1 movement-complete gate enters explicit battleZone 1 in
   expect(battleRuntime.chapter1Quest1.serverAcceptance).toBe('not-asserted');
   expect(battleRuntime.quest.stage).toBe('not_started');
   expect(battleRuntime.pendingEncounter).toBeNull();
+  expect(pageErrors).toEqual([]);
+});
+
+async function enterStoryOneFromMap1000(page:Page){
+  await ready(page);
+  await moveFieldTo(page,139,5);
+  await expect.poll(async()=>(await runtime(page)).world.mapId,{timeout:120000,intervals:[100,250,500]}).toBe(1020);
+  await moveFieldTo(page,67,5);
+  await expect.poll(async()=>(await runtime(page)).world.mapId,{timeout:120000,intervals:[100,250,500]}).toBe(1030);
+  await moveFieldTo(page,72,28);
+  await expect.poll(async()=>(await scene(page)).inBattleView,{timeout:120000,intervals:[100,250,500]}).toBe(true);
+}
+
+async function returnFromTerminalBattle(page:Page){
+  const button=page.locator('[data-action="return"]:visible');
+  await expect(button).toBeVisible();
+  await button.click();
+  await expect.poll(async()=>(await scene(page)).inBattleView).toBe(false);
+}
+
+test('B4-2 Story source 1 retreat and defeat return to the original field gate and suppress re-entry until leaving all nine gate cells',async({page})=>{
+  test.setTimeout(210000);
+  const pageErrors:string[]=[];
+  page.on('pageerror',error=>pageErrors.push(error.message));
+  await enterStoryOneFromMap1000(page);
+
+  const baseline=await runtime(page);
+  const baselineGold=baseline.gold;
+  const baselineProgression=baseline.progression;
+  const baselineQuest=baseline.quest;
+
+  // Active voluntary exit uses the existing M4 confirmation flow.
+  await page.locator('[data-action="battle-exit-request"]:visible').click();
+  await expect(page.locator('[data-ui="battle-exit-confirm"]')).toBeVisible();
+  await page.locator('[data-action="battle-exit-confirm"]:visible').click();
+  await expect.poll(async()=>(await scene(page)).inBattleView).toBe(false);
+  let state=await runtime(page);
+  expect(state.world).toEqual({mapId:1030,x:72,y:28});
+  expect(state.chapter1StoryBattle).toBeNull();
+  expect(state.chapter1StorySuppressedUntilLeaveGate).toBe(true);
+  expect(state.chapter1StoryLastResolution).toMatchObject({
+    sourceId:'story-source-1',
+    outcome:'retreated',
+    fieldMapId:1030,
+    gateCell:[72,28],
+    battleZoneId:1,
+    returnMapId:1030,
+    returnCell:[72,28],
+    rewardSettlement:'not-applied',
+    victoryCondition:'m4-battle-phase-won',
+    bossVictorySourceFlag:true,
+    bossVictoryRuntimeEnforced:false,
+    replayPolicy:'after-leave-all-nine-gate-cells',
+    evidenceLevel:'RECOVERED_SECONDARY',
+    runtimeVerified:false,
+  });
+  expect(state.gold).toBe(baselineGold);
+  expect(state.progression).toEqual(baselineProgression);
+  expect(state.quest).toEqual(baselineQuest);
+
+  // Moving within the nine-cell source gate cluster must not immediately
+  // retrigger. Leaving the complete cluster clears the one-shot suppression.
+  await moveFieldTo(page,74,28);
+  await waitForFieldCell(page,1030,74,28);
+  expect((await scene(page)).inBattleView).toBe(false);
+  expect((await runtime(page)).chapter1StorySuppressedUntilLeaveGate).toBe(true);
+
+  await moveFieldTo(page,75,29);
+  await waitForFieldCell(page,1030,75,29);
+  expect((await runtime(page)).chapter1StorySuppressedUntilLeaveGate).toBe(false);
+
+  // Re-entering a valid approach cell is allowed after the player has left
+  // the gate area; lower HP through the existing automation fixture, then let
+  // the production enemy action loop cause the defeat.
+  await moveFieldTo(page,72,28);
+  await expect.poll(async()=>(await scene(page)).inBattleView,{timeout:120000,intervals:[100,250,500]}).toBe(true);
+  const defeated=await page.evaluate(()=>{
+    const api=window.lapisM4 as any;
+    const diagnostics=window.lapisDiagnostics as any;
+    api.acceptanceSetBattlePaused(true);
+    api.acceptanceSetPlayerVitals(1,0);
+    for(let step=0;step<40&&diagnostics.snapshot().phase==='active';step++)api.acceptanceAdvanceLiveBattleStep();
+    return diagnostics.snapshot();
+  });
+  expect(defeated.phase).toBe('lost');
+  expect(defeated.battleZoneId).toBe(1);
+  await returnFromTerminalBattle(page);
+
+  state=await runtime(page);
+  expect(state.world).toEqual({mapId:1030,x:72,y:28});
+  expect(state.chapter1StoryBattle).toBeNull();
+  expect(state.chapter1StorySuppressedUntilLeaveGate).toBe(true);
+  expect(state.chapter1StoryLastResolution).toMatchObject({
+    sourceId:'story-source-1',
+    outcome:'lost',
+    fieldMapId:1030,
+    gateCell:[72,28],
+    battleZoneId:1,
+    returnMapId:1030,
+    returnCell:[72,28],
+    rewardSettlement:'not-applied',
+    victoryCondition:'m4-battle-phase-won',
+    bossVictorySourceFlag:true,
+    bossVictoryRuntimeEnforced:false,
+    replayPolicy:'after-leave-all-nine-gate-cells',
+    evidenceLevel:'RECOVERED_SECONDARY',
+    runtimeVerified:false,
+  });
+  expect(state.gold).toBe(baselineGold);
+  expect(state.progression).toEqual(baselineProgression);
+  expect(state.quest).toEqual(baselineQuest);
+  expect(state.pendingEncounter).toBeNull();
+  expect(state.chapter1Quest1.selectionStatus).toBe('not-recorded');
+  expect(pageErrors).toEqual([]);
+});
+
+test('B4-2 actual Story source 1 battle victory returns to story-victory-return-01 map 1060 cell 20,120 without S9 settlement',async({page})=>{
+  test.setTimeout(210000);
+  const pageErrors:string[]=[];
+  page.on('pageerror',error=>pageErrors.push(error.message));
+  await enterStoryOneFromMap1000(page);
+
+  const baseline=await runtime(page);
+  const baselineGold=baseline.gold;
+  const baselineProgression=baseline.progression;
+  const baselineQuest=baseline.quest;
+  const result=await page.evaluate(()=>{
+    const api=window.lapisM4 as any;
+    const diagnostics=window.lapisDiagnostics as any;
+    api.acceptanceSetBattlePaused(true);
+    let attacks=0;
+    let moves=0;
+    for(let turn=0;turn<40;turn++){
+      let state=diagnostics.snapshot();
+      if(state.phase!=='active')break;
+      if(!api.acceptanceActionReady()){
+        const advanced=api.acceptanceAdvanceUntilActionOrEnd(40);
+        if(!advanced.done)throw new Error('Story battle did not reach an action or terminal state within 40 steps');
+        state=diagnostics.snapshot();
+        if(state.phase!=='active')break;
+      }
+      const live=state.enemies.filter((enemy:any)=>enemy.hp>0);
+      if(!live.length)break;
+      live.sort((a:any,b:any)=>
+        Math.max(Math.abs(a.cell[0]-state.battleCell[0]),Math.abs(a.cell[1]-state.battleCell[1]))-
+        Math.max(Math.abs(b.cell[0]-state.battleCell[0]),Math.abs(b.cell[1]-state.battleCell[1]))
+      );
+      const target=live[0];
+      const distance=Math.max(
+        Math.abs(target.cell[0]-state.battleCell[0]),
+        Math.abs(target.cell[1]-state.battleCell[1]),
+      );
+      if(distance>1){
+        const reachable=api.acceptanceReachable() as number[][];
+        reachable.sort((a:number[],b:number[])=>
+          Math.max(Math.abs(a[0]-target.cell[0]),Math.abs(a[1]-target.cell[1]))-
+          Math.max(Math.abs(b[0]-target.cell[0]),Math.abs(b[1]-target.cell[1]))
+        );
+        if(!reachable.length)throw new Error('No reachable battle cell while a Story source 1 enemy remains');
+        const cell=reachable[0];
+        api.acceptanceIssueMoveTo((cell[0]+1)*32,(cell[1]+1)*16);
+        const advanced=api.acceptanceAdvanceUntilActionOrEnd(40);
+        if(!advanced.done)throw new Error('Story battle movement did not complete within 40 steps');
+        moves++;
+        continue;
+      }
+      api.acceptanceSelectEnemy(target.id);
+      api.acceptanceIssueAttack();
+      attacks++;
+    }
+    return{snapshot:diagnostics.snapshot(),attacks,moves};
+  });
+
+  expect(result.snapshot.phase,'Story source 1 must be defeated by actual M4 combat, not a forced terminal fixture').toBe('won');
+  expect(result.attacks).toBeGreaterThan(0);
+  await returnFromTerminalBattle(page);
+
+  const state=await runtime(page);
+  expect(state.world).toEqual({mapId:1060,x:20,y:120});
+  expect(state.chapter1StoryBattle).toBeNull();
+  expect(state.chapter1StorySuppressedUntilLeaveGate).toBe(false);
+  expect(state.chapter1StoryLastResolution).toMatchObject({
+    sourceId:'story-source-1',
+    outcome:'won',
+    fieldMapId:1030,
+    gateCell:[72,28],
+    battleZoneId:1,
+    returnMapId:1060,
+    returnCell:[20,120],
+    rewardSettlement:'not-applied',
+    victoryCondition:'m4-battle-phase-won',
+    bossVictorySourceFlag:true,
+    bossVictoryRuntimeEnforced:false,
+    replayPolicy:'after-leave-all-nine-gate-cells',
+    triggerSemantics:'movement-complete-gate-cell-offline-policy',
+    evidenceLevel:'RECOVERED_SECONDARY',
+    runtimeVerified:false,
+  });
+  expect(state.gold).toBe(baselineGold);
+  expect(state.progression).toEqual(baselineProgression);
+  expect(state.quest).toEqual(baselineQuest);
+  expect(state.pendingEncounter).toBeNull();
+  expect(state.chapter1Quest1.selectionStatus).toBe('not-recorded');
   expect(pageErrors).toEqual([]);
 });
