@@ -1,0 +1,410 @@
+schema_version: 1
+bundle_id: "example-b6-quest-policy-static"
+request_id: NOT_RECORDED
+worker: NOT_RECORDED
+repository: "vileosbot-bot/lapis-rebuild"
+
+revision:
+  branch: "data/ch1-world-catalog"
+  base_commit_sha: "da154e72042f135d45aae4827ff62df8884c0ea7"
+  commit_sha: "0e3cc82e19a3cc765d06103cd357b15b4f44434e"
+  parent_commit_sha: "da154e72042f135d45aae4827ff62df8884c0ea7"
+  commit_tree_sha: "ccfb23fa68ab0587be932d0a2b4d26b4decd799f"
+  tested_commit_sha: NOT_RUN
+  observed_main_head_sha: "708e35821eb7b26721f0dd52b010eb4d59247aa1"
+  observed_main_head_note: "本示例编写时通过 GitHub 仓库分支接口现读；B6 历史文件同时在 B6 commit 与当前 main 读回，blob SHA 一致。"
+
+scope:
+  task_kind: "static-data-policy"
+  feature_ids:
+    - "CH1-QUEST-POLICY-B6"
+  summary: "导出 Quest1-8 的保守离线 Quest policy 与只读验证器；不实现或宣称服务端任务行为。"
+  included_quest_scripts: [1, 2, 3, 4, 5, 6, 7, 8]
+  deferred_quest_scripts: [0, 9]
+  deferred_npc_script_programs: [47]
+
+changed_files:
+  - path: "data/ch1-world-catalog/audit.md"
+    change_status: modified
+    line_count: 607
+    commit_additions: 119
+    commit_deletions: 0
+    git_blob_sha: "ca4d05aebc3c8a1f5293c1f04569ba43636a6b15"
+  - path: "data/ch1-world-catalog/quest-policy.json"
+    change_status: added
+    line_count: 1982
+    commit_additions: 1982
+    commit_deletions: 0
+    git_blob_sha: "2ef035b51f99af5ec14c8eb9550e5709d1d1ebf9"
+  - path: "data/ch1-world-catalog/quest-policy.ts"
+    change_status: added
+    line_count: 178
+    commit_additions: 178
+    commit_deletions: 0
+    git_blob_sha: "f6d7c3dae9638cab2fe82b7101cee417b23347c2"
+
+environment:
+  capture_method: "GitHub repository readback of historical B6 commit and current main"
+  node_version: NOT_RECORDED
+  python_version: NOT_RECORDED
+  browser: NOT_RUN
+  original_client: "NOT_RUN_PROHIBITED"
+  deployment: "NOT_RUN_PROHIBITED"
+
+command_execution:
+  status: NOT_RECORDED
+  commands: []
+  note: "当前仓库 B6 audit 未记录可复核的完整命令文本、工作目录与退出码；不根据产物反推命令。"
+
+static_verification:
+  status: PASS_RECORDED
+  basis: repository_audit
+  audit_reference:
+    path: "data/ch1-world-catalog/audit.md"
+    git_blob_sha: "ca4d05aebc3c8a1f5293c1f04569ba43636a6b15"
+    b6_section_lines: [490, 607]
+  checks:
+    - check_id: "B6-STATIC-01"
+      description: "Quest1-8 chain row accounting"
+      expected: "32 rows; accept/condition/complete/reward each 8"
+      observed:
+        chain_records: 32
+        accept: 8
+        condition: 8
+        complete: 8
+        reward: 8
+      result: PASS_RECORDED
+      evidence:
+        - "data/ch1-world-catalog/quest-policy.json: scope.chainStageCounts and chainRecords"
+        - "data/ch1-world-catalog/audit.md: lines 545-553 and 599-607"
+    - check_id: "B6-STATIC-02"
+      description: "Source record and branch marker accounting"
+      expected: "708 sourceRecord objects; 37 branch markers = 24 selected + 13 excluded additional CANCEL references"
+      observed:
+        source_record_count: 708
+        source_branch_marker_count: 37
+        selected_chain_branch_marker_count: 24
+        excluded_additional_cancel_marker_count: 13
+      result: PASS_RECORDED
+      evidence:
+        - "data/ch1-world-catalog/quest-policy.json: scope"
+        - "data/ch1-world-catalog/audit.md: lines 534-543"
+    - check_id: "B6-STATIC-03"
+      description: "B5 semantic cross-reference boundary"
+      expected: "8 Quest1-8 semantic references; no Actor-token/entity identity join"
+      observed:
+        semantic_cross_references: 8
+        actor_token_join_performed: false
+        entity_identity_asserted: false
+        b5_candidate_rows: 29
+        b5_distinct_maps: 23
+      result: PASS_RECORDED
+      evidence:
+        - "data/ch1-world-catalog/quest-policy.json: b5SemanticCrossReferences"
+        - "data/ch1-world-catalog/audit.md: B5 semantic cross-reference boundary"
+    - check_id: "B6-STATIC-04"
+      description: "Unrecovered semantics remain explicit"
+      expected: "All unresolved items retained as not-recovered records"
+      observed:
+        not_recovered_records: 13
+        includes_reward_definition_gap: true
+        includes_actor_to_npc_identity_gap: true
+        includes_authoritative_quest_state_gap: true
+      result: PASS_RECORDED
+      evidence:
+        - "data/ch1-world-catalog/quest-policy.json: notRecovered"
+        - "data/ch1-world-catalog/audit.md: lines 575-597"
+    - check_id: "B6-STATIC-05"
+      description: "Evidence-level and runtime boundary"
+      expected: "All B6 records remain RECOVERED_SECONDARY and runtimeVerified=false; VERIFIED count is zero"
+      observed:
+        chain_records_evidence_level: RECOVERED_SECONDARY
+        chain_records_runtime_verified: false
+        verified_record_count: 0
+      result: PASS_RECORDED
+      evidence:
+        - "data/ch1-world-catalog/quest-policy.json: provenance, chainRecords, b5SemanticCrossReferences and notRecovered"
+        - "data/ch1-world-catalog/audit.md: line 500 and lines 599-607"
+    - check_id: "B6-STATIC-06"
+      description: "Read-only policy validator boundary"
+      expected: "Validator checks counts/evidence boundaries and exports no gameplay mutation API"
+      observed:
+        validator: "validateQuestPolicyDataset"
+        runtime_mutations_enabled: false
+        gameplay_execution_api_exported: false
+      result: PASS_RECORDED
+      evidence:
+        - "data/ch1-world-catalog/quest-policy.ts: validateQuestPolicyDataset and QUEST_POLICY_RUNTIME_MUTATIONS_ENABLED"
+  independent_replay:
+    status: NOT_RUN
+    commands: []
+    note: "本示例仅复述当前仓库保留的 B6 静态审计记录；没有把历史 audit 描述改写为本轮重新执行的测试。"
+
+runtime_acceptance:
+  status: NOT_RUN
+  runtime_status: NOT_RUN
+  environment_kind: NOT_RUN
+  tested_commit_sha: NOT_RUN
+  feature_results:
+    - feature_id: "CH1-QUEST-POLICY-B6"
+      runtime_status: NOT_RUN
+      reason: "B6 是离线数据与策略验证批次；quest-policy.ts 只导出只读校验器，不执行任务、战斗、奖励、存档或服务端行为。"
+  notes:
+    - "没有真实网页/游戏运行验收记录。"
+    - "不以静态 JSON 校验、source parser 记录或既有其他 Feature E2E 替代 B6 runtime acceptance。"
+
+test_summary:
+  runtime_test_cases:
+    status: NOT_RUN
+    total: 0
+    passed: 0
+    failed: 0
+    skipped: 0
+    not_run: 0
+  runtime_assertions:
+    status: NOT_RUN
+    total: 0
+    executed: 0
+    passed: 0
+    failed: 0
+    blocked: 0
+    not_run: 0
+  static_checks:
+    status: PASS_RECORDED
+    total: 6
+    passed_recorded: 6
+    failed_recorded: 0
+  note: "6 项为仓库 audit 中记录的静态核验检查，不是 Playwright test case 或 runtime assertion。历史命令执行次数未记录。"
+
+screenshots:
+  status: NOT_RUN
+  items: []
+  note: "B6 静态数据批次没有可归属于该批次的真实浏览器验收截图。"
+
+logs_and_artifacts:
+  static_audit:
+    path: "data/ch1-world-catalog/audit.md"
+    git_blob_sha: "ca4d05aebc3c8a1f5293c1f04569ba43636a6b15"
+    line_range: [490, 607]
+    readback_status: PASS
+  runtime_logs:
+    status: NOT_RUN
+    items: []
+  playwright_json:
+    status: NOT_RUN
+    path: NOT_RUN
+  traces:
+    status: NOT_RUN
+    items: []
+  ci_artifacts:
+    status: NOT_RECORDED
+    items: []
+
+provenance:
+  - source_project: "ybcs-offline"
+    source_artifact: "Quest.lib"
+    source_locator: "Quest1.TXT; archive member offset 8956; marker lines 20-22, 30-32, 36-38"
+    fingerprint_type: sha256
+    fingerprint: "23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397"
+    fingerprint_origin: "从当前 main 的 quest-policy.json provenance 与 audit.md B6 source identity 读取；不是本轮重新读取原始 Quest.lib 字节计算。"
+    raw_source_in_repository: false
+    source_size_bytes: 21205
+    archive_entry_count: 15
+    evidence_level: RECOVERED_SECONDARY
+    runtime_verified: false
+  - source_project: "ybcs-offline"
+    source_artifact: "ybcs_quest_runtime.py"
+    source_locator: "_parse_script_lines L182; parse_quest_script L217; _first_numeric_actor L276; build_quest_chain L347-L437; build_dataset L438"
+    fingerprint_type: sha256
+    fingerprint: "b4f6e6f968a3e2cf3b203f52ba60698df60cba578d47162c88c4b710c4a11d0d"
+    fingerprint_origin: "从当前 main 的 quest-policy.json provenance 与 audit.md B6 source identity 读取；原始源文件字节未在本仓库重新读取。"
+    raw_source_in_repository: false
+    source_line_count: 679
+    evidence_level: RECOVERED_SECONDARY
+    runtime_verified: false
+  - source_project: "ybcs-offline"
+    source_artifact: "ybcs_offline_npc_placements.py"
+    source_locator: "B5 offline-policy candidate source"
+    fingerprint_type: sha256
+    fingerprint: "16c76bd6b0335ab679a8c2c35192c3ee0b76974b8348a1e18f2031c8720478a1"
+    fingerprint_origin: "从当前 main 的 quest-policy.json provenance 与 audit.md B6 source identity 读取。"
+    raw_source_in_repository: false
+    source_line_count: 613
+    evidence_level: RECOVERED_SECONDARY
+    runtime_verified: false
+  - source_project: "ybcs-offline"
+    source_artifact: "lapis_lib.py"
+    source_locator: "Quest.lib archive directory decoder"
+    fingerprint_type: sha256
+    fingerprint: "f742e0f8d6425bed20118a3e69bac1041943efc31262e078cc3679b8e4bbfcae"
+    fingerprint_origin: "从当前 main 的 quest-policy.json provenance 读取。"
+    raw_source_in_repository: false
+    source_line_count: 140
+    evidence_level: RECOVERED_SECONDARY
+    runtime_verified: false
+  - source_project: "ybcs-offline"
+    source_artifact: "pkware_blast.py"
+    source_locator: "Quest.lib member decompressor"
+    fingerprint_type: sha256
+    fingerprint: "8500511a4017742bc8a3271aff7013b7cac0c369ca75575c9d8136d4d7239e00"
+    fingerprint_origin: "从当前 main 的 quest-policy.json provenance 读取。"
+    raw_source_in_repository: false
+    source_line_count: 250
+    evidence_level: RECOVERED_SECONDARY
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "data/ch1-world-catalog/quest-policy.json"
+    source_locator: "B6 output dataset"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "2ef035b51f99af5ec14c8eb9550e5709d1d1ebf9"
+    fingerprint_origin: "GitHub fetch_file 当前 main 与 B6 commit 逐次读回一致"
+    raw_source_in_repository: true
+    line_count: 1982
+    evidence_level: RECOVERED_SECONDARY
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "data/ch1-world-catalog/quest-policy.ts"
+    source_locator: "B6 read-only validator"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "f6d7c3dae9638cab2fe82b7101cee417b23347c2"
+    fingerprint_origin: "GitHub fetch_file 当前 main 与 B6 commit 逐次读回一致"
+    raw_source_in_repository: true
+    line_count: 178
+    evidence_level: RECONSTRUCTION_POLICY
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "data/ch1-world-catalog/audit.md"
+    source_locator: "B6 audit section lines 490-607"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "ca4d05aebc3c8a1f5293c1f04569ba43636a6b15"
+    fingerprint_origin: "GitHub fetch_file 当前 main 与 B6 commit 逐次读回一致"
+    raw_source_in_repository: true
+    line_count: 607
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "docs/integration-notes/s4-quest-recruit-data.json"
+    source_locator: "B6 referenced S4 export"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "5621cdee4a020c8648add1d82f26247a0c064374"
+    fingerprint_origin: "GitHub fetch_file 当前 main 读取"
+    raw_source_in_repository: true
+    line_count: 15156
+    evidence_level: RECOVERED_SECONDARY
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "docs/integration-notes/s4-quest-recruit-audit.md"
+    source_locator: "B6 referenced S4 audit"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "2812692524310603fbae5f69a9345393ad7d880e"
+    fingerprint_origin: "GitHub fetch_file 当前 main 读取"
+    raw_source_in_repository: true
+    line_count: 122
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "data/ch1-world-catalog/npc-placement-candidates.json"
+    source_locator: "B5 semantic cross-reference input at B6 parent"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "83361c3aaca19051187aa3ff90eeb2b5d3840af3"
+    fingerprint_origin: "GitHub fetch_file at B6 parent commit da154e72042f135d45aae4827ff62df8884c0ea7"
+    raw_source_in_repository: true
+    line_count: 1064
+    evidence_level: RECOVERED_SECONDARY
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "data/ch1-world-catalog/audit.md"
+    source_locator: "B5 audit snapshot at B6 parent"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "005fe6348e91a316e433d01f92f823a57c881baf"
+    fingerprint_origin: "GitHub fetch_file at B6 parent commit da154e72042f135d45aae4827ff62df8884c0ea7"
+    raw_source_in_repository: true
+    line_count: 488
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+
+quest1_static_excerpt:
+  source_member: "Quest1.TXT"
+  archive_member_offset: 8956
+  records:
+    - record_id: "quest1-early:accept"
+      marker: SELECT
+      step: 1
+      actor_token: "100"
+      source_lines: [20, 22]
+      server_boundary: client-dialogue
+      evidence_level: RECOVERED_SECONDARY
+      runtime_verified: false
+    - record_id: "quest1-early:condition"
+      marker: SCRIPT
+      step: 2
+      actor_token: "100"
+      source_lines: [30, 32]
+      server_boundary: offline-policy
+      evidence_level: RECOVERED_SECONDARY
+      runtime_verified: false
+    - record_id: "quest1-early:complete"
+      marker: CANCEL
+      step: 3
+      actor_token: "ID"
+      source_lines: [36, 38]
+      server_boundary: client-dialogue
+      evidence_level: RECOVERED_SECONDARY
+      runtime_verified: false
+    - record_id: "quest1-early:reward"
+      marker: OFFLINE_POLICY
+      step: 3
+      source_lines: NOT_RECOVERED
+      server_boundary: offline-policy
+      note: "Quest.lib 未提供奖励物品、货币、经验或奖励包定义。"
+      evidence_level: RECOVERED_SECONDARY
+      runtime_verified: false
+
+known_gaps:
+  - gap_id: "server-quest-id-mapping"
+    status: BLOCKED
+    description: "QuestN 文件名编号未映射到权威服务端内部 quest ID。"
+  - gap_id: "authoritative-quest-acceptance"
+    status: BLOCKED
+    description: "SELECT 只证明客户端选择标记，不证明服务端接取确认。"
+  - gap_id: "condition-evaluation-formula"
+    status: BLOCKED
+    description: "SCRIPT 未恢复服务端条件操作数或公式。"
+  - gap_id: "completion-acknowledgement"
+    status: BLOCKED
+    description: "CANCEL 只表示客户端对话/关闭边界，不证明服务端完成确认。"
+  - gap_id: "recruitment-conditions"
+    status: BLOCKED
+    description: "权威招募条件未恢复。"
+  - gap_id: "recruitment-mutation"
+    status: BLOCKED
+    description: "服务端队伍/招募状态变更未恢复。"
+  - gap_id: "reward-definition-and-award"
+    status: BLOCKED
+    description: "Quest.lib 未定义明确奖励内容或发放包。"
+  - gap_id: "actor-to-npc-identity-binding"
+    status: BLOCKED
+    description: "Actor token 未映射到 NPC template/entity/SMF object ID。"
+  - gap_id: "retail-npc-placement-table"
+    status: BLOCKED
+    description: "B5 29 条记录为 offline-policy 候选，不是恢复的 retail placement table。"
+  - gap_id: "choice-values-and-semantics"
+    status: BLOCKED
+    description: "选项原始值与语义未恢复。"
+  - gap_id: "unknown-command-vocabulary"
+    status: BLOCKED
+    description: "完整命令语法和未知命令词汇未恢复。"
+  - gap_id: "authoritative-quest-state-flags"
+    status: BLOCKED
+    description: "权威任务 flag 存储与更新消息未恢复。"
+  - gap_id: "quest-driven-warp-or-battle-callbacks"
+    status: BLOCKED
+    description: "任务驱动 warp/battle callback 与服务端响应未恢复。"
+
+worker_verdict: STATIC_ONLY
+
+manager_review:
+  status: NOT_RECORDED
+  reviewed_commit_sha: NOT_RECORDED
+  readback_checks: NOT_RECORDED
+  verdict: NOT_RECORDED
