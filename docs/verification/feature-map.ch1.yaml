@@ -1,0 +1,503 @@
+schema_version: 1
+map_id: lapis-ch1-main-chain
+repository: vileosbot-bot/lapis-rebuild
+baseline_commit: 708e35821eb7b26721f0dd52b010eb4d59247aa1
+
+integration_dependency:
+  task_id: auto-3-1
+  branch: test/ch1-e2e-acceptance
+  status: BLOCKED
+  acceptance_spec_path: BLOCKED
+  policy: "等待总管验收 #3 后绑定其真实 spec；本文件不修改、不复制 #3 的文件。"
+
+evidence_policy:
+  source_evidence_levels:
+    - RECOVERED_SECONDARY
+    - INFERRED
+    - RECONSTRUCTION_POLICY
+    - UNVERIFIED
+    - NOT_APPLICABLE
+  runtime_status_values:
+    - NOT_RUN
+    - PASS
+    - FAIL
+    - BLOCKED
+  unknown_binding_values:
+    - BLOCKED
+    - NOT_RUN
+  ybcs_source_rule: "ybcs-offline 来源只能标 RECOVERED_SECONDARY 或 INFERRED；禁止标 VERIFIED。"
+  separation_rule: "source_evidence_level 与 runtime_status 必须独立记录。"
+  screenshot_rule: "真实网页截图与 synthetic harness 截图分开；synthetic 截图不能证明真实游戏 UI。"
+
+features:
+  - feature_id: CH1-01
+    flow_order: 1
+    name: 探索切图
+    feature_status: BLOCKED
+    runtime_status: NOT_RUN
+    location:
+      static_candidate_map_id: map:old:1000
+      static_candidate_map_name: 卡奥斯_村庄
+      static_candidate_evidence_level: RECOVERED_SECONDARY
+      runtime_map_id: BLOCKED
+      route_marker_id: BLOCKED
+      target_map_id: BLOCKED
+      target_spawn_id: BLOCKED
+    code_anchors:
+      - path: data/ch1-world-catalog/world-catalog.json
+        role: "第一章静态世界目录；含 108 张可探索地图的目录记录。"
+        status: REFERENCE_ONLY
+      - path: data/ch1-world-catalog/route-gate-markers.json
+        role: "93 条路线与 13 组城门标记的静态参考；本 Feature 对应的具体路线未选定。"
+        status: REFERENCE_ONLY
+      - path: web/src/world/scene-transition.ts
+        role: "现有场景切换控制器参考；第一章 runtime graph/triggers 绑定未核实。"
+        status: REFERENCE_ONLY
+    source_records:
+      - source_path: data/ch1-world-catalog/world-catalog.json
+        locator: "catalog.rootMap"
+        static_value: map:old:1000
+        evidence_level: RECOVERED_SECONDARY
+        runtime_verified: false
+      - source_path: data/ch1-world-catalog/route-gate-markers.json
+        locator: "93 条 declared route records；具体 record_id 未选定"
+        evidence_level: RECOVERED_SECONDARY
+        runtime_verified: false
+    bindings:
+      route_record_id:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "尚未由 #3/总管确认本主链使用的路线记录。"
+      target_map_id:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "不能从 93 条路线中推测目标地图。"
+      runtime_map_id_mapping:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "map:old:NNNN 到网页 runtime mapId 的映射未核实。"
+      target_spawn:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "目标出生点及方向未核实。"
+    entry_path:
+      - step_id: CH1-01-P1
+        action: "在 Chromium 打开生产构建网页并等待世界场景就绪。"
+        expected_observation: "真实游戏画布与探索场景可见。"
+        status: NOT_RUN
+      - step_id: CH1-01-P2
+        action: "从当前探索场景到达本 Feature 指定的路线触发区。"
+        expected_observation: "角色进入经核实的路线触发区。"
+        status: BLOCKED
+      - step_id: CH1-01-P3
+        action: "触发切图并等待目标场景到达。"
+        expected_observation: "目标地图、出生格与方向符合已核实绑定。"
+        status: BLOCKED
+    expected_observations:
+      - "切图请求只对应一个已核实的 route edge。"
+      - "切图 commit 的目标 scene/map/spawn 与路线绑定一致。"
+      - "到达出生点后不会因触发区重叠而立即反向弹回。"
+    assertions:
+      - assertion_id: CH1-01-A1
+        method: runtime_assertion
+        expected: "触发的 edgeId 与经总管确认的路线记录一致。"
+        status: BLOCKED
+        evidence_artifact: BLOCKED
+      - assertion_id: CH1-01-A2
+        method: state_snapshot
+        expected: "commit 后 mapId、spawn cell、direction 与经核实目标一致。"
+        status: BLOCKED
+        evidence_artifact: BLOCKED
+      - assertion_id: CH1-01-A3
+        method: runtime_assertion
+        expected: "到达后不会立即触发反向切图。"
+        status: NOT_RUN
+        evidence_artifact: NOT_RUN
+    screenshots:
+      - screenshot_id: CH1-01-S1
+        planned_filename: CH1-01-before-transition.png
+        capture_point: "切图触发前的真实探索画面。"
+        status: NOT_RUN
+      - screenshot_id: CH1-01-S2
+        planned_filename: CH1-01-after-transition.png
+        capture_point: "切图完成后的真实目标场景。"
+        status: BLOCKED
+    state_snapshots:
+      - snapshot_id: CH1-01-STATE-1
+        fields: "mapId, cell, direction, pending transition, committed edgeId"
+        status: NOT_RUN
+    known_gaps:
+      - "具体路线 ID、目标地图、目标出生点和 runtime mapId 映射均为 BLOCKED。"
+      - "解除条件：#3 验收提供实际路线操作与断言，总管确认静态记录到 runtime 绑定。"
+
+  - feature_id: CH1-02
+    flow_order: 2
+    name: NPC 对话
+    feature_status: BLOCKED
+    runtime_status: NOT_RUN
+    location:
+      static_candidate_map_id: map:old:1000
+      static_candidate_map_evidence_level: RECOVERED_SECONDARY
+      candidate_entity_id: 21003
+      candidate_name: 吉奥老师
+      candidate_model_id: 5056
+      candidate_cell:
+        x: 32
+        y: 72
+        coordinate_space: old-imf-map-cell
+      formal_runtime_entity_id: BLOCKED
+      candidate_role: quest1-companion-giver
+    code_anchors:
+      - path: data/ch1-world-catalog/npc-placement-candidates.json
+        role: "NPC 放置候选；本条是离线策略候选，不等于正式网页实体。"
+        status: REFERENCE_ONLY
+      - path: data/ch1-world-catalog/npc-placement-policy.ts
+        role: "明确候选数据只用于引用验证，不会部署 NPC 或创建追随者。"
+        status: REFERENCE_ONLY
+      - path: web/src/m4-runtime-integration.ts
+        role: "现有 NPC 交互与 dialogue runtime 参考；Quest1 NPC 绑定未核实。"
+        status: REFERENCE_ONLY
+    source_records:
+      - source_path: data/ch1-world-catalog/npc-placement-candidates.json
+        locator: "map:old:1000 / entity_id 21003 / source lines 208-217"
+        static_value: "吉奥老师；model 5056；cell (32,72)；role quest1-companion-giver"
+        evidence_level: RECOVERED_SECONDARY
+        runtime_verified: false
+    bindings:
+      formal_npc_entity_id:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "21003 是离线放置候选中的 entity_id，正式网页运行时实体绑定未核实。"
+      candidate_map_runtime_mapping:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "候选 map:old:1000 到网页 runtime mapId 的映射依赖 CH1-01。"
+      quest_actor_join:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "Quest1 的 Actor token 100 不等于候选 NPC entity_id 21003；身份关联未证实。"
+      interaction_input:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "第一章目标 NPC 的实际交互入口/按键须由 #3 核实。"
+    entry_path:
+      - step_id: CH1-02-P1
+        action: "进入已核实的 NPC 所在网页地图。"
+        expected_observation: "目标 NPC 在已核实位置出现。"
+        status: BLOCKED
+      - step_id: CH1-02-P2
+        action: "移动至目标 NPC 的交互范围并使用实际网页交互入口。"
+        expected_observation: "出现与目标 NPC 对应的对话界面。"
+        status: BLOCKED
+    expected_observations:
+      - "NPC 的地图、实体身份和位置均与核实后的绑定一致。"
+      - "交互产生目标 NPC 的 dialogue session。"
+      - "NPC 对话交互不会误触发场景切换。"
+    assertions:
+      - assertion_id: CH1-02-A1
+        method: state_snapshot
+        expected: "目标 NPC 的 runtime entity ID、mapId 与 cell 均匹配核实后的绑定。"
+        status: BLOCKED
+        evidence_artifact: BLOCKED
+      - assertion_id: CH1-02-A2
+        method: runtime_assertion
+        expected: "交互后 dialogue session 对应目标 NPC。"
+        status: BLOCKED
+        evidence_artifact: BLOCKED
+      - assertion_id: CH1-02-A3
+        method: runtime_assertion
+        expected: "NPC interaction 不产生 scene-transition request。"
+        status: NOT_RUN
+        evidence_artifact: NOT_RUN
+    screenshots:
+      - screenshot_id: CH1-02-S1
+        planned_filename: CH1-02-npc-dialogue.png
+        capture_point: "真实网页中目标 NPC 与其对话界面同屏。"
+        status: BLOCKED
+    state_snapshots:
+      - snapshot_id: CH1-02-STATE-1
+        fields: "entityId, mapId, cell, dialogue session ID, dialogue choices"
+        status: BLOCKED
+    known_gaps:
+      - "NPC 正式 runtime entity ID、地图映射及 Quest1 Actor token 身份关联均未核实。"
+      - "Actor token 100 与 entity_id 21003 必须保持为两个不同字段，不得直接 join。"
+
+  - feature_id: CH1-03
+    flow_order: 3
+    name: 接取 Quest1 并推进一环
+    feature_status: BLOCKED
+    runtime_status: NOT_RUN
+    location:
+      npc_runtime_entity_id: BLOCKED
+      runtime_map_id: BLOCKED
+      quest_filename: Quest1.TXT
+      quest_internal_runtime_id: BLOCKED
+    code_anchors:
+      - path: data/ch1-world-catalog/quest-policy.json
+        role: "Quest1-8 静态策略记录；QuestN 文件名编号不是已恢复的服务端 quest ID。"
+        status: REFERENCE_ONLY
+      - path: data/ch1-world-catalog/quest-policy.ts
+        role: "仅校验导出的二级证据，不执行任务或服务端条件。"
+        status: REFERENCE_ONLY
+      - path: web/src/world/quest-runtime.ts
+        role: "现有重构任务状态机参考；与 Quest1 的正式绑定未核实。"
+        status: REFERENCE_ONLY
+    source_records:
+      - source_path: data/ch1-world-catalog/quest-policy.json
+        locator: "chainRecords[quest1-early:accept]"
+        static_value: "Quest1.TXT / SELECT / STEP 1 / Actor token 100 / lines 20-22"
+        source_hash: 23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397
+        evidence_level: RECOVERED_SECONDARY
+        runtime_verified: false
+      - source_path: data/ch1-world-catalog/quest-policy.json
+        locator: "chainRecords[quest1-early:condition]"
+        static_value: "Quest1.TXT / SCRIPT / STEP 2 / Actor token 100 / lines 30-32"
+        source_hash: 23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397
+        evidence_level: RECOVERED_SECONDARY
+        runtime_verified: false
+      - source_path: data/ch1-world-catalog/quest-policy.json
+        locator: "chainRecords[quest1-early:complete]"
+        static_value: "Quest1.TXT / CANCEL / STEP 3 / Actor token ID / lines 36-38"
+        source_hash: 23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397
+        evidence_level: RECOVERED_SECONDARY
+        runtime_verified: false
+      - source_path: data/ch1-world-catalog/quest-policy.json
+        locator: "chainRecords[quest1-early:reward]"
+        static_value: "OFFLINE_POLICY / reward definition not recovered"
+        source_hash: 23fa524844be0c553c55e66e071e3c9190337d92b19745f242580008a63e7397
+        evidence_level: RECOVERED_SECONDARY
+        runtime_verified: false
+    bindings:
+      quest_internal_runtime_id:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "Quest1 是 Quest1.TXT 文件名编号，不是已恢复的服务端内部任务 ID。"
+      accepting_npc:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "NPC 正式实体与 Quest1 Actor token 的身份关联未核实。"
+      accept_dialogue_choice:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "网页中实际接取选项及其 runtime action 尚未由 #3 确认。"
+      first_progression_event:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "SCRIPT 行只保留客户端转移/UI 边界，没有恢复服务端条件操作数。"
+      reward_policy:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "Quest1.TXT 未提供明确奖励物品、货币、经验或奖励包定义。"
+    entry_path:
+      - step_id: CH1-03-P1
+        action: "从目标 NPC 的真实对话界面进入 Quest1 接取分支。"
+        expected_observation: "网页记录一次与 Quest1 对应的接取状态变化。"
+        status: BLOCKED
+      - step_id: CH1-03-P2
+        action: "执行 #3 确认的第一项可重复任务推进操作。"
+        expected_observation: "任务状态发生一项可观察且可归因的推进。"
+        status: BLOCKED
+    expected_observations:
+      - "接取动作绑定到经核实的 Quest1 runtime 记录。"
+      - "第一项推进操作与静态 SCRIPT 记录的关系有明确证据边界。"
+      - "不能把 CANCEL 标记或离线策略当成服务端完成确认；奖励语义保持未恢复。"
+    assertions:
+      - assertion_id: CH1-03-A1
+        method: state_snapshot
+        expected: "接取前后快照显示目标 Quest1 runtime 状态发生预期变化。"
+        status: BLOCKED
+        evidence_artifact: BLOCKED
+      - assertion_id: CH1-03-A2
+        method: runtime_assertion
+        expected: "执行一次经确认的推进操作后，目标任务进入下一项可观察状态。"
+        status: BLOCKED
+        evidence_artifact: BLOCKED
+      - assertion_id: CH1-03-A3
+        method: runtime_assertion
+        expected: "重复提交相同接取/推进动作不会造成重复状态推进或重复结算。"
+        status: NOT_RUN
+        evidence_artifact: NOT_RUN
+    screenshots:
+      - screenshot_id: CH1-03-S1
+        planned_filename: CH1-03-quest1-accepted.png
+        capture_point: "真实网页中 Quest1 接取后的状态。"
+        status: BLOCKED
+      - screenshot_id: CH1-03-S2
+        planned_filename: CH1-03-quest1-first-progress.png
+        capture_point: "真实网页中 Quest1 第一项推进后的状态。"
+        status: BLOCKED
+    state_snapshots:
+      - snapshot_id: CH1-03-STATE-1
+        fields: "quest runtime ID, stage/state before and after accept, progression event"
+        status: BLOCKED
+    known_gaps:
+      - "Quest1 文件名编号不等于服务端内部 quest ID。"
+      - "Actor token 100 不得直接映射为 NPC entity_id 21003。"
+      - "SCRIPT 条件操作数及 reward 定义未恢复。"
+
+  - feature_id: CH1-04
+    flow_order: 4
+    name: 对应遭遇战斗取胜
+    feature_status: BLOCKED
+    runtime_status: NOT_RUN
+    location:
+      encounter_id: BLOCKED
+      battle_zone_id: BLOCKED
+      battle_scene_id: BLOCKED
+    code_anchors:
+      - path: web/src/m4-runtime-integration.ts
+        role: "现有战斗 runtime 与 webdriver-gated acceptance fixture 参考；第一章遭遇绑定未核实。"
+        status: REFERENCE_ONLY
+      - path: web/e2e/s14-m4-manual-acceptance.spec.ts
+        role: "既有战斗操作、胜利状态检查和截图模式；不是第一章遭遇验收。"
+        status: REFERENCE_ONLY
+      - path: web/e2e/s34-m7-final-acceptance.spec.ts
+        role: "既有训练战斗验收参考；不得用训练战斗替代第一章遭遇。"
+        status: REFERENCE_ONLY
+    source_records: []
+    bindings:
+      quest_to_encounter:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "Quest1 第一项推进与实际战斗遭遇之间的关系尚未核实。"
+      encounter_id:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "第一章主链对应的遭遇记录 ID 尚未由 #3/总管确定。"
+      battle_zone_id:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "实际战斗场景/战区 ID 尚未确认。"
+      acceptance_fixture:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "第一章专用 webdriver acceptance 操作杆以 #3 的真实 spec 为准。"
+    entry_path:
+      - step_id: CH1-04-P1
+        action: "从 Quest1 第一项推进后的探索状态触发已确认遭遇。"
+        expected_observation: "进入与 Quest1 对应的战斗场景。"
+        status: BLOCKED
+      - step_id: CH1-04-P2
+        action: "使用网页真实战斗操作完成该遭遇。"
+        expected_observation: "战斗进入胜利终态。"
+        status: BLOCKED
+    expected_observations:
+      - "战斗入口与 Quest1 对应遭遇绑定一致。"
+      - "战斗 runtime 到达胜利终态；具体状态字段以 #3 spec 确认为准。"
+      - "战斗胜利结算只发生一次。"
+    assertions:
+      - assertion_id: CH1-04-A1
+        method: state_snapshot
+        expected: "战斗场景、遭遇 ID 与 Quest1 绑定一致。"
+        status: BLOCKED
+        evidence_artifact: BLOCKED
+      - assertion_id: CH1-04-A2
+        method: runtime_assertion
+        expected: "实际第一章遭遇进入胜利终态。"
+        status: BLOCKED
+        evidence_artifact: BLOCKED
+      - assertion_id: CH1-04-A3
+        method: runtime_assertion
+        expected: "重复读取/处理胜利状态不会重复结算。"
+        status: NOT_RUN
+        evidence_artifact: NOT_RUN
+    screenshots:
+      - screenshot_id: CH1-04-S1
+        planned_filename: CH1-04-battle-victory.png
+        capture_point: "实际第一章遭遇的真实胜利画面。"
+        status: BLOCKED
+    state_snapshots:
+      - snapshot_id: CH1-04-STATE-1
+        fields: "encounter ID, battle zone ID, battle phase, reward receipt/settlement marker"
+        status: BLOCKED
+    known_gaps:
+      - "不允许以 S14/M7 训练战斗的胜利截图替代第一章真实遭遇。"
+      - "Quest1 到遭遇的绑定及战斗区 ID 等待 #3 证据。"
+
+  - feature_id: CH1-05
+    flow_order: 5
+    name: 胜利返回探索场景
+    feature_status: BLOCKED
+    runtime_status: NOT_RUN
+    location:
+      return_record_id: BLOCKED
+      return_map_id: BLOCKED
+      return_cell: BLOCKED
+      return_direction: BLOCKED
+      runtime_map_id: BLOCKED
+    code_anchors:
+      - path: data/ch1-world-catalog/offline-index-ferry-story-returns.json
+        role: "包含 26 条 story battle victory return 来源记录；本 Feature 对应关系未选定。"
+        status: REFERENCE_ONLY
+      - path: web/src/world/scene-transition.ts
+        role: "现有场景切换 commit 与出生点验证参考；第一章胜利返回绑定未核实。"
+        status: REFERENCE_ONLY
+    source_records:
+      - source_path: data/ch1-world-catalog/offline-index-ferry-story-returns.json
+        locator: "storyBattleVictoryReturns.returns；共 26 条"
+        static_value: "存在胜利返回来源记录，但尚未关联到 CH1-04 的目标遭遇。"
+        source_hash: 94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a
+        evidence_level: RECOVERED_SECONDARY
+        runtime_verified: false
+    bindings:
+      return_record_id:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "26 条返回记录中哪一条对应 CH1-04 遭遇尚未核实。"
+      return_map_id:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "不得按列表顺序或地图名称推测返回地图。"
+      return_cell:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "目标返回记录及其坐标有效性未核实。"
+      return_direction:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "目标返回方向未核实。"
+      runtime_map_id_mapping:
+        value: BLOCKED
+        status: BLOCKED
+        reason: "来源 map:old:NNNN 到网页 runtime mapId 的映射未核实。"
+    entry_path:
+      - step_id: CH1-05-P1
+        action: "从 CH1-04 的真实胜利终态执行游戏提供的返回操作。"
+        expected_observation: "退出战斗并回到经确认的探索场景。"
+        status: BLOCKED
+      - step_id: CH1-05-P2
+        action: "读取返回后的地图、格子、方向与镜头状态。"
+        expected_observation: "返回状态与对应胜利返回记录及网页绑定一致。"
+        status: BLOCKED
+    expected_observations:
+      - "战斗退出后恢复正确的探索场景。"
+      - "返回地图、格子与方向符合已确认记录。"
+      - "镜头恢复到角色合理位置，重复返回不重复发放战斗结算。"
+    assertions:
+      - assertion_id: CH1-05-A1
+        method: state_snapshot
+        expected: "返回 map/cell 与已确认的 victory return 记录一致。"
+        status: BLOCKED
+        evidence_artifact: BLOCKED
+      - assertion_id: CH1-05-A2
+        method: screenshot
+        expected: "真实网页截图显示返回后的地图与角色位置。"
+        status: BLOCKED
+        evidence_artifact: BLOCKED
+      - assertion_id: CH1-05-A3
+        method: runtime_assertion
+        expected: "返回操作幂等，且不重复触发奖励结算。"
+        status: NOT_RUN
+        evidence_artifact: NOT_RUN
+    screenshots:
+      - screenshot_id: CH1-05-S1
+        planned_filename: CH1-05-returned-field.png
+        capture_point: "实际第一章胜利返回后的真实探索场景。"
+        status: BLOCKED
+    state_snapshots:
+      - snapshot_id: CH1-05-STATE-1
+        fields: "mapId, cell, direction, camera, battle phase, settlement receipt"
+        status: BLOCKED
+    known_gaps:
+      - "26 条返回记录与目标遭遇的对应关系未核实。"
+      - "返回 map/cell/direction 与网页 runtime mapId 映射均为 BLOCKED。"
