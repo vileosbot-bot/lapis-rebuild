@@ -48,7 +48,7 @@ export function validateManifest(raw: unknown): Manifest {
   assert(raw && typeof raw === 'object', 'Missing manifest'); const m = raw as Manifest;
   assert(m.schema === 1, 'Unsupported pack schema');
   validateMap(m.map);
-  if(m.maps){const entries=Object.entries(m.maps);assert(entries.length>0&&entries.length<=20,'Invalid map count');for(const [id,map] of entries){validateMap(map);assert(/^\d+$/.test(id)&&map.id===Number(id),'Map key/id mismatch');}assert(!!m.maps[String(m.map.id)],'Primary map missing from maps');}
+  if(m.maps){const entries=Object.entries(m.maps);assert(entries.length>0&&entries.length<=24,'Invalid map count');for(const [id,map] of entries){validateMap(map);assert(/^\d+$/.test(id)&&map.id===Number(id),'Map key/id mismatch');}assert(!!m.maps[String(m.map.id)],'Primary map missing from maps');}
   const validateActors=(actors:Record<string,ActorPack>,limit:number,label:string)=>{const entries=Object.entries(actors);assert(entries.length>0&&entries.length<=limit,`Invalid ${label} count`);for(const [id,c] of entries){assert(/^\d+$/.test(id)&&c.class_id===Number(id)&&c.actions&&c.actions['00']&&c.actions['01']&&c.actions['02']&&Object.keys(c.actions).length>0,`Invalid ${label}`);for(const [slot,a] of Object.entries(c.actions)){assert(/^\d{2}$/.test(slot),'Invalid action slot');safePath(a.animation);safePath(a.frames_dir);}}};
   assert(m.characters,'Missing characters');validateActors(m.characters,20,'character');
   if(m.visuals)validateActors(m.visuals,100,'visual');

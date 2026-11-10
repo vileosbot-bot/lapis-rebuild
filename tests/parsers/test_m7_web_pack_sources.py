@@ -16,7 +16,7 @@ class M7WebPackSourcesTest(unittest.TestCase):
     def test_story_battle_maps_and_reviewed_visuals_are_packaged(self):
         maps=assignment('WEB_MAPS')
         visuals=assignment('WEB_VISUALS')
-        required={1,3,9,11,13,15,21,23,31,41,51,61,71,81,91}
+        required={1,3,9,11,13,15,21,23,31,41,51,61,71,81,91,1000,1020,1030,1060}
         self.assertTrue(required.issubset(maps))
         self.assertTrue({4023,4524,4525,4526,4544}.issubset(visuals))
 
