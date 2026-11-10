@@ -51,6 +51,8 @@ import {SceneTransitionController} from './world/scene-transition.ts';
 import type {M4RuntimeMode} from './m4-mode.ts';
 import {createCh1WorldPolicy} from './world/ch1-world-policy.ts';
 import type {Ch1WorldPolicy} from './world/ch1-world-policy.ts';
+import {CH1_GIO_TEACHER_VISUAL_PLACEMENT,Ch1WorldAuthority} from './world/ch1-world-authority.ts';
+import type {Ch1NpcDialogueSession,Ch1Quest1SelectionState} from './world/ch1-world-authority.ts';
 import {DEFAULT_RECONSTRUCTION_COMBAT_BALANCE} from './combat/reconstruction-combat-balance.ts';
 import {applyInfiniteTrainingRecovery,InfiniteTrainingRecoveryPolicy} from './training/m7-recovery.ts';
 import {M7_TRAINING_BATTLES,reconstructionSetupForTrainingBattle,trainingBattleById} from './training/m7-training-camp.ts';
@@ -109,6 +111,15 @@ export function questHud(stage:QuestStage):Pick<FieldHudState,'questTitle'|'ques
   return{questTitle:'训练委托',questDetail:detail[stage]};
 }
 
+function chapter1Quest1Hud(state:Ch1Quest1SelectionState):Pick<FieldHudState,'questTitle'|'questDetail'>{
+  return{
+    questTitle:'Quest1 · 同伴招募',
+    questDetail:state.selectionStatus==='recorded'
+      ?'STEP 1 / SELECT 已在当前会话记录；服务端接取状态未确认。'
+      :'前往吉奥老师处查看 STEP 1 / SELECT，并记录本地选择。',
+  };
+}
+
 function visualSkillForCommand(command:M7RuntimeSkillCommand):Skill|null{
   if(command.authoredSkillId===null)return null;
   const row=rawSkills.find(entry=>entry.skill_id===command.authoredSkillId);
@@ -132,6 +143,7 @@ export class M4RuntimeIntegration{
   readonly runtimeMode:M4RuntimeMode;
   readonly m5World:M5PlayableWorld|null;
   readonly chapter1World:Ch1WorldPolicy|null;
+  readonly chapter1Authority:Ch1WorldAuthority|null;
   readonly worldAuthority:ReconstructionWorldAuthority;
   readonly spatial:SceneTransitionController|null;
   readonly chapter1Spatial:SceneTransitionController|null;
@@ -145,6 +157,8 @@ export class M4RuntimeIntegration{
   developerMode=false;
   inventoryOpen=false;
   private activeDialogue:NpcDialogueSession|null=null;
+  private activeChapter1Dialogue:Ch1NpcDialogueSession|null=null;
+  private chapter1Quest1Selection:Ch1Quest1SelectionState|null=null;
   private trainingManagerOpen=false;
   private battleExitConfirm=false;
   private battleTargetingState:M7SkillTargetingState=createM7SkillTargetingState();
@@ -176,6 +190,8 @@ export class M4RuntimeIntegration{
     this.scene=scene;
     this.runtimeMode=options.mode??'default';
     this.chapter1World=this.runtimeMode==='chapter1'?createCh1WorldPolicy(scene.pack):null;
+    this.chapter1Authority=this.chapter1World?new Ch1WorldAuthority():null;
+    this.chapter1Quest1Selection=this.chapter1Authority?.initialQuest1State()??null;
     let m5:M5PlayableWorld|null=null;
     try{
       if(this.runtimeMode!=='chapter1'&&scene.pack.maps['7']&&scene.pack.animations['1001']&&scene.pack.animations['4524']&&scene.pack.animations['4544'])m5=createM5PlayableWorld(scene.pack);
@@ -208,6 +224,11 @@ export class M4RuntimeIntegration{
       :this.m5World?.content.start??START_STATE;
     this.applyWorldState(initial);
     if(this.chapter1World){
+      if(!this.chapter1Authority)throw new Error('Chapter 1 NPC authority was not initialized');
+      if(!this.scene.pack.animations[String(CH1_GIO_TEACHER_VISUAL_PLACEMENT.resourceId)]){
+        throw new Error('Chapter 1 private pack is missing NPC visual proxy B4524');
+      }
+      this.scene.configureWorldVisuals([CH1_GIO_TEACHER_VISUAL_PLACEMENT]);
       this.scene.setPlayerCameraFollow(true);
       this.scene.focusPlayer();
       const mapSelector=document.getElementById('map') as HTMLSelectElement|null;
@@ -217,7 +238,7 @@ export class M4RuntimeIntegration{
         mapSelector.closest('label')?.setAttribute('hidden','');
       }
       document.getElementById('npc')?.setAttribute('hidden','');
-      this.setNotice('第一章路线模式已启动：1000 ↔ 1020 ↔ 1030；1060 为胜利返回节点。路线与地图证据 RECOVERED_SECONDARY / runtimeVerified=false。');
+      this.setNotice('第一章路线模式已启动：1000 ↔ 1020 ↔ 1030；1060 为胜利返回节点。吉奥老师 NPC 21003 已接入，视觉替身 B4524 / RECONSTRUCTION_POLICY。路线与 NPC 来源证据 RECOVERED_SECONDARY / runtimeVerified=false。');
     }else if(this.m5World){
       this.scene.configureWorldVisuals(this.m5World.visuals);
       this.scene.configureWorldMarkers([
@@ -265,12 +286,20 @@ export class M4RuntimeIntegration{
         provenance:'RECOVERED_SECONDARY',runtimeVerified:false,
       }:null,
       quest:{...this.world.quest},
+      chapter1Quest1:this.chapter1Quest1Selection?{...this.chapter1Quest1Selection}:null,
       world:{mapId:this.scene.mapId,x:cell[0],y:cell[1]},
       progression:{...this.rewards.progression},
       inventory:{items:this.rewards.inventory.items.map(item=>({itemId:item.itemId,quantity:item.quantity})),equipped:{...this.rewards.inventory.equipped}},
       gold:this.rewards.gold,
       pendingEncounter:this.pendingEncounter?{...this.pendingEncounter}:null,
-      dialogue:this.activeDialogue?{
+      dialogue:this.activeChapter1Dialogue?{
+        sessionId:this.activeChapter1Dialogue.sessionId,
+        inputSource:this.activeChapter1Dialogue.inputSource,
+        phase:'select',
+        marker:this.activeChapter1Dialogue.view.marker,
+        actorToken:this.activeChapter1Dialogue.actorToken,
+        choices:this.activeChapter1Dialogue.view.choices.map(choice=>choice.id),
+      }:this.activeDialogue?{
         sessionId:this.activeDialogue.sessionId,
         inputSource:this.activeDialogue.inputSource,
         phase:this.activeDialogue.view.phase,
@@ -333,6 +362,7 @@ export class M4RuntimeIntegration{
     this.scene.enterBattle=(entryOverride)=>{
       this.clearBattleTargeting(false);
       this.activeDialogue=null;
+      this.activeChapter1Dialogue=null;
       this.battleExitConfirm=false;
       const trainingBattleId=this.trainingLaunchPending?this.selectedTrainingBattleId:null;
       this.prepareReconstructionBattle(trainingBattleId);
@@ -367,14 +397,15 @@ export class M4RuntimeIntegration{
     document.addEventListener('click',event=>{
       const choice=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-dialogue-choice]');
       if(choice){
-        const choiceId=choice.dataset.dialogueChoice as NpcDialogueChoiceId|undefined;
-        if(choiceId)this.chooseNpcInteraction(choiceId);
+        const choiceId=choice.dataset.dialogueChoice;
+        if(choiceId==='record-selection'&&this.activeChapter1Dialogue){this.chooseChapter1Quest1Selection();return;}
+        if(choiceId)this.chooseNpcInteraction(choiceId as NpcDialogueChoiceId);
         return;
       }
       const target=(event.target as HTMLElement).closest<HTMLElement>('[data-action]');
       if(!target)return;
       const action=target.dataset.action;
-      if(action==='menu'||action==='battle-menu'){this.activeDialogue=null;this.menuOpen=true;this.render(this.scene.snapshot());}
+      if(action==='menu'||action==='battle-menu'){this.activeDialogue=null;this.activeChapter1Dialogue=null;this.menuOpen=true;this.render(this.scene.snapshot());}
       else if(action==='menu-close'){this.menuOpen=false;this.render(this.scene.snapshot());}
       else if(action==='save')void this.save();
       else if(action==='load')void this.load();
@@ -451,7 +482,7 @@ export class M4RuntimeIntegration{
       return;
     }
     if(this.battleExitConfirm){this.cancelBattleExit();return;}
-    if(this.activeDialogue){this.activeDialogue=null;this.render(this.scene.snapshot());return;}
+    if(this.activeDialogue||this.activeChapter1Dialogue){this.activeDialogue=null;this.activeChapter1Dialogue=null;this.render(this.scene.snapshot());return;}
     this.menuOpen=!this.menuOpen;
     this.render(this.scene.snapshot());
   }
@@ -1053,18 +1084,45 @@ export class M4RuntimeIntegration{
     if(this.scene.inBattleView)return;
     const actor=this.currentWorldState();
     this.world={...this.world,world:actor};
-    const entities=this.m5World
-      ?[this.m5World.trainingManager.entity,this.m5World.content.guide.entity]
-      :WORLD_ENTITIES.filter(entity=>entity.kind==='npc');
+    const entities=this.chapter1World&&this.chapter1Authority
+      ?[this.chapter1Authority.npc]
+      :this.m5World
+        ?[this.m5World.trainingManager.entity,this.m5World.content.guide.entity]
+        :WORLD_ENTITIES.filter(entity=>entity.kind==='npc');
     const entity=entityId?entities.find(candidate=>candidate.id===entityId):entities.find(candidate=>canInteract(candidate,actor));
     if(!entity){
-      if(!this.m5World&&!entityId){
+      if(!this.m5World&&!this.chapter1World&&!entityId){
         const objective=WORLD_ENTITIES.find(candidate=>candidate.kind!=='npc'&&canInteract(candidate,actor));
         if(objective){this.interactWorld(objective.id);return;}
       }
       this.activeDialogue=null;
+      this.activeChapter1Dialogue=null;
       this.trainingManagerOpen=false;
       this.setNotice(entityId?'当前 NPC 不能交互':'附近没有可交互 NPC');
+      this.render(this.scene.snapshot());
+      return;
+    }
+    if(this.chapter1World&&this.chapter1Authority&&entity.id===this.chapter1Authority.npc.id){
+      const state=this.chapter1Quest1Selection;
+      if(!state)throw new Error('Chapter 1 Quest1 selection state is not initialized');
+      const resolved=this.chapter1Authority.beginNpcInteraction(state,actor,{
+        entityId:entity.id,
+        mapId:actor.mapId,
+        actorX:actor.x,
+        actorY:actor.y,
+        inputSource,
+        provenance:'RECONSTRUCTION_POLICY',
+      });
+      this.activeDialogue=null;
+      this.trainingManagerOpen=false;
+      if(!resolved.accepted){
+        this.activeChapter1Dialogue=null;
+        this.setNotice(`吉奥老师交互未开启：${resolved.reason}`);
+        this.render(this.scene.snapshot());
+        return;
+      }
+      this.activeChapter1Dialogue=resolved.session;
+      this.setNotice('吉奥老师：Quest1 STEP 1 / SELECT / RECOVERED_SECONDARY / runtimeVerified=false');
       this.render(this.scene.snapshot());
       return;
     }
@@ -1102,6 +1160,23 @@ export class M4RuntimeIntegration{
     }
     this.activeDialogue=resolved.dialogue.session;
     this.setNotice(`${this.activeDialogue.view.speaker}：${this.activeDialogue.view.lines.join(' ')}`);
+    this.render(this.scene.snapshot());
+  }
+
+  private chooseChapter1Quest1Selection():void{
+    const session=this.activeChapter1Dialogue;
+    const state=this.chapter1Quest1Selection;
+    const authority=this.chapter1Authority;
+    if(!session||!state||!authority)return;
+    const resolved=authority.recordQuest1Selection(state,this.currentWorldState(),session);
+    this.activeChapter1Dialogue=null;
+    if(!resolved.accepted){
+      this.setNotice(`Quest1 SELECT 选择未记录：${resolved.reason} / RECOVERED_SECONDARY / runtimeVerified=false`);
+      this.render(this.scene.snapshot());
+      return;
+    }
+    this.chapter1Quest1Selection=resolved.state;
+    this.setNotice('Quest1 STEP 1 / SELECT：已记录当前会话的本地选择；服务端接取状态未确认 / RECOVERED_SECONDARY / runtimeVerified=false');
     this.render(this.scene.snapshot());
   }
 
@@ -1374,6 +1449,7 @@ export class M4RuntimeIntegration{
   private applyWorldState(state:WorldState):void{
     if(this.scene.inBattleView)return;
     this.activeDialogue=null;
+    this.activeChapter1Dialogue=null;
     if(this.chapter1World&&!this.chapter1World.mapIds.includes(state.mapId as 1000|1020|1030|1060)){
       throw new Error('Chapter 1 mode cannot load map '+state.mapId);
     }
@@ -1431,6 +1507,8 @@ export class M4RuntimeIntegration{
   restore(raw:unknown):void{
     if(this.scene.inBattleView)throw new Error('请先结束战斗再读档');
     this.activeDialogue=null;
+    this.activeChapter1Dialogue=null;
+    if(this.chapter1Authority)this.chapter1Quest1Selection=this.chapter1Authority.initialQuest1State();
     this.trainingManagerOpen=false;
     this.activeTrainingBattleId=null;
     this.trainingLaunchPending=false;
@@ -1525,6 +1603,7 @@ export class M4RuntimeIntegration{
     const committed=controller.commit(update.transition);
     const next={mapId:committed.mapId,x:committed.cell[0],y:committed.cell[1]};
     this.activeDialogue=null;
+    this.activeChapter1Dialogue=null;
     this.scene.setMap(committed.mapId);
     const [x,y]=referenceCellToScreen(committed.cell);
     this.scene.anchor={x,y};
@@ -1593,7 +1672,9 @@ export class M4RuntimeIntegration{
   private nearestInteraction(snapshot:Snapshot):string|undefined{
     if(snapshot.inBattleView)return undefined;
     const actor=this.currentWorldState();
-    const entities=this.m5World?[this.m5World.trainingManager.entity,this.m5World.content.guide.entity,this.m5World.content.objective]:WORLD_ENTITIES;
+    const entities=this.chapter1World&&this.chapter1Authority
+      ?[this.chapter1Authority.npc]
+      :this.m5World?[this.m5World.trainingManager.entity,this.m5World.content.guide.entity,this.m5World.content.objective]:WORLD_ENTITIES;
     const entity=entities.find(candidate=>canInteract(candidate,actor));
     if(!entity)return undefined;
     if(entity.kind==='npc')return `与${entity.displayName}交谈`;
@@ -1612,7 +1693,7 @@ export class M4RuntimeIntegration{
       mp:snapshot.inBattleView?snapshot.mp:fieldStats?.maxMp??definition.baseAuthoredStats.mp,mpMax:snapshot.inBattleView?this.scene.state.maxMp:fieldStats?.maxMp??definition.baseAuthoredStats.mp,
       exp:expHud.exp,expMax:expHud.expMax,atk:presentationStats.atk,def:presentationStats.def,gold:this.rewards.gold,
     };
-    const quest=questHud(this.world.quest.stage);
+    const quest=this.chapter1Quest1Selection?chapter1Quest1Hud(this.chapter1Quest1Selection):questHud(this.world.quest.stage);
     const field:FieldHudState={mapId:snapshot.mapId,mapName:snapshot.mapName,...quest,interactionPrompt:this.nearestInteraction(snapshot)};
     let hudHtml:string;
     if(snapshot.inBattleView){
@@ -1699,6 +1780,21 @@ export class M4RuntimeIntegration{
     }
     if(this.trainingManagerOpen&&!this.scene.inBattleView){
       return renderM7TrainingManagerDialog(this.rewards.progression.level,this.selectedTrainingBattleId,true);
+    }
+    const chapter1Session=this.activeChapter1Dialogue;
+    if(chapter1Session){
+      const view=chapter1Session.view;
+      const lines=view.lines.map(line=>`<p>${escapeHtml(line)}</p>`).join('');
+      const choices=view.choices.map(choice=>`<button type="button" data-dialogue-choice="${choice.id}">${escapeHtml(choice.label)}</button>`).join('');
+      return `<section class="npc-dialogue" data-ui="npc-dialogue" data-quest-file="Quest1" data-marker="${view.marker}" data-step="${view.step}" data-input-source="${chapter1Session.inputSource}" aria-label="Quest1 NPC 对话">
+        <div class="npc-dialogue-portrait" aria-label="NPC 头像占位"><b>NPC</b><span>PORTRAIT</span><small>头像绑定未恢复</small></div>
+        <div class="npc-dialogue-body">
+          <div class="npc-dialogue-speaker">${escapeHtml(view.speaker)}</div>
+          <div class="npc-dialogue-copy">${lines}</div>
+          <div class="npc-dialogue-actions">${choices}</div>
+          <small class="npc-dialogue-provenance">SELECT / RECOVERED_SECONDARY / runtimeVerified=false / RECONSTRUCTION_POLICY</small>
+        </div>
+      </section>`;
     }
     const session=this.activeDialogue;
     if(!session)return '';
