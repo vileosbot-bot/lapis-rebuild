@@ -48,6 +48,9 @@ import {equipmentBonus as legacyEquipmentBonus} from './inventory.ts';
 import {createM5PlayableWorld} from './world/m5-playable-world.ts';
 import type {M5PlayableWorld} from './world/m5-playable-world.ts';
 import {SceneTransitionController} from './world/scene-transition.ts';
+import type {M4RuntimeMode} from './m4-mode.ts';
+import {createCh1WorldPolicy} from './world/ch1-world-policy.ts';
+import type {Ch1WorldPolicy} from './world/ch1-world-policy.ts';
 import {DEFAULT_RECONSTRUCTION_COMBAT_BALANCE} from './combat/reconstruction-combat-balance.ts';
 import {applyInfiniteTrainingRecovery,InfiniteTrainingRecoveryPolicy} from './training/m7-recovery.ts';
 import {M7_TRAINING_BATTLES,reconstructionSetupForTrainingBattle,trainingBattleById} from './training/m7-training-camp.ts';
@@ -122,11 +125,16 @@ function cloneRewardState(state:RewardState):RewardState{
   };
 }
 
+export type M4RuntimeOptions=Readonly<{mode?:M4RuntimeMode}>;
+
 export class M4RuntimeIntegration{
   readonly scene:LabScene;
+  readonly runtimeMode:M4RuntimeMode;
   readonly m5World:M5PlayableWorld|null;
+  readonly chapter1World:Ch1WorldPolicy|null;
   readonly worldAuthority:ReconstructionWorldAuthority;
   readonly spatial:SceneTransitionController|null;
+  readonly chapter1Spatial:SceneTransitionController|null;
   readonly presentation=new BattlePresentation();
   world:WorldRuntimeState;
   rewards:RewardState;
@@ -164,16 +172,22 @@ export class M4RuntimeIntegration{
   private dialogueRoot!:HTMLDivElement;
   private feedbackRoot!:HTMLDivElement;
 
-  constructor(scene:LabScene){
+  constructor(scene:LabScene,options:M4RuntimeOptions={}){
     this.scene=scene;
+    this.runtimeMode=options.mode??'default';
+    this.chapter1World=this.runtimeMode==='chapter1'?createCh1WorldPolicy(scene.pack):null;
     let m5:M5PlayableWorld|null=null;
     try{
-      if(scene.pack.maps['7']&&scene.pack.animations['1001']&&scene.pack.animations['4524']&&scene.pack.animations['4544'])m5=createM5PlayableWorld(scene.pack);
+      if(this.runtimeMode!=='chapter1'&&scene.pack.maps['7']&&scene.pack.animations['1001']&&scene.pack.animations['4524']&&scene.pack.animations['4544'])m5=createM5PlayableWorld(scene.pack);
     }catch(error){console.warn('M5 playable world unavailable; using M4 compatibility world',error);}
     this.m5World=m5;
     this.worldAuthority=new ReconstructionWorldAuthority(m5?.content);
     this.spatial=m5?new SceneTransitionController(m5.house.graph,m5.house.triggers):null;
-    this.world=this.worldAuthority.initial(m5?.content.start??START_STATE);
+    this.chapter1Spatial=this.chapter1World?new SceneTransitionController(this.chapter1World.graph,this.chapter1World.triggers):null;
+    const initial=this.chapter1World
+      ?{mapId:this.chapter1World.initial.mapId,x:this.chapter1World.initial.effectiveCell[0],y:this.chapter1World.initial.effectiveCell[1]}
+      :m5?.content.start??START_STATE;
+    this.world=this.worldAuthority.initial(initial);
     this.rewards=createM4RewardState(scene.gold);
     this.m6Stage=createM6StageState(scene.character);
     this.m7Skills=createM7IntegratedSkillState(scene.character,1);
@@ -189,9 +203,22 @@ export class M4RuntimeIntegration{
     this.installBattleTargetingAdapter();
     this.scene.setWorldInteractionHandler(entityId=>this.beginNpcInteraction(entityId,'pointer'));
     this.syncSceneInventory();
-    const initial=this.m5World?.content.start??START_STATE;
+    const initial=this.chapter1World
+      ?{mapId:this.chapter1World.initial.mapId,x:this.chapter1World.initial.effectiveCell[0],y:this.chapter1World.initial.effectiveCell[1]}
+      :this.m5World?.content.start??START_STATE;
     this.applyWorldState(initial);
-    if(this.m5World){
+    if(this.chapter1World){
+      this.scene.setPlayerCameraFollow(true);
+      this.scene.focusPlayer();
+      const mapSelector=document.getElementById('map') as HTMLSelectElement|null;
+      if(mapSelector){
+        mapSelector.value=String(initial.mapId);
+        mapSelector.disabled=true;
+        mapSelector.closest('label')?.setAttribute('hidden','');
+      }
+      document.getElementById('npc')?.setAttribute('hidden','');
+      this.setNotice('第一章路线模式已启动：1000 ↔ 1020 ↔ 1030；1060 为胜利返回节点。路线与地图证据 RECOVERED_SECONDARY / runtimeVerified=false。');
+    }else if(this.m5World){
       this.scene.configureWorldVisuals(this.m5World.visuals);
       this.scene.configureWorldMarkers([
         {id:'training-house-door',mapId:this.m5World.content.trainingMapId,cell:this.m5World.doorCell,label:'训练屋入口'},
@@ -229,6 +256,14 @@ export class M4RuntimeIntegration{
   snapshot(){
     const cell=nearestAnchor(this.scene.anchor.x,this.scene.anchor.y);
     return{
+      runtimeMode:this.runtimeMode,
+      chapter1:this.chapter1World?{
+        mapIds:[...this.chapter1World.mapIds],
+        routes:this.chapter1World.routes.map(route=>({routeId:route.routeId,sourceMapId:route.sourceMapId,targetMapId:route.targetMapId,activationCellCount:route.activationCells.length})),
+        initial:{mapId:this.chapter1World.initial.mapId,requestedCell:this.chapter1World.initial.requestedCell,effectiveCell:this.chapter1World.initial.effectiveCell,snapDistanceSquared:this.chapter1World.initial.snapDistanceSquared},
+        victoryReturn:{mapId:this.chapter1World.victoryReturn.mapId,cell:this.chapter1World.victoryReturn.effectiveCell},
+        provenance:'RECOVERED_SECONDARY',runtimeVerified:false,
+      }:null,
       quest:{...this.world.quest},
       world:{mapId:this.scene.mapId,x:cell[0],y:cell[1]},
       progression:{...this.rewards.progression},
@@ -648,6 +683,16 @@ export class M4RuntimeIntegration{
   acceptanceIssueMoveTo(x:number,y:number):void{
     if(!navigator.webdriver)throw new Error('S14 acceptance movement fixture is automation-only');
     if(!this.scene.acceptanceMoveTo(x,y))throw new Error('S14 acceptance movement command was rejected');
+    this.render(this.scene.snapshot());
+  }
+
+  acceptanceMoveFieldTo(x:number,y:number):void{
+    if(!navigator.webdriver)throw new Error('Chapter 1 field-movement fixture is automation-only');
+    if(!this.chapter1World||this.scene.inBattleView)throw new Error('Chapter 1 field-movement fixture requires Chapter 1 field mode');
+    if(!Number.isInteger(x)||!Number.isInteger(y))throw new Error('Chapter 1 field-movement target must be integer grid coordinates');
+    const [worldX,worldY]=referenceCellToScreen([x,y]);
+    this.scene.moveTo(worldX,worldY);
+    if(!this.scene.route.length)throw new Error('Chapter 1 field-movement route was rejected');
     this.render(this.scene.snapshot());
   }
 
@@ -1329,13 +1374,22 @@ export class M4RuntimeIntegration{
   private applyWorldState(state:WorldState):void{
     if(this.scene.inBattleView)return;
     this.activeDialogue=null;
+    if(this.chapter1World&&!this.chapter1World.mapIds.includes(state.mapId as 1000|1020|1030|1060)){
+      throw new Error('Chapter 1 mode cannot load map '+state.mapId);
+    }
     this.scene.setMap(state.mapId);
     const [x,y]=referenceCellToScreen([state.x,state.y]);
     this.scene.anchor={x,y};
     this.scene.route=[];
-    if(this.m5World)this.scene.focusPlayer();else this.scene.fit();
+    if(this.chapter1World){
+      this.scene.setPlayerCameraFollow(true);
+      this.scene.focusPlayer();
+      this.chapter1Spatial?.start({mapId:state.mapId,cell:[state.x,state.y]});
+    }else if(this.m5World){
+      this.scene.focusPlayer();
+      this.spatial?.start({mapId:state.mapId,cell:[state.x,state.y]});
+    }else this.scene.fit();
     this.world={...this.world,world:{...state}};
-    this.spatial?.start({mapId:state.mapId,cell:[state.x,state.y]});
   }
 
   private saveContext():SaveValidationContext{
@@ -1384,6 +1438,7 @@ export class M4RuntimeIntegration{
     this.developerUnlockAllSkills=false;
     this.developerSkillPoints=0;
     const save=migrateSaveToM7(raw,this.saveContext(),M6_SAVE_CONTENT);
+    if(this.chapter1World&&!this.chapter1World.mapIds.includes(save.mapId as 1000|1020|1030|1060))throw new Error('Chapter 1 save map is outside the route graph: '+save.mapId);
     const quest=parseM4Quest(save.quest,this.worldAuthority.content.questId);
     this.rewards={gold:save.gold,inventory:save.inventory,progression:save.progression,questFlags:save.questFlags,rewardReceipts:save.rewardReceipts};
     this.world={world:{mapId:save.mapId,...(()=>{const cell=nearestAnchor(save.x,save.y);return{x:cell[0],y:cell[1]};})()},quest};
@@ -1399,7 +1454,8 @@ export class M4RuntimeIntegration{
       this.scene.state.mp=Math.min(this.scene.state.maxMp,save.m7.vitals.mp);
     }
     this.syncSceneInventory();
-    if(this.m5World){this.scene.setPlayerCameraFollow(true);this.scene.focusPlayer();const cell=nearestAnchor(save.x,save.y);this.spatial?.start({mapId:save.mapId,cell});}
+    if(this.chapter1World){this.scene.setPlayerCameraFollow(true);this.scene.focusPlayer();const cell=nearestAnchor(save.x,save.y);this.chapter1Spatial?.start({mapId:save.mapId,cell});}
+    else if(this.m5World){this.scene.setPlayerCameraFollow(true);this.scene.focusPlayer();const cell=nearestAnchor(save.x,save.y);this.spatial?.start({mapId:save.mapId,cell});}
     else this.scene.fit();
     this.setNotice(`存档恢复成功 / schema v${CURRENT_SAVE_VERSION}`);
     this.render(this.scene.snapshot());
@@ -1419,7 +1475,7 @@ export class M4RuntimeIntegration{
     }
     if(!snapshot.inBattleView){
       this.world={...this.world,world:this.currentWorldState()};
-      if(this.handleM5Spatial())return;
+      if(this.handleM5Spatial()||this.handleChapter1Spatial())return;
     }
     this.lastSnapshot=snapshot;
     this.render(snapshot);
@@ -1458,6 +1514,31 @@ export class M4RuntimeIntegration{
       }
     }
     return false;
+  }
+
+  private handleChapter1Spatial():boolean{
+    const policy=this.chapter1World,controller=this.chapter1Spatial;
+    if(!policy||!controller||this.scene.inBattleView||!policy.mapIds.includes(this.scene.mapId as 1000|1020|1030|1060))return false;
+    const actor=this.currentWorldState();
+    const update=controller.update({mapId:actor.mapId,cell:[actor.x,actor.y]});
+    if(!update.transition)return false;
+    const committed=controller.commit(update.transition);
+    const next={mapId:committed.mapId,x:committed.cell[0],y:committed.cell[1]};
+    this.activeDialogue=null;
+    this.scene.setMap(committed.mapId);
+    const [x,y]=referenceCellToScreen(committed.cell);
+    this.scene.anchor={x,y};
+    this.scene.route=[];
+    this.scene.setPlayerCameraFollow(true);
+    this.scene.focusPlayer();
+    this.world={...this.world,world:next};
+    const route=policy.routes.find(candidate=>candidate.routeId===committed.edgeId);
+    this.setNotice((route?route.routeId:'第一章路线')+'：已切换至 '+committed.mapId+' / RECOVERED_SECONDARY / runtimeVerified=false');
+    const mapSelector=document.getElementById('map') as HTMLSelectElement|null;
+    if(mapSelector)mapSelector.value=String(committed.mapId);
+    this.lastSnapshot=null;
+    this.render(this.scene.snapshot());
+    return true;
   }
 
   private performAttack(skill:Skill|null,acceptance:boolean):boolean{
@@ -1643,8 +1724,8 @@ export class M4RuntimeIntegration{
   }
 }
 
-export function installM4Runtime(scene:LabScene):M4RuntimeIntegration{
-  const runtime=new M4RuntimeIntegration(scene);
+export function installM4Runtime(scene:LabScene,options:M4RuntimeOptions={}):M4RuntimeIntegration{
+  const runtime=new M4RuntimeIntegration(scene,options);
   runtime.install();
   return runtime;
 }
