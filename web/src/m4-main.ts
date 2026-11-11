@@ -5,6 +5,7 @@ import './pwa-shell.ts';
 import {installMobileLayout} from './view/mobile-layout.ts';
 import {LabScene} from './scene.ts';
 import {installM4Runtime} from './m4-runtime-integration.ts';
+import {m4RuntimeModeFromSearch} from './m4-mode.ts';
 
 declare global{
   interface Window{
@@ -16,6 +17,7 @@ declare global{
       exportJson:()=>string;
       restore:(raw:unknown)=>void;
       acceptanceStartTrainingBattle?:(id:number)=>void;
+      acceptanceMoveFieldTo?:(x:number,y:number)=>void;
       acceptanceGrantLevel?:(targetLevel:number)=>void;
       acceptanceSetEnemyHp?:(targetId:string,hp:number)=>void;
       acceptanceSetPlayerMp?:(mp:number)=>void;
@@ -33,6 +35,7 @@ window.addEventListener('beforeunload',()=>mobileLayout.destroy(),{once:true});
 
 const forceM4=new URLSearchParams(location.search).get('m4')==='1';
 const enableM4=!navigator.webdriver||forceM4;
+const runtimeMode=m4RuntimeModeFromSearch(location.search);
 let installed=false;
 let liveScene:LabScene|undefined;
 
@@ -49,7 +52,7 @@ window.addEventListener('lapis-ready',()=>{
   if(installed||!enableM4)return;
   const scene=liveScene;
   if(!scene)throw new Error('M4 runtime did not capture the lab scene');
-  const runtime=installM4Runtime(scene);
+  const runtime=installM4Runtime(scene,{mode:runtimeMode});
   installed=true;
   window.lapisM4={
     snapshot:()=>runtime.snapshot(),
@@ -60,6 +63,7 @@ window.addEventListener('lapis-ready',()=>{
     restore:(raw:unknown)=>runtime.restore(raw),
     ...(navigator.webdriver?{
       acceptanceStartTrainingBattle:(id:number)=>runtime.acceptanceStartTrainingBattle(id),
+      acceptanceMoveFieldTo:(x:number,y:number)=>runtime.acceptanceMoveFieldTo(x,y),
       acceptanceGrantLevel:(targetLevel:number)=>runtime.acceptanceGrantLevel(targetLevel),
       acceptanceSetEnemyHp:(targetId:string,hp:number)=>runtime.acceptanceSetEnemyHp(targetId,hp),
       acceptanceSetPlayerMp:(mp:number)=>runtime.acceptanceSetPlayerMp(mp),

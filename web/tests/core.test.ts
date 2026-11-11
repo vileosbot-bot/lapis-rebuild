@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {validateAnimation,frameIndex,advanceClock,safePath,validateCollision} from '../src/model.ts';
+import {validateAnimation,frameIndex,advanceClock,safePath,validateCollision,validateManifest} from '../src/model.ts';
 import {rawCell,findRoute,referenceCellToScreen,referenceScreenToCell,closestWalkable,directionFor} from '../src/coordinates.ts';
 import {beginBattle,useAttack,updateBattle,initialState} from '../src/battle.ts';
 import {validateSave} from '../src/save.ts';
@@ -87,3 +87,12 @@ const save=()=>({version:1,pack:'pack',character:'100',x:32,y:32,gold:0,savedAt:
 test('save round trip validates',()=>assert.equal(validateSave(JSON.parse(JSON.stringify(save())),'pack',['100'],100,100).x,32));
 test('save rejects foreign pack, unknown version and NaN',()=>{for(const patch of [{pack:'other'},{version:2},{x:NaN},{gold:-1},{character:'199'},{savedAt:'bad'}])assert.throws(()=>validateSave({...save(),...patch},'pack',['100'],100,100));});
 test('roundtrip holds on even-parity cell lattice',()=>{for(let x=0;x<47;x++)for(let y=0;y<47;y++)if((x+y)%2===0)assert.deepEqual(referenceScreenToCell(...referenceCellToScreen([x,y])),[x,y]);});
+
+const manifestWithMapCount=(count:number)=>{
+ const map=(id:number)=>({id,name:'map-'+id,png:'maps/map-'+id+'.png',collision:'maps/map-'+id+'-collision.json',render:{width:1,height:1}});
+ const actions=Object.fromEntries(['00','01','02'].map(slot=>[slot,{animation:'characters/B100/'+slot+'/animation.json',frames_dir:'characters/B100/'+slot+'/frames'}]));
+ const maps=Object.fromEntries(Array.from({length:count},(_,id)=>[String(id),map(id)]));
+ return {schema:1,map:map(0),maps,characters:{'100':{class_id:100,actions}}};
+};
+test('manifest accepts 21 maps after Chapter 1 expansion',()=>assert.equal(Object.keys(validateManifest(manifestWithMapCount(21)).maps??{}).length,21));
+test('manifest rejects 25 maps after Chapter 1 expansion',()=>assert.throws(()=>validateManifest(manifestWithMapCount(25)),/Invalid map count/));

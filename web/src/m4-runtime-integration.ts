@@ -2,7 +2,8 @@ import type {LabScene} from './scene.ts';
 import type {Skill} from './battle.ts';
 import {actionReady,consumeAction,reconcileBattlePhase,updateBattle} from './battle.ts';
 import {battleProfileForClass,magicReadinessCost} from './battle-profile.ts';
-import {nearestAnchor,referenceCellToScreen} from './coordinates.ts';
+import {nearestAnchor,referenceCellToScreen,walkable} from './coordinates.ts';
+import type {Cell} from './coordinates.ts';
 import {playableClassById,isEquipmentCompatibleWithClass} from './content/classes/class-catalog.ts';
 import rawSkills from '../../data/skills/mvp.json' with {type:'json'};
 import {BattlePresentation} from './presentation/battle-presentation.ts';
@@ -31,6 +32,7 @@ import {
 import {ReconstructionWorldAuthority} from './world/world-authority.ts';
 import type {WorldRuntimeState} from './world/world-authority.ts';
 import type {EncounterRequest,WorldState} from './world/world-model.ts';
+import type {BattleEntry} from './runtime-boundaries.ts';
 import {canInteract} from './world/world-model.ts';
 import {applyWarp} from './world/warp-policy.ts';
 import {START_STATE,TRAINING_BATTLE_ZONE_ID,TRAINING_QUEST_ID,WORLD_ENTITIES} from './world/world-content.ts';
@@ -48,6 +50,11 @@ import {equipmentBonus as legacyEquipmentBonus} from './inventory.ts';
 import {createM5PlayableWorld} from './world/m5-playable-world.ts';
 import type {M5PlayableWorld} from './world/m5-playable-world.ts';
 import {SceneTransitionController} from './world/scene-transition.ts';
+import type {M4RuntimeMode} from './m4-mode.ts';
+import {createCh1WorldPolicy} from './world/ch1-world-policy.ts';
+import type {Ch1WorldPolicy} from './world/ch1-world-policy.ts';
+import {CH1_GIO_TEACHER_VISUAL_PLACEMENT,Ch1WorldAuthority} from './world/ch1-world-authority.ts';
+import type {Ch1NpcDialogueSession,Ch1Quest1SelectionState} from './world/ch1-world-authority.ts';
 import {DEFAULT_RECONSTRUCTION_COMBAT_BALANCE} from './combat/reconstruction-combat-balance.ts';
 import {applyInfiniteTrainingRecovery,InfiniteTrainingRecoveryPolicy} from './training/m7-recovery.ts';
 import {M7_TRAINING_BATTLES,reconstructionSetupForTrainingBattle,trainingBattleById} from './training/m7-training-camp.ts';
@@ -72,6 +79,59 @@ type BattleInputSceneContract=LabScene&{
   cancelBattleTargeting?:()=>boolean;
 };
 const QUEST_STAGES:readonly QuestStage[]=['not_started','accepted','objective','ready_to_turn_in','complete'];
+
+const CH1_STORY_ONE_GATE_CELLS:readonly Cell[]=Object.freeze([
+  [72,26] as const,[71,27] as const,[73,27] as const,[70,28] as const,[72,28] as const,
+  [74,28] as const,[71,29] as const,[73,29] as const,[72,30] as const,
+]);
+const CH1_STORY_ONE_ARCH_CELL:Cell=Object.freeze([72,26] as const);
+const CH1_STORY_ONE_APPROACH_CELLS:readonly Cell[]=Object.freeze([
+  [71,27] as const,[73,27] as const,[70,28] as const,[72,28] as const,
+  [74,28] as const,[71,29] as const,[73,29] as const,[72,30] as const,
+]);
+const CH1_STORY_ONE_SOURCE=Object.freeze({
+  id:'story-source-1',
+  fieldMapId:1030,
+  battleZoneId:1,
+  sourceArtifact:'src/legacy_gui_runtime/ybcs_offline_field_encounters.py',
+  sourceSha256:'94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a',
+  gateCellsLocator:'ybcs_offline_field_encounters.py:L277-L289',
+  battleZoneLocator:'ybcs_offline_field_encounters.py:L240',
+  deploymentLocalCell:[34,44] as const,
+  deploymentHostileCell:[52,24] as const,
+  replayable:true as const,
+  bossVictory:true as const,
+  evidenceLevel:'RECOVERED_SECONDARY' as const,
+  runtimeVerified:false as const,
+  retailMapBindingVerified:false as const,
+});
+type Chapter1StoryBattleContext=Readonly<{
+  sourceId:typeof CH1_STORY_ONE_SOURCE.id;
+  fieldMapId:typeof CH1_STORY_ONE_SOURCE.fieldMapId;
+  gateCell:Cell;
+  battleZoneId:typeof CH1_STORY_ONE_SOURCE.battleZoneId;
+  entryProvenance:'RECOVERED_SECONDARY';
+  authority:'offline-reconstruction';
+  runtimeVerified:false;
+}>;
+type Chapter1StoryBattleOutcome='won'|'lost'|'retreated';
+type Chapter1StoryBattleResolution=Readonly<{
+  sourceId:typeof CH1_STORY_ONE_SOURCE.id;
+  outcome:Chapter1StoryBattleOutcome;
+  fieldMapId:typeof CH1_STORY_ONE_SOURCE.fieldMapId;
+  gateCell:Cell;
+  battleZoneId:typeof CH1_STORY_ONE_SOURCE.battleZoneId;
+  returnMapId:number;
+  returnCell:Cell;
+  rewardSettlement:'not-applied';
+  victoryCondition:'m4-battle-phase-won';
+  bossVictorySourceFlag:true;
+  bossVictoryRuntimeEnforced:false;
+  replayPolicy:'after-leave-all-nine-gate-cells';
+  triggerSemantics:'movement-complete-gate-cell-offline-policy';
+  evidenceLevel:'RECOVERED_SECONDARY';
+  runtimeVerified:false;
+}>;
 const CLASS_RESOLVER:EquipmentCompatibilityResolver=(characterId,item)=>{
   try{return isEquipmentCompatibleWithClass(characterId,item.itemId,item.slot);}catch{return false;}
 };
@@ -106,6 +166,15 @@ export function questHud(stage:QuestStage):Pick<FieldHudState,'questTitle'|'ques
   return{questTitle:'训练委托',questDetail:detail[stage]};
 }
 
+function chapter1Quest1Hud(state:Ch1Quest1SelectionState):Pick<FieldHudState,'questTitle'|'questDetail'>{
+  return{
+    questTitle:'Quest1 · 同伴招募',
+    questDetail:state.selectionStatus==='recorded'
+      ?'STEP 1 / SELECT 已在当前会话记录；服务端接取状态未确认。'
+      :'前往吉奥老师处查看 STEP 1 / SELECT，并记录本地选择。',
+  };
+}
+
 function visualSkillForCommand(command:M7RuntimeSkillCommand):Skill|null{
   if(command.authoredSkillId===null)return null;
   const row=rawSkills.find(entry=>entry.skill_id===command.authoredSkillId);
@@ -122,11 +191,17 @@ function cloneRewardState(state:RewardState):RewardState{
   };
 }
 
+export type M4RuntimeOptions=Readonly<{mode?:M4RuntimeMode}>;
+
 export class M4RuntimeIntegration{
   readonly scene:LabScene;
+  readonly runtimeMode:M4RuntimeMode;
   readonly m5World:M5PlayableWorld|null;
+  readonly chapter1World:Ch1WorldPolicy|null;
+  readonly chapter1Authority:Ch1WorldAuthority|null;
   readonly worldAuthority:ReconstructionWorldAuthority;
   readonly spatial:SceneTransitionController|null;
+  readonly chapter1Spatial:SceneTransitionController|null;
   readonly presentation=new BattlePresentation();
   world:WorldRuntimeState;
   rewards:RewardState;
@@ -137,6 +212,13 @@ export class M4RuntimeIntegration{
   developerMode=false;
   inventoryOpen=false;
   private activeDialogue:NpcDialogueSession|null=null;
+  private activeChapter1Dialogue:Ch1NpcDialogueSession|null=null;
+  private chapter1Quest1Selection:Ch1Quest1SelectionState|null=null;
+  private activeChapter1StoryBattle:Chapter1StoryBattleContext|null=null;
+  private chapter1StoryLastResolution:Chapter1StoryBattleResolution|null=null;
+  private chapter1StorySuppressedUntilLeaveGate=false;
+  private chapter1StoryOneApproachCells:readonly Cell[]=Object.freeze([]);
+  private chapter1StoryOneArchRuntimeCollisionWalkable=false;
   private trainingManagerOpen=false;
   private battleExitConfirm=false;
   private battleTargetingState:M7SkillTargetingState=createM7SkillTargetingState();
@@ -164,16 +246,37 @@ export class M4RuntimeIntegration{
   private dialogueRoot!:HTMLDivElement;
   private feedbackRoot!:HTMLDivElement;
 
-  constructor(scene:LabScene){
+  constructor(scene:LabScene,options:M4RuntimeOptions={}){
     this.scene=scene;
+    this.runtimeMode=options.mode??'default';
+    this.chapter1World=this.runtimeMode==='chapter1'?createCh1WorldPolicy(scene.pack):null;
+    this.chapter1Authority=this.chapter1World?new Ch1WorldAuthority():null;
+    this.chapter1Quest1Selection=this.chapter1Authority?.initialQuest1State()??null;
+    if(this.chapter1World){
+      const fieldMap=scene.pack.maps[String(CH1_STORY_ONE_SOURCE.fieldMapId)];
+      if(!fieldMap)throw new Error('Chapter 1 Story source 1 requires field map 1030');
+      if(!scene.pack.maps[String(CH1_STORY_ONE_SOURCE.battleZoneId)])throw new Error('Chapter 1 Story source 1 requires battleZone 1 resource');
+      this.chapter1StoryOneApproachCells=Object.freeze(CH1_STORY_ONE_APPROACH_CELLS.map(cell=>Object.freeze([cell[0],cell[1]]) as Cell));
+      const blockedApproaches=this.chapter1StoryOneApproachCells.filter(cell=>!walkable(fieldMap.collision,cell));
+      if(blockedApproaches.length)throw new Error('Chapter 1 Story source 1 approach cells are not walkable in the loaded map pack: '+blockedApproaches.map(cell=>cell.join(',')).join(';'));
+      // The source classifies (72,26) as a non-walkable arch, even though this
+      // reconstructed map pack currently marks that collision cell walkable.
+      // Keep it in the nine-cell source set but exclude it from the eight-cell
+      // movement-complete trigger whitelist.
+      this.chapter1StoryOneArchRuntimeCollisionWalkable=walkable(fieldMap.collision,CH1_STORY_ONE_ARCH_CELL);
+    }
     let m5:M5PlayableWorld|null=null;
     try{
-      if(scene.pack.maps['7']&&scene.pack.animations['1001']&&scene.pack.animations['4524']&&scene.pack.animations['4544'])m5=createM5PlayableWorld(scene.pack);
+      if(this.runtimeMode!=='chapter1'&&scene.pack.maps['7']&&scene.pack.animations['1001']&&scene.pack.animations['4524']&&scene.pack.animations['4544'])m5=createM5PlayableWorld(scene.pack);
     }catch(error){console.warn('M5 playable world unavailable; using M4 compatibility world',error);}
     this.m5World=m5;
     this.worldAuthority=new ReconstructionWorldAuthority(m5?.content);
     this.spatial=m5?new SceneTransitionController(m5.house.graph,m5.house.triggers):null;
-    this.world=this.worldAuthority.initial(m5?.content.start??START_STATE);
+    this.chapter1Spatial=this.chapter1World?new SceneTransitionController(this.chapter1World.graph,this.chapter1World.triggers):null;
+    const initial=this.chapter1World
+      ?{mapId:this.chapter1World.initial.mapId,x:this.chapter1World.initial.effectiveCell[0],y:this.chapter1World.initial.effectiveCell[1]}
+      :m5?.content.start??START_STATE;
+    this.world=this.worldAuthority.initial(initial);
     this.rewards=createM4RewardState(scene.gold);
     this.m6Stage=createM6StageState(scene.character);
     this.m7Skills=createM7IntegratedSkillState(scene.character,1);
@@ -189,9 +292,27 @@ export class M4RuntimeIntegration{
     this.installBattleTargetingAdapter();
     this.scene.setWorldInteractionHandler(entityId=>this.beginNpcInteraction(entityId,'pointer'));
     this.syncSceneInventory();
-    const initial=this.m5World?.content.start??START_STATE;
+    const initial=this.chapter1World
+      ?{mapId:this.chapter1World.initial.mapId,x:this.chapter1World.initial.effectiveCell[0],y:this.chapter1World.initial.effectiveCell[1]}
+      :this.m5World?.content.start??START_STATE;
     this.applyWorldState(initial);
-    if(this.m5World){
+    if(this.chapter1World){
+      if(!this.chapter1Authority)throw new Error('Chapter 1 NPC authority was not initialized');
+      if(!this.scene.pack.animations[String(CH1_GIO_TEACHER_VISUAL_PLACEMENT.resourceId)]){
+        throw new Error('Chapter 1 private pack is missing NPC visual proxy B4524');
+      }
+      this.scene.configureWorldVisuals([CH1_GIO_TEACHER_VISUAL_PLACEMENT]);
+      this.scene.setPlayerCameraFollow(true);
+      this.scene.focusPlayer();
+      const mapSelector=document.getElementById('map') as HTMLSelectElement|null;
+      if(mapSelector){
+        mapSelector.value=String(initial.mapId);
+        mapSelector.disabled=true;
+        mapSelector.closest('label')?.setAttribute('hidden','');
+      }
+      document.getElementById('npc')?.setAttribute('hidden','');
+      this.setNotice('第一章路线模式已启动：1000 ↔ 1020 ↔ 1030；1060 为胜利返回节点。吉奥老师 NPC 21003 已接入，视觉替身 B4524 / RECONSTRUCTION_POLICY。路线与 NPC 来源证据 RECOVERED_SECONDARY / runtimeVerified=false。');
+    }else if(this.m5World){
       this.scene.configureWorldVisuals(this.m5World.visuals);
       this.scene.configureWorldMarkers([
         {id:'training-house-door',mapId:this.m5World.content.trainingMapId,cell:this.m5World.doorCell,label:'训练屋入口'},
@@ -229,13 +350,81 @@ export class M4RuntimeIntegration{
   snapshot(){
     const cell=nearestAnchor(this.scene.anchor.x,this.scene.anchor.y);
     return{
+      runtimeMode:this.runtimeMode,
+      chapter1:this.chapter1World?{
+        mapIds:[...this.chapter1World.mapIds],
+        routes:this.chapter1World.routes.map(route=>({routeId:route.routeId,sourceMapId:route.sourceMapId,targetMapId:route.targetMapId,activationCellCount:route.activationCells.length})),
+        initial:{mapId:this.chapter1World.initial.mapId,requestedCell:this.chapter1World.initial.requestedCell,effectiveCell:this.chapter1World.initial.effectiveCell,snapDistanceSquared:this.chapter1World.initial.snapDistanceSquared},
+        victoryReturn:{mapId:this.chapter1World.victoryReturn.mapId,cell:this.chapter1World.victoryReturn.effectiveCell},
+        provenance:'RECOVERED_SECONDARY',runtimeVerified:false,
+      }:null,
+      chapter1StorySource1:this.chapter1World?{
+        sourceId:CH1_STORY_ONE_SOURCE.id,
+        fieldMapId:CH1_STORY_ONE_SOURCE.fieldMapId,
+        battleZoneId:CH1_STORY_ONE_SOURCE.battleZoneId,
+        gateCells:CH1_STORY_ONE_GATE_CELLS.map(cell=>[cell[0],cell[1]]),
+        approachCells:this.chapter1StoryOneApproachCells.map(cell=>[cell[0],cell[1]]),
+        sourceBlockedArchCell:[CH1_STORY_ONE_ARCH_CELL[0],CH1_STORY_ONE_ARCH_CELL[1]],
+        archCellRuntimeCollisionWalkable:this.chapter1StoryOneArchRuntimeCollisionWalkable,
+        deploymentLocalCell:[...CH1_STORY_ONE_SOURCE.deploymentLocalCell],
+        deploymentHostileCell:[...CH1_STORY_ONE_SOURCE.deploymentHostileCell],
+        deploymentApplied:false,
+        replayable:CH1_STORY_ONE_SOURCE.replayable,
+        replayPolicy:'after-leave-all-nine-gate-cells',
+        bossVictory:CH1_STORY_ONE_SOURCE.bossVictory,
+        bossVictoryRuntimeEnforced:false,
+        victoryReturnCondition:'m4-battle-phase-won',
+        gateCellsLocator:CH1_STORY_ONE_SOURCE.gateCellsLocator,
+        battleZoneLocator:CH1_STORY_ONE_SOURCE.battleZoneLocator,
+        sourceArtifact:CH1_STORY_ONE_SOURCE.sourceArtifact,
+        sourceSha256:CH1_STORY_ONE_SOURCE.sourceSha256,
+        mapToBattleZoneRetailVerified:CH1_STORY_ONE_SOURCE.retailMapBindingVerified,
+        triggerSemantics:'movement-complete-gate-cell-offline-policy',
+        evidenceLevel:CH1_STORY_ONE_SOURCE.evidenceLevel,
+        runtimeVerified:CH1_STORY_ONE_SOURCE.runtimeVerified,
+      }:null,
+      chapter1StoryBattle:this.activeChapter1StoryBattle?{
+        sourceId:this.activeChapter1StoryBattle.sourceId,
+        fieldMapId:this.activeChapter1StoryBattle.fieldMapId,
+        gateCell:[...this.activeChapter1StoryBattle.gateCell],
+        battleZoneId:this.activeChapter1StoryBattle.battleZoneId,
+        entryProvenance:this.activeChapter1StoryBattle.entryProvenance,
+        authority:this.activeChapter1StoryBattle.authority,
+        runtimeVerified:this.activeChapter1StoryBattle.runtimeVerified,
+      }:null,
+      chapter1StorySuppressedUntilLeaveGate:this.chapter1StorySuppressedUntilLeaveGate,
+      chapter1StoryLastResolution:this.chapter1StoryLastResolution?{
+        sourceId:this.chapter1StoryLastResolution.sourceId,
+        outcome:this.chapter1StoryLastResolution.outcome,
+        fieldMapId:this.chapter1StoryLastResolution.fieldMapId,
+        gateCell:[...this.chapter1StoryLastResolution.gateCell],
+        battleZoneId:this.chapter1StoryLastResolution.battleZoneId,
+        returnMapId:this.chapter1StoryLastResolution.returnMapId,
+        returnCell:[...this.chapter1StoryLastResolution.returnCell],
+        rewardSettlement:this.chapter1StoryLastResolution.rewardSettlement,
+        victoryCondition:this.chapter1StoryLastResolution.victoryCondition,
+        bossVictorySourceFlag:this.chapter1StoryLastResolution.bossVictorySourceFlag,
+        bossVictoryRuntimeEnforced:this.chapter1StoryLastResolution.bossVictoryRuntimeEnforced,
+        replayPolicy:this.chapter1StoryLastResolution.replayPolicy,
+        triggerSemantics:this.chapter1StoryLastResolution.triggerSemantics,
+        evidenceLevel:this.chapter1StoryLastResolution.evidenceLevel,
+        runtimeVerified:this.chapter1StoryLastResolution.runtimeVerified,
+      }:null,
       quest:{...this.world.quest},
+      chapter1Quest1:this.chapter1Quest1Selection?{...this.chapter1Quest1Selection}:null,
       world:{mapId:this.scene.mapId,x:cell[0],y:cell[1]},
       progression:{...this.rewards.progression},
       inventory:{items:this.rewards.inventory.items.map(item=>({itemId:item.itemId,quantity:item.quantity})),equipped:{...this.rewards.inventory.equipped}},
       gold:this.rewards.gold,
       pendingEncounter:this.pendingEncounter?{...this.pendingEncounter}:null,
-      dialogue:this.activeDialogue?{
+      dialogue:this.activeChapter1Dialogue?{
+        sessionId:this.activeChapter1Dialogue.sessionId,
+        inputSource:this.activeChapter1Dialogue.inputSource,
+        phase:'select',
+        marker:this.activeChapter1Dialogue.view.marker,
+        actorToken:this.activeChapter1Dialogue.actorToken,
+        choices:this.activeChapter1Dialogue.view.choices.map(choice=>choice.id),
+      }:this.activeDialogue?{
         sessionId:this.activeDialogue.sessionId,
         inputSource:this.activeDialogue.inputSource,
         phase:this.activeDialogue.view.phase,
@@ -298,6 +487,7 @@ export class M4RuntimeIntegration{
     this.scene.enterBattle=(entryOverride)=>{
       this.clearBattleTargeting(false);
       this.activeDialogue=null;
+      this.activeChapter1Dialogue=null;
       this.battleExitConfirm=false;
       const trainingBattleId=this.trainingLaunchPending?this.selectedTrainingBattleId:null;
       this.prepareReconstructionBattle(trainingBattleId);
@@ -332,14 +522,15 @@ export class M4RuntimeIntegration{
     document.addEventListener('click',event=>{
       const choice=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-dialogue-choice]');
       if(choice){
-        const choiceId=choice.dataset.dialogueChoice as NpcDialogueChoiceId|undefined;
-        if(choiceId)this.chooseNpcInteraction(choiceId);
+        const choiceId=choice.dataset.dialogueChoice;
+        if(choiceId==='record-selection'&&this.activeChapter1Dialogue){this.chooseChapter1Quest1Selection();return;}
+        if(choiceId)this.chooseNpcInteraction(choiceId as NpcDialogueChoiceId);
         return;
       }
       const target=(event.target as HTMLElement).closest<HTMLElement>('[data-action]');
       if(!target)return;
       const action=target.dataset.action;
-      if(action==='menu'||action==='battle-menu'){this.activeDialogue=null;this.menuOpen=true;this.render(this.scene.snapshot());}
+      if(action==='menu'||action==='battle-menu'){this.activeDialogue=null;this.activeChapter1Dialogue=null;this.menuOpen=true;this.render(this.scene.snapshot());}
       else if(action==='menu-close'){this.menuOpen=false;this.render(this.scene.snapshot());}
       else if(action==='save')void this.save();
       else if(action==='load')void this.load();
@@ -416,7 +607,7 @@ export class M4RuntimeIntegration{
       return;
     }
     if(this.battleExitConfirm){this.cancelBattleExit();return;}
-    if(this.activeDialogue){this.activeDialogue=null;this.render(this.scene.snapshot());return;}
+    if(this.activeDialogue||this.activeChapter1Dialogue){this.activeDialogue=null;this.activeChapter1Dialogue=null;this.render(this.scene.snapshot());return;}
     this.menuOpen=!this.menuOpen;
     this.render(this.scene.snapshot());
   }
@@ -648,6 +839,16 @@ export class M4RuntimeIntegration{
   acceptanceIssueMoveTo(x:number,y:number):void{
     if(!navigator.webdriver)throw new Error('S14 acceptance movement fixture is automation-only');
     if(!this.scene.acceptanceMoveTo(x,y))throw new Error('S14 acceptance movement command was rejected');
+    this.render(this.scene.snapshot());
+  }
+
+  acceptanceMoveFieldTo(x:number,y:number):void{
+    if(!navigator.webdriver)throw new Error('Chapter 1 field-movement fixture is automation-only');
+    if(!this.chapter1World||this.scene.inBattleView)throw new Error('Chapter 1 field-movement fixture requires Chapter 1 field mode');
+    if(!Number.isInteger(x)||!Number.isInteger(y))throw new Error('Chapter 1 field-movement target must be integer grid coordinates');
+    const [worldX,worldY]=referenceCellToScreen([x,y]);
+    this.scene.moveTo(worldX,worldY);
+    if(!this.scene.route.length)throw new Error('Chapter 1 field-movement route was rejected');
     this.render(this.scene.snapshot());
   }
 
@@ -987,20 +1188,45 @@ export class M4RuntimeIntegration{
   }
 
   private retreatFromBattle():void{
+    const storyBattle=this.activeChapter1StoryBattle;
     this.clearBattleTargeting(false);
     this.scene.leaveBattle();
     this.scene.gold=this.rewards.gold;
     this.world={...this.world,world:this.currentWorldState()};
     this.pendingEncounter=null;
     this.activeTrainingBattleId=null;
+    this.activeChapter1StoryBattle=null;
     this.trainingLaunchPending=false;
     this.lastSnapshot=null;
-    this.suppressEncounterUntilLeave=true;
+    this.suppressEncounterUntilLeave=!storyBattle;
+    if(storyBattle){
+      const returnCell=storyBattle.gateCell;
+      this.chapter1StorySuppressedUntilLeaveGate=true;
+      this.chapter1StoryLastResolution=Object.freeze({
+        sourceId:storyBattle.sourceId,
+        outcome:'retreated',
+        fieldMapId:storyBattle.fieldMapId,
+        gateCell:Object.freeze([returnCell[0],returnCell[1]]) as Cell,
+        battleZoneId:storyBattle.battleZoneId,
+        returnMapId:storyBattle.fieldMapId,
+        returnCell:Object.freeze([returnCell[0],returnCell[1]]) as Cell,
+        rewardSettlement:'not-applied',
+        victoryCondition:'m4-battle-phase-won',
+        bossVictorySourceFlag:true,
+        bossVictoryRuntimeEnforced:false,
+        replayPolicy:'after-leave-all-nine-gate-cells',
+        triggerSemantics:'movement-complete-gate-cell-offline-policy',
+        evidenceLevel:'RECOVERED_SECONDARY',
+        runtimeVerified:false,
+      });
+    }
     if(this.spatial){
       const actor=this.currentWorldState();
       this.spatial.start({mapId:actor.mapId,cell:[actor.x,actor.y]});
     }
-    this.setNotice('已退出战斗：未结算奖励，任务目标保持未完成。离开怪物触发范围后可再次进入战斗。');
+    this.setNotice(storyBattle
+      ?'已撤离 Story source 1：未结算奖励，返回 map1030 原 gate 位置；离开九格 gate 区域后可再次触发 / RECOVERED_SECONDARY / runtimeVerified=false。'
+      :'已退出战斗：未结算奖励，任务目标保持未完成。离开怪物触发范围后可再次进入战斗。');
     this.render(this.scene.snapshot());
   }
 
@@ -1008,18 +1234,45 @@ export class M4RuntimeIntegration{
     if(this.scene.inBattleView)return;
     const actor=this.currentWorldState();
     this.world={...this.world,world:actor};
-    const entities=this.m5World
-      ?[this.m5World.trainingManager.entity,this.m5World.content.guide.entity]
-      :WORLD_ENTITIES.filter(entity=>entity.kind==='npc');
+    const entities=this.chapter1World&&this.chapter1Authority
+      ?[this.chapter1Authority.npc]
+      :this.m5World
+        ?[this.m5World.trainingManager.entity,this.m5World.content.guide.entity]
+        :WORLD_ENTITIES.filter(entity=>entity.kind==='npc');
     const entity=entityId?entities.find(candidate=>candidate.id===entityId):entities.find(candidate=>canInteract(candidate,actor));
     if(!entity){
-      if(!this.m5World&&!entityId){
+      if(!this.m5World&&!this.chapter1World&&!entityId){
         const objective=WORLD_ENTITIES.find(candidate=>candidate.kind!=='npc'&&canInteract(candidate,actor));
         if(objective){this.interactWorld(objective.id);return;}
       }
       this.activeDialogue=null;
+      this.activeChapter1Dialogue=null;
       this.trainingManagerOpen=false;
       this.setNotice(entityId?'当前 NPC 不能交互':'附近没有可交互 NPC');
+      this.render(this.scene.snapshot());
+      return;
+    }
+    if(this.chapter1World&&this.chapter1Authority&&entity.id===this.chapter1Authority.npc.id){
+      const state=this.chapter1Quest1Selection;
+      if(!state)throw new Error('Chapter 1 Quest1 selection state is not initialized');
+      const resolved=this.chapter1Authority.beginNpcInteraction(state,actor,{
+        entityId:entity.id,
+        mapId:actor.mapId,
+        actorX:actor.x,
+        actorY:actor.y,
+        inputSource,
+        provenance:'RECONSTRUCTION_POLICY',
+      });
+      this.activeDialogue=null;
+      this.trainingManagerOpen=false;
+      if(!resolved.accepted){
+        this.activeChapter1Dialogue=null;
+        this.setNotice(`吉奥老师交互未开启：${resolved.reason}`);
+        this.render(this.scene.snapshot());
+        return;
+      }
+      this.activeChapter1Dialogue=resolved.session;
+      this.setNotice('吉奥老师：Quest1 STEP 1 / SELECT / RECOVERED_SECONDARY / runtimeVerified=false');
       this.render(this.scene.snapshot());
       return;
     }
@@ -1057,6 +1310,23 @@ export class M4RuntimeIntegration{
     }
     this.activeDialogue=resolved.dialogue.session;
     this.setNotice(`${this.activeDialogue.view.speaker}：${this.activeDialogue.view.lines.join(' ')}`);
+    this.render(this.scene.snapshot());
+  }
+
+  private chooseChapter1Quest1Selection():void{
+    const session=this.activeChapter1Dialogue;
+    const state=this.chapter1Quest1Selection;
+    const authority=this.chapter1Authority;
+    if(!session||!state||!authority)return;
+    const resolved=authority.recordQuest1Selection(state,this.currentWorldState(),session);
+    this.activeChapter1Dialogue=null;
+    if(!resolved.accepted){
+      this.setNotice(`Quest1 SELECT 选择未记录：${resolved.reason} / RECOVERED_SECONDARY / runtimeVerified=false`);
+      this.render(this.scene.snapshot());
+      return;
+    }
+    this.chapter1Quest1Selection=resolved.state;
+    this.setNotice('Quest1 STEP 1 / SELECT：已记录当前会话的本地选择；服务端接取状态未确认 / RECOVERED_SECONDARY / runtimeVerified=false');
     this.render(this.scene.snapshot());
   }
 
@@ -1120,10 +1390,39 @@ export class M4RuntimeIntegration{
     if(!this.scene.inBattleView)return;
     const phase=this.scene.state.phase;
     if(phase==='active'){this.setNotice('战斗尚未结束');return;}
+    if(phase==='safe'){this.setNotice('战斗状态尚未初始化');return;}
     this.battleExitConfirm=false;
-    if(phase==='lost')this.suppressEncounterUntilLeave=true;
+    const storyBattle=this.activeChapter1StoryBattle;
+    if(phase==='lost'&&!storyBattle)this.suppressEncounterUntilLeave=true;
     let returnState:WorldState|null=null;
-    if(this.pendingEncounter){
+    if(storyBattle){
+      // boss_victory=true remains source metadata. This offline policy returns
+      // on the existing M4 terminal phase 'won'; it does not infer a retail
+      // boss identity or claim that the source-specific boss condition ran.
+      const victorySpawn=this.chapter1World?.victoryReturn;
+      if(phase==='won'&&!victorySpawn)throw new Error('Chapter 1 Story victory requires story-victory-return-01 policy');
+      const returnMapId=phase==='won'?victorySpawn!.mapId:storyBattle.fieldMapId;
+      const returnCell=phase==='won'?victorySpawn!.effectiveCell:storyBattle.gateCell;
+      if(phase==='won')returnState={mapId:returnMapId,x:returnCell[0],y:returnCell[1]};
+      this.chapter1StorySuppressedUntilLeaveGate=phase!=='won';
+      this.chapter1StoryLastResolution=Object.freeze({
+        sourceId:storyBattle.sourceId,
+        outcome:phase,
+        fieldMapId:storyBattle.fieldMapId,
+        gateCell:Object.freeze([storyBattle.gateCell[0],storyBattle.gateCell[1]]) as Cell,
+        battleZoneId:storyBattle.battleZoneId,
+        returnMapId,
+        returnCell:Object.freeze([returnCell[0],returnCell[1]]) as Cell,
+        rewardSettlement:'not-applied',
+        victoryCondition:'m4-battle-phase-won',
+        bossVictorySourceFlag:true,
+        bossVictoryRuntimeEnforced:false,
+        replayPolicy:'after-leave-all-nine-gate-cells',
+        triggerSemantics:'movement-complete-gate-cell-offline-policy',
+        evidenceLevel:'RECOVERED_SECONDARY',
+        runtimeVerified:false,
+      });
+    }else if(this.pendingEncounter){
       const outcome=phase==='won'?'won':'lost';
       const resolution=this.worldAuthority.resolveBattle(this.world,{battleZoneId:this.scene.state.battleZoneId??-1,outcome});
       this.world=resolution.state;
@@ -1138,6 +1437,7 @@ export class M4RuntimeIntegration{
     if(returnState)this.applyWorldState(returnState);else this.world={...this.world,world:this.currentWorldState()};
     this.pendingEncounter=null;
     this.activeTrainingBattleId=null;
+    this.activeChapter1StoryBattle=null;
     this.trainingLaunchPending=false;
     this.lastSnapshot=null;
     this.render(this.scene.snapshot());
@@ -1329,13 +1629,23 @@ export class M4RuntimeIntegration{
   private applyWorldState(state:WorldState):void{
     if(this.scene.inBattleView)return;
     this.activeDialogue=null;
+    this.activeChapter1Dialogue=null;
+    if(this.chapter1World&&!this.chapter1World.mapIds.includes(state.mapId as 1000|1020|1030|1060)){
+      throw new Error('Chapter 1 mode cannot load map '+state.mapId);
+    }
     this.scene.setMap(state.mapId);
     const [x,y]=referenceCellToScreen([state.x,state.y]);
     this.scene.anchor={x,y};
     this.scene.route=[];
-    if(this.m5World)this.scene.focusPlayer();else this.scene.fit();
+    if(this.chapter1World){
+      this.scene.setPlayerCameraFollow(true);
+      this.scene.focusPlayer();
+      this.chapter1Spatial?.start({mapId:state.mapId,cell:[state.x,state.y]});
+    }else if(this.m5World){
+      this.scene.focusPlayer();
+      this.spatial?.start({mapId:state.mapId,cell:[state.x,state.y]});
+    }else this.scene.fit();
     this.world={...this.world,world:{...state}};
-    this.spatial?.start({mapId:state.mapId,cell:[state.x,state.y]});
   }
 
   private saveContext():SaveValidationContext{
@@ -1377,6 +1687,8 @@ export class M4RuntimeIntegration{
   restore(raw:unknown):void{
     if(this.scene.inBattleView)throw new Error('请先结束战斗再读档');
     this.activeDialogue=null;
+    this.activeChapter1Dialogue=null;
+    if(this.chapter1Authority)this.chapter1Quest1Selection=this.chapter1Authority.initialQuest1State();
     this.trainingManagerOpen=false;
     this.activeTrainingBattleId=null;
     this.trainingLaunchPending=false;
@@ -1384,6 +1696,7 @@ export class M4RuntimeIntegration{
     this.developerUnlockAllSkills=false;
     this.developerSkillPoints=0;
     const save=migrateSaveToM7(raw,this.saveContext(),M6_SAVE_CONTENT);
+    if(this.chapter1World&&!this.chapter1World.mapIds.includes(save.mapId as 1000|1020|1030|1060))throw new Error('Chapter 1 save map is outside the route graph: '+save.mapId);
     const quest=parseM4Quest(save.quest,this.worldAuthority.content.questId);
     this.rewards={gold:save.gold,inventory:save.inventory,progression:save.progression,questFlags:save.questFlags,rewardReceipts:save.rewardReceipts};
     this.world={world:{mapId:save.mapId,...(()=>{const cell=nearestAnchor(save.x,save.y);return{x:cell[0],y:cell[1]};})()},quest};
@@ -1399,7 +1712,8 @@ export class M4RuntimeIntegration{
       this.scene.state.mp=Math.min(this.scene.state.maxMp,save.m7.vitals.mp);
     }
     this.syncSceneInventory();
-    if(this.m5World){this.scene.setPlayerCameraFollow(true);this.scene.focusPlayer();const cell=nearestAnchor(save.x,save.y);this.spatial?.start({mapId:save.mapId,cell});}
+    if(this.chapter1World){this.scene.setPlayerCameraFollow(true);this.scene.focusPlayer();const cell=nearestAnchor(save.x,save.y);this.chapter1Spatial?.start({mapId:save.mapId,cell});}
+    else if(this.m5World){this.scene.setPlayerCameraFollow(true);this.scene.focusPlayer();const cell=nearestAnchor(save.x,save.y);this.spatial?.start({mapId:save.mapId,cell});}
     else this.scene.fit();
     this.setNotice(`存档恢复成功 / schema v${CURRENT_SAVE_VERSION}`);
     this.render(this.scene.snapshot());
@@ -1419,7 +1733,7 @@ export class M4RuntimeIntegration{
     }
     if(!snapshot.inBattleView){
       this.world={...this.world,world:this.currentWorldState()};
-      if(this.handleM5Spatial())return;
+      if(this.handleM5Spatial()||this.handleChapter1Spatial()||this.handleChapter1StoryGate(snapshot))return;
     }
     this.lastSnapshot=snapshot;
     this.render(snapshot);
@@ -1458,6 +1772,83 @@ export class M4RuntimeIntegration{
       }
     }
     return false;
+  }
+
+  private handleChapter1Spatial():boolean{
+    const policy=this.chapter1World,controller=this.chapter1Spatial;
+    if(!policy||!controller||this.scene.inBattleView||!policy.mapIds.includes(this.scene.mapId as 1000|1020|1030|1060))return false;
+    const actor=this.currentWorldState();
+    const update=controller.update({mapId:actor.mapId,cell:[actor.x,actor.y]});
+    if(!update.transition)return false;
+    const committed=controller.commit(update.transition);
+    const next={mapId:committed.mapId,x:committed.cell[0],y:committed.cell[1]};
+    this.activeDialogue=null;
+    this.activeChapter1Dialogue=null;
+    this.scene.setMap(committed.mapId);
+    const [x,y]=referenceCellToScreen(committed.cell);
+    this.scene.anchor={x,y};
+    this.scene.route=[];
+    this.scene.setPlayerCameraFollow(true);
+    this.scene.focusPlayer();
+    this.world={...this.world,world:next};
+    const route=policy.routes.find(candidate=>candidate.routeId===committed.edgeId);
+    this.setNotice((route?route.routeId:'第一章路线')+'：已切换至 '+committed.mapId+' / RECOVERED_SECONDARY / runtimeVerified=false');
+    const mapSelector=document.getElementById('map') as HTMLSelectElement|null;
+    if(mapSelector)mapSelector.value=String(committed.mapId);
+    this.lastSnapshot=null;
+    this.render(this.scene.snapshot());
+    return true;
+  }
+
+  private handleChapter1StoryGate(snapshot:Snapshot):boolean{
+    if(!this.chapter1World||this.scene.inBattleView||snapshot.inBattleView)return false;
+    if(snapshot.mapId!==CH1_STORY_ONE_SOURCE.fieldMapId)return false;
+    const actor=this.currentWorldState();
+    if(this.chapter1StorySuppressedUntilLeaveGate){
+      const stillInsideGate=CH1_STORY_ONE_GATE_CELLS.some(cell=>cell[0]===actor.x&&cell[1]===actor.y);
+      if(stillInsideGate)return false;
+      this.chapter1StorySuppressedUntilLeaveGate=false;
+    }
+    if(this.activeChapter1StoryBattle)return false;
+    const previous=this.lastSnapshot;
+    if(!previous||previous.inBattleView||previous.mapId!==CH1_STORY_ONE_SOURCE.fieldMapId)return false;
+    // A gate is eligible only on the edge where a real field movement route
+    // completes. Merely starting, standing, opening Quest1, or changing UI
+    // state on a gate coordinate is not a Story battle trigger.
+    if(previous.routeLength<=0||snapshot.routeLength!==0)return false;
+
+    if(actor.mapId!==CH1_STORY_ONE_SOURCE.fieldMapId)return false;
+    const gateCell=this.chapter1StoryOneApproachCells.find(
+      cell=>cell[0]===actor.x&&cell[1]===actor.y,
+    );
+    if(!gateCell)return false;
+    if(this.pendingEncounter||this.activeTrainingBattleId!==null)return false;
+
+    const entry:BattleEntry=Object.freeze({
+      battleZoneId:CH1_STORY_ONE_SOURCE.battleZoneId,
+      provenance:'RECOVERED_SECONDARY',
+      authority:'offline-reconstruction',
+    });
+    this.chapter1StoryLastResolution=null;
+    this.activeChapter1StoryBattle=Object.freeze({
+      sourceId:CH1_STORY_ONE_SOURCE.id,
+      fieldMapId:CH1_STORY_ONE_SOURCE.fieldMapId,
+      gateCell:Object.freeze([gateCell[0],gateCell[1]]) as Cell,
+      battleZoneId:CH1_STORY_ONE_SOURCE.battleZoneId,
+      entryProvenance:'RECOVERED_SECONDARY',
+      authority:'offline-reconstruction',
+      runtimeVerified:false,
+    });
+    this.setNotice('Story source 1 gate：movement-complete 命中 '+actor.x+','+actor.y+'，进入 battleZone 1 / RECOVERED_SECONDARY / runtimeVerified=false');
+    this.scene.enterBattle(entry);
+    if(!this.scene.inBattleView||this.scene.state.battleZoneId!==CH1_STORY_ONE_SOURCE.battleZoneId){
+      this.activeChapter1StoryBattle=null;
+      this.setNotice('Story source 1 battleZone 1 入口未能启动；未回退到其他 battleZone。');
+      this.render(this.scene.snapshot());
+      return true;
+    }
+    this.render(this.scene.snapshot());
+    return true;
   }
 
   private performAttack(skill:Skill|null,acceptance:boolean):boolean{
@@ -1512,7 +1903,9 @@ export class M4RuntimeIntegration{
   private nearestInteraction(snapshot:Snapshot):string|undefined{
     if(snapshot.inBattleView)return undefined;
     const actor=this.currentWorldState();
-    const entities=this.m5World?[this.m5World.trainingManager.entity,this.m5World.content.guide.entity,this.m5World.content.objective]:WORLD_ENTITIES;
+    const entities=this.chapter1World&&this.chapter1Authority
+      ?[this.chapter1Authority.npc]
+      :this.m5World?[this.m5World.trainingManager.entity,this.m5World.content.guide.entity,this.m5World.content.objective]:WORLD_ENTITIES;
     const entity=entities.find(candidate=>canInteract(candidate,actor));
     if(!entity)return undefined;
     if(entity.kind==='npc')return `与${entity.displayName}交谈`;
@@ -1531,7 +1924,7 @@ export class M4RuntimeIntegration{
       mp:snapshot.inBattleView?snapshot.mp:fieldStats?.maxMp??definition.baseAuthoredStats.mp,mpMax:snapshot.inBattleView?this.scene.state.maxMp:fieldStats?.maxMp??definition.baseAuthoredStats.mp,
       exp:expHud.exp,expMax:expHud.expMax,atk:presentationStats.atk,def:presentationStats.def,gold:this.rewards.gold,
     };
-    const quest=questHud(this.world.quest.stage);
+    const quest=this.chapter1Quest1Selection?chapter1Quest1Hud(this.chapter1Quest1Selection):questHud(this.world.quest.stage);
     const field:FieldHudState={mapId:snapshot.mapId,mapName:snapshot.mapName,...quest,interactionPrompt:this.nearestInteraction(snapshot)};
     let hudHtml:string;
     if(snapshot.inBattleView){
@@ -1619,6 +2012,21 @@ export class M4RuntimeIntegration{
     if(this.trainingManagerOpen&&!this.scene.inBattleView){
       return renderM7TrainingManagerDialog(this.rewards.progression.level,this.selectedTrainingBattleId,true);
     }
+    const chapter1Session=this.activeChapter1Dialogue;
+    if(chapter1Session){
+      const view=chapter1Session.view;
+      const lines=view.lines.map(line=>`<p>${escapeHtml(line)}</p>`).join('');
+      const choices=view.choices.map(choice=>`<button type="button" data-dialogue-choice="${choice.id}">${escapeHtml(choice.label)}</button>`).join('');
+      return `<section class="npc-dialogue" data-ui="npc-dialogue" data-quest-file="Quest1" data-marker="${view.marker}" data-step="${view.step}" data-input-source="${chapter1Session.inputSource}" aria-label="Quest1 NPC 对话">
+        <div class="npc-dialogue-portrait" aria-label="NPC 头像占位"><b>NPC</b><span>PORTRAIT</span><small>头像绑定未恢复</small></div>
+        <div class="npc-dialogue-body">
+          <div class="npc-dialogue-speaker">${escapeHtml(view.speaker)}</div>
+          <div class="npc-dialogue-copy">${lines}</div>
+          <div class="npc-dialogue-actions">${choices}</div>
+          <small class="npc-dialogue-provenance">SELECT / RECOVERED_SECONDARY / runtimeVerified=false / RECONSTRUCTION_POLICY</small>
+        </div>
+      </section>`;
+    }
     const session=this.activeDialogue;
     if(!session)return '';
     const view=session.view;
@@ -1643,8 +2051,8 @@ export class M4RuntimeIntegration{
   }
 }
 
-export function installM4Runtime(scene:LabScene):M4RuntimeIntegration{
-  const runtime=new M4RuntimeIntegration(scene);
+export function installM4Runtime(scene:LabScene,options:M4RuntimeOptions={}):M4RuntimeIntegration{
+  const runtime=new M4RuntimeIntegration(scene,options);
   runtime.install();
   return runtime;
 }
