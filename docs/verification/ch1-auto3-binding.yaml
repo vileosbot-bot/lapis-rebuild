@@ -1,0 +1,692 @@
+schema_version: 1
+bundle_id: "ch1-auto3-b4-3-pr9"
+request_id: "auto-3-4"
+repository: "vileosbot-bot/lapis-rebuild"
+
+revision:
+  branch: "test/ch1-e2e-acceptance"
+  base_commit_sha: "82d288409039d949991052012f4e7564282f3eaa"
+  commit_sha: "4507a2b65934718d15a10ad867cf0727773e58d8"
+  parent_commit_sha: "a6946b90785535489b7060cc82c78bdbfb418eea"
+  commit_tree_sha: NOT_RECORDED
+  tested_commit_sha: "4507a2b65934718d15a10ad867cf0727773e58d8"
+  observed_main_head_sha: "98ddb468958dad3b021035d9acac7acdcf0bfc00"
+  observed_main_head_note: "PR #9 合并提交；通过 GitHub 插件在指定 main 基底读回绑定文件与源 spec。"
+
+scope:
+  task_kind: "acceptance-evidence-binding"
+  feature_ids:
+    - "CH1-01"
+    - "CH1-02"
+    - "CH1-03"
+    - "CH1-04"
+    - "CH1-05"
+  summary: "只把已由总管验收通过的 #3 B4-3 / PR #9 证据引用到第一章 Feature Map；不复制 spec、fixture 或 runtime 实现，不改变 Feature Map 状态。"
+  source_acceptance:
+    request_id: "auto-3-3"
+    pull_request_number: 9
+    pull_request_title: "[auto-3-3] Ch1 end-to-end acceptance S42 (B4-3)"
+    pull_request_head_sha: "4507a2b65934718d15a10ad867cf0727773e58d8"
+    pull_request_base_sha: "82d288409039d949991052012f4e7564282f3eaa"
+    merge_commit_sha: "98ddb468958dad3b021035d9acac7acdcf0bfc00"
+    changed_file_count: 14
+    commit_additions: 2447
+    commit_deletions: 42
+    ci_workflow_run_id: 42968193485
+    ci_workflow_run_name: "Web and parser validation"
+    ci_workflow_run_url: "https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/42968193485"
+  feature_map_assertion_accounting:
+    count_scope: "仅 docs/verification/feature-map.ch1.yaml 中原有 15 个 Feature Map assertion ID 的状态分布；不是 S42 A01-A11。"
+    total: 15
+    blocked: 10
+    not_run: 5
+    blocked_ids:
+      - "CH1-01-A1"
+      - "CH1-01-A2"
+      - "CH1-02-A1"
+      - "CH1-02-A2"
+      - "CH1-03-A1"
+      - "CH1-03-A2"
+      - "CH1-04-A1"
+      - "CH1-04-A2"
+      - "CH1-05-A1"
+      - "CH1-05-A2"
+    not_run_ids:
+      - "CH1-01-A3"
+      - "CH1-02-A3"
+      - "CH1-03-A3"
+      - "CH1-04-A3"
+      - "CH1-05-A3"
+    merged_with_s42_assertions: false
+  s42_assertion_accounting:
+    count_scope: "PR #9 的 S42 acceptance spec 内独立编号 A01-A11；与 Feature Map 的 15 个 assertion ID 属于不同命名空间。"
+    total: 11
+    executed: 11
+    passed: 11
+    failed: 0
+    blocked: 0
+    not_run: 0
+    merged_with_feature_map_assertions: false
+  feature_mappings:
+    - feature_id: "CH1-01"
+      feature_map_status: BLOCKED
+      feature_map_runtime_status: NOT_RUN
+      feature_map_assertions:
+        blocked: ["CH1-01-A1", "CH1-01-A2"]
+        not_run: ["CH1-01-A3"]
+      spec_references:
+        - path: "web/e2e/s42-ch1-end-to-end-acceptance.spec.ts"
+          git_blob_sha: "18f91405bfbe63b95eff0b3d1789b4dc64ab56af"
+          assertion_ids: ["A03", "A06", "A07"]
+          test_case_name: "S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original production preview"
+      evidence_scope_note: "A03/A06/A07 是 S42 内部通过记录；Feature Map 的 CH1-01-A1/A2/A3 不因此改为 PASS。"
+    - feature_id: "CH1-02"
+      feature_map_status: BLOCKED
+      feature_map_runtime_status: NOT_RUN
+      feature_map_assertions:
+        blocked: ["CH1-02-A1", "CH1-02-A2"]
+        not_run: ["CH1-02-A3"]
+      spec_references:
+        - path: "web/e2e/s42-ch1-end-to-end-acceptance.spec.ts"
+          git_blob_sha: "18f91405bfbe63b95eff0b3d1789b4dc64ab56af"
+          assertion_ids: ["A04"]
+          test_case_name: "S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original production preview"
+        - path: "web/e2e/ch1-npc-quest1-integration.spec.ts"
+          git_blob_sha: "cc5ebf925c8f12cfa51276329d9704e5123b07ac"
+          assertion_ids: NOT_RECORDED
+          test_case_name: "B3 Chapter 1 S18 route transitions keep NPC 21003 scoped to map 1000"
+        - path: "web/e2e/ch1-npc-quest1-integration.spec.ts"
+          git_blob_sha: "cc5ebf925c8f12cfa51276329d9704e5123b07ac"
+          assertion_ids: NOT_RECORDED
+          test_case_name: "B3 NPC 21003 supports pointer and E-key Quest1 SELECT without server or save claims"
+      evidence_scope_note: "正式网页 runtime NPC entity 绑定仍 BLOCKED；候选身份不提升为正式实体。"
+    - feature_id: "CH1-03"
+      feature_map_status: BLOCKED
+      feature_map_runtime_status: NOT_RUN
+      feature_map_assertions:
+        blocked: ["CH1-03-A1", "CH1-03-A2"]
+        not_run: ["CH1-03-A3"]
+      spec_references:
+        - path: "web/e2e/s42-ch1-end-to-end-acceptance.spec.ts"
+          git_blob_sha: "18f91405bfbe63b95eff0b3d1789b4dc64ab56af"
+          assertion_ids: ["A05"]
+          test_case_name: "S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original production preview"
+        - path: "web/e2e/ch1-npc-quest1-integration.spec.ts"
+          git_blob_sha: "cc5ebf925c8f12cfa51276329d9704e5123b07ac"
+          assertion_ids: NOT_RECORDED
+          test_case_name: "B3 NPC 21003 supports pointer and E-key Quest1 SELECT without server or save claims"
+      evidence_scope_note: "仅绑定 SELECT 当前会话选择记录；不声称服务端接取、SCRIPT 条件执行、CANCEL 完成或奖励发放。"
+    - feature_id: "CH1-04"
+      feature_map_status: BLOCKED
+      feature_map_runtime_status: NOT_RUN
+      feature_map_assertions:
+        blocked: ["CH1-04-A1", "CH1-04-A2"]
+        not_run: ["CH1-04-A3"]
+      spec_references:
+        - path: "web/e2e/s42-ch1-end-to-end-acceptance.spec.ts"
+          git_blob_sha: "18f91405bfbe63b95eff0b3d1789b4dc64ab56af"
+          assertion_ids: ["A08", "A09"]
+          test_case_name: "S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original production preview"
+        - path: "web/e2e/s42-ch1-story-gate-entry.spec.ts"
+          git_blob_sha: "0a7791d2774d8f37a408b8c30af4fe1006ac4993"
+          assertion_ids: NOT_RECORDED
+          test_case_name: "B4-1 Story source 1 movement-complete gate enters explicit battleZone 1 independently of Quest1"
+        - path: "web/e2e/s42-ch1-story-gate-entry.spec.ts"
+          git_blob_sha: "0a7791d2774d8f37a408b8c30af4fe1006ac4993"
+          assertion_ids: NOT_RECORDED
+          test_case_name: "B4-2 Story source 1 retreat and defeat return to the original field gate and suppress re-entry until leaving all nine gate cells"
+      evidence_scope_note: "Story source 1 战斗入口独立于 Quest1 SELECT；不把它推断为 Quest1 对应遭遇。遭遇 ID 与战区业务绑定仍 BLOCKED。"
+    - feature_id: "CH1-05"
+      feature_map_status: BLOCKED
+      feature_map_runtime_status: NOT_RUN
+      feature_map_assertions:
+        blocked: ["CH1-05-A1", "CH1-05-A2"]
+        not_run: ["CH1-05-A3"]
+      spec_references:
+        - path: "web/e2e/s42-ch1-end-to-end-acceptance.spec.ts"
+          git_blob_sha: "18f91405bfbe63b95eff0b3d1789b4dc64ab56af"
+          assertion_ids: ["A10"]
+          test_case_name: "S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original production preview"
+        - path: "web/e2e/s42-ch1-story-gate-entry.spec.ts"
+          git_blob_sha: "0a7791d2774d8f37a408b8c30af4fe1006ac4993"
+          assertion_ids: NOT_RECORDED
+          test_case_name: "B4-2 actual Story source 1 battle victory returns to story-victory-return-01 map 1060 cell 20,120 without S9 settlement"
+      evidence_scope_note: "已有 Story source 1 胜利返回运行证据；Feature Map 的正式 victory-return record 绑定仍 BLOCKED。"
+  cross_feature_assertions:
+    - assertion_id: "A01"
+      purpose: "private-original derived pack preflight"
+      evidence_status: PASS_RECORDED
+    - assertion_id: "A02"
+      purpose: "Chapter 1 source evidence levels remain separated from runtime verification"
+      evidence_status: PASS_RECORDED
+    - assertion_id: "A11"
+      purpose: "six real-browser screenshots and checkpoint JSON captured/readable; pageerror count zero"
+      evidence_status: PASS_RECORDED
+
+changed_files:
+  - path: "tests/parsers/test_m7_web_pack_sources.py"
+    change_status: modified
+    line_count: 40
+    commit_additions: 1
+    commit_deletions: 1
+    git_blob_sha: "5d226de1bee04837360aba50b3e37d96bb38c7d0"
+  - path: "tools/prepare_web.py"
+    change_status: modified
+    line_count: 153
+    commit_additions: 28
+    commit_deletions: 9
+    git_blob_sha: "adb6d99919d76db7449170f9a88469c864aa2049"
+  - path: "web/e2e/ch1-npc-quest1-integration.spec.ts"
+    change_status: added
+    line_count: 161
+    commit_additions: 161
+    commit_deletions: 0
+    git_blob_sha: "cc5ebf925c8f12cfa51276329d9704e5123b07ac"
+  - path: "web/e2e/s42-ch1-end-to-end-acceptance.spec.ts"
+    change_status: added
+    line_count: 641
+    commit_additions: 641
+    commit_deletions: 0
+    git_blob_sha: "18f91405bfbe63b95eff0b3d1789b4dc64ab56af"
+  - path: "web/e2e/s42-ch1-story-gate-entry.spec.ts"
+    change_status: added
+    line_count: 346
+    commit_additions: 346
+    commit_deletions: 0
+    git_blob_sha: "0a7791d2774d8f37a408b8c30af4fe1006ac4993"
+  - path: "web/src/m4-main.ts"
+    change_status: modified
+    line_count: 82
+    commit_additions: 6
+    commit_deletions: 2
+    git_blob_sha: "1cfba2853819cfded007c1486e6d25e562a860d3"
+  - path: "web/src/m4-mode.ts"
+    change_status: added
+    line_count: 6
+    commit_additions: 6
+    commit_deletions: 0
+    git_blob_sha: "70110478d0ccfe5ab6dc5dd259cc99f97a5524fe"
+  - path: "web/src/m4-runtime-integration.ts"
+    change_status: modified
+    line_count: 2058
+    commit_additions: 436
+    commit_deletions: 28
+    git_blob_sha: "6a0c9f7777ecb9922aae727ced508a3121d6ecfc"
+  - path: "web/src/model.ts"
+    change_status: modified
+    line_count: 106
+    commit_additions: 1
+    commit_deletions: 1
+    git_blob_sha: "3ffd22f348160ef321e15215c09bbcbd796a823a"
+  - path: "web/src/world/ch1-world-authority.ts"
+    change_status: added
+    line_count: 285
+    commit_additions: 285
+    commit_deletions: 0
+    git_blob_sha: "0b9a8613561e6adc230600dc6fc705cc755d63bd"
+  - path: "web/src/world/ch1-world-policy.ts"
+    change_status: added
+    line_count: 187
+    commit_additions: 187
+    commit_deletions: 0
+    git_blob_sha: "25fcd9af9e3553abd6fe3d8c87c5eb21447b8d73"
+  - path: "web/tests/ch1-world-authority.test.ts"
+    change_status: added
+    line_count: 173
+    commit_additions: 173
+    commit_deletions: 0
+    git_blob_sha: "cebf639b0477d477f56674deab62a21e74db9685"
+  - path: "web/tests/ch1-world-policy.test.ts"
+    change_status: added
+    line_count: 166
+    commit_additions: 166
+    commit_deletions: 0
+    git_blob_sha: "1fee5305621d9753b16b937cb826614e306657a5"
+  - path: "web/tests/core.test.ts"
+    change_status: modified
+    line_count: 98
+    commit_additions: 10
+    commit_deletions: 1
+    git_blob_sha: "d6df4d68d77f5f8409cd4407f224ae11a39ff59c"
+
+environment:
+  capture_method: "GitHub 插件读取 PR #9 合并提交、三份 spec、Feature Map 与 GitHub Actions run/job/artifact 元数据；B4-3 实机验收事实来自已由总管通过的验收记录。"
+  node_version: NOT_RECORDED
+  python_version: NOT_RECORDED
+  browser: "Chromium；具体版本 NOT_RECORDED"
+  original_client: "NOT_RUN_PROHIBITED"
+  deployment: "NOT_RUN_PROHIBITED"
+  ci_run_28:
+    run_id: 42968193485
+    workflow: "Web and parser validation"
+    synthetic_job: success
+    private_original_job: skipped
+  s42_b4_3_acceptance:
+    environment_kind: "private_original"
+    status: PASS_RECORDED
+    run_location: NOT_RECORDED
+    exact_browser_version: NOT_RECORDED
+    note: "此为独立的 S42 B4-3 验收记录；不是 CI run #28 中已跳过的 private-original job。"
+
+command_execution:
+  status: NOT_RECORDED
+  commands: []
+  note: "本绑定任务未重跑测试；可核实的历史记录未提供完整命令文本、工作目录与逐条退出码，不根据 workflow step 名称反推命令。"
+
+static_verification:
+  status: PASS_RECORDED
+  basis: independent_readback
+  audit_reference:
+    pull_request_number: 9
+    merge_commit_sha: "98ddb468958dad3b021035d9acac7acdcf0bfc00"
+    source_head_sha: "4507a2b65934718d15a10ad867cf0727773e58d8"
+  checks:
+    - check_id: "AUTO3-STATIC-01"
+      description: "PR #9 source commit and merge identity"
+      expected: "head 4507a2b6, base 82d28840, merge 98ddb46; 14 files; +2447/-42"
+      observed: "GitHub commit metadata and compare result match the accepted values."
+      result: PASS_RECORDED
+      evidence:
+        - "GitHub PR #9 merge commit 98ddb468958dad3b021035d9acac7acdcf0bfc00"
+        - "GitHub compare 82d288409039d949991052012f4e7564282f3eaa...4507a2b65934718d15a10ad867cf0727773e58d8"
+    - check_id: "AUTO3-STATIC-02"
+      description: "Three acceptance spec files read back at the accepted source commit"
+      expected: "All three spec blobs and line counts match the manager-accepted values."
+      observed:
+        s42_end_to_end:
+          path: "web/e2e/s42-ch1-end-to-end-acceptance.spec.ts"
+          line_count: 641
+          git_blob_sha: "18f91405bfbe63b95eff0b3d1789b4dc64ab56af"
+        story_gate_entry:
+          path: "web/e2e/s42-ch1-story-gate-entry.spec.ts"
+          line_count: 346
+          git_blob_sha: "0a7791d2774d8f37a408b8c30af4fe1006ac4993"
+        npc_quest1_integration:
+          path: "web/e2e/ch1-npc-quest1-integration.spec.ts"
+          line_count: 161
+          git_blob_sha: "cc5ebf925c8f12cfa51276329d9704e5123b07ac"
+      result: PASS_RECORDED
+    - check_id: "AUTO3-STATIC-03"
+      description: "Feature Map assertion-level state accounting"
+      expected: "Five Features, fifteen Feature Map assertions; ten BLOCKED and five NOT_RUN."
+      observed:
+        feature_count: 5
+        assertion_count: 15
+        blocked: 10
+        not_run: 5
+        s42_assertions_counted_separately: true
+      result: PASS_RECORDED
+      evidence:
+        - "docs/verification/feature-map.ch1.yaml at main 98ddb468958dad3b021035d9acac7acdcf0bfc00"
+    - check_id: "AUTO3-STATIC-04"
+      description: "Source change manifest"
+      expected: "Fourteen PR #9 changed files; +2447/-42."
+      observed:
+        changed_file_count: 14
+        additions: 2447
+        deletions: 42
+      result: PASS_RECORDED
+    - check_id: "AUTO3-STATIC-05"
+      description: "Source evidence-level boundary"
+      expected: "ybcs-offline provenance is RECOVERED_SECONDARY or INFERRED only; no VERIFIED promotion."
+      observed:
+        chapter1_ybcs_source_level: RECOVERED_SECONDARY
+        verified_claim_added: false
+      result: PASS_RECORDED
+  independent_replay:
+    status: NOT_RUN
+    commands: []
+    note: "本轮只读回与结构核对；没有重新运行 S42、B3、B4、Playwright、unit 或 typecheck。"
+
+runtime_acceptance:
+  status: PARTIAL
+  runtime_status: NOT_RUN
+  environment_kind: "private_original"
+  tested_commit_sha: "4507a2b65934718d15a10ad867cf0727773e58d8"
+  feature_results:
+    - feature_id: "CH1-01"
+      feature_map_status: BLOCKED
+      runtime_status: NOT_RUN
+      mapped_evidence_status: PASS_RECORDED
+      evidence_refs: ["S42:A03", "S42:A06", "S42:A07"]
+      note: "只建立对已验收 spec 的引用；不解除 Feature Map 的路线/地图绑定阻塞。"
+    - feature_id: "CH1-02"
+      feature_map_status: BLOCKED
+      runtime_status: NOT_RUN
+      mapped_evidence_status: PASS_RECORDED
+      evidence_refs: ["S42:A04", "B3:NPC-map-scope", "B3:NPC-pointer-E-key"]
+      note: "正式 runtime NPC entity 绑定仍 BLOCKED。"
+    - feature_id: "CH1-03"
+      feature_map_status: BLOCKED
+      runtime_status: NOT_RUN
+      mapped_evidence_status: PASS_RECORDED
+      evidence_refs: ["S42:A05", "B3:Quest1-SELECT"]
+      note: "只证明当前会话 SELECT 选择记录；不证明服务端接取、SCRIPT/CANCEL 或奖励。"
+    - feature_id: "CH1-04"
+      feature_map_status: BLOCKED
+      runtime_status: NOT_RUN
+      mapped_evidence_status: PASS_RECORDED
+      evidence_refs: ["S42:A08", "S42:A09", "B4-1:Story-gate-entry", "B4-2:retreat-defeat"]
+      note: "Story source 1 的战斗入口与胜利证据不等于 Quest1 encounter 绑定。"
+    - feature_id: "CH1-05"
+      feature_map_status: BLOCKED
+      runtime_status: NOT_RUN
+      mapped_evidence_status: PASS_RECORDED
+      evidence_refs: ["S42:A10", "B4-2:Story-victory-return"]
+      note: "Story source 1 胜利返回证据已记录；Feature Map 的正式返回记录绑定仍 BLOCKED。"
+  notes:
+    - "S42 B4-3 历史验收为 1/1 test case、A01-A11 共 11/11 通过；这是已验收记录，不是本次绑定任务重新执行的结果。"
+    - "Feature Map 原有 15 个 assertion ID 本次执行数为 0；其状态仍为 10 BLOCKED、5 NOT_RUN。"
+    - "CI run #28 的 private-original job 为 skipped；不得将 CI run #28 描述为 private-original 运行通过。"
+    - "S34 新增失败已由总管定性为时序 flaky；补充实测 before.max=377 大于阈值 40，两次定向重跑均为 11/11 通过。此项是 S34 稳定性复核，不计入 S42 A01-A11 或 Feature Map 15 个断言。"
+
+test_summary:
+  runtime_test_cases:
+    status: PASS_RECORDED
+    total: 113
+    passed: 97
+    failed: 0
+    skipped: 16
+    not_run: 0
+    source: "CI run #28 synthetic job；private-original job skipped。"
+  s42_acceptance_test_cases:
+    status: PASS_RECORDED
+    total: 1
+    passed: 1
+    failed: 0
+    skipped: 0
+    source: "B4-3 已验收记录；与 CI run #28 的 private-original skipped job 分开。"
+  runtime_assertions:
+    status: PASS_RECORDED
+    total: 11
+    executed: 11
+    passed: 11
+    failed: 0
+    blocked: 0
+    not_run: 0
+    namespace: "S42 A01-A11；不得与 Feature Map assertion ID 合并。"
+  feature_map_assertions:
+    status: NOT_RUN
+    total: 15
+    executed: 0
+    passed: 0
+    failed: 0
+    blocked: 10
+    not_run: 5
+    count_scope: "Feature Map 原有 CH1-01 至 CH1-05 的 A1-A3；此为断言级计数，不是 S42 计数。"
+  unit_test_cases:
+    status: PASS_RECORDED
+    environments:
+      - environment: "CI run #28；无 private pack / synthetic"
+        total: 372
+        passed: 365
+        failed: 0
+        skipped: 7
+      - environment: "B4-3 有 private pack 的独立验收环境"
+        total: 372
+        passed: 372
+        failed: 0
+        skipped: 0
+  typecheck:
+    status: PASS_RECORDED
+    result: PASS
+    source: "CI run #28；完整命令与退出码未在本证据束中记录。"
+  static_checks:
+    status: NOT_RECORDED
+    total: 0
+    passed_recorded: 0
+    failed_recorded: 0
+  stability_followup:
+    status: PASS_RECORDED
+    subject: "S34 timing-flaky follow-up"
+    before_max: 377
+    threshold: 40
+    targeted_reruns: 2
+    rerun_results: "两次定向重跑均为 11/11 通过。"
+    classification: "时序 flaky；非玩法回归。"
+  note: "Playwright test cases、S42 自定义断言、Feature Map assertion ID 和 unit test cases 分开统计；不同命名空间不相加。"
+
+screenshots:
+  status: PARTIAL
+  items:
+    - filename: "s42-01-map1000-npc.png"
+      feature_id: "CH1-02"
+      capture_point: "Map1000 吉奥老师 NPC 21003 at (32,72), visual proxy 4524, actor within interaction radius 2."
+      image_kind: real_browser
+      sha256: NOT_AVAILABLE
+      artifact_location: NOT_RECORDED
+      status: CAPTURED
+    - filename: "s42-02-quest1-select.png"
+      feature_id: "CH1-03"
+      capture_point: "Quest1 SELECT step 1 / actor token 100 recorded as transient current-session selection only."
+      image_kind: real_browser
+      sha256: NOT_AVAILABLE
+      artifact_location: NOT_RECORDED
+      status: CAPTURED
+    - filename: "s42-03-map1030-arrival.png"
+      feature_id: "CH1-01"
+      capture_point: "Map1030 reached through the accepted route sequence; effective arrival cell (5,137)."
+      image_kind: real_browser
+      sha256: NOT_AVAILABLE
+      artifact_location: NOT_RECORDED
+      status: CAPTURED
+    - filename: "s42-04-battle-zone1.png"
+      feature_id: "CH1-04"
+      capture_point: "Real browser Story source 1 battle entry in battleZone 1, before any player combat action."
+      image_kind: real_browser
+      sha256: NOT_AVAILABLE
+      artifact_location: NOT_RECORDED
+      status: CAPTURED
+    - filename: "s42-05-victory.png"
+      feature_id: "CH1-04"
+      capture_point: "Real M4 Story source 1 combat reaches victory before returning to the world."
+      image_kind: real_browser
+      sha256: NOT_AVAILABLE
+      artifact_location: NOT_RECORDED
+      status: CAPTURED
+    - filename: "s42-06-map1060-return.png"
+      feature_id: "CH1-05"
+      capture_point: "Returned to the Chapter 1 victory-return spawn on map1060 at (20,120)."
+      image_kind: real_browser
+      sha256: NOT_AVAILABLE
+      artifact_location: NOT_RECORDED
+      status: CAPTURED
+  note: "S42 A11 记录六张真实浏览器截图已采集且可读；六张图的 SHA-256 仅 GPT 本机可验，总管侧无法独立重算，因此全部写 NOT_AVAILABLE。"
+
+logs_and_artifacts:
+  checkpoint_json:
+    path: "test-results/s42-ch1-checkpoints.json"
+    readback_status: PASS_RECORDED
+    sha256: NOT_AVAILABLE
+    artifact_location: NOT_RECORDED
+    note: "S42 A11 记录 checkpoint JSON 已生成且可读；本任务没有取得实际字节，未计算 SHA-256。"
+  runtime_logs:
+    status: NOT_RECORDED
+    items: []
+  playwright_json:
+    status: NOT_RECORDED
+    path: NOT_RECORDED
+  traces:
+    status: NOT_RECORDED
+    items: []
+  ci_run_28:
+    run_id: 42968193485
+    status: success
+    jobs:
+      - name: "synthetic"
+        conclusion: success
+      - name: "private-original"
+        conclusion: skipped
+  ci_artifacts:
+    status: METADATA_READ
+    content_readback_status: NOT_RUN
+    items:
+      - name: "web-synthetic-validation"
+        artifact_id: 13833450497
+        size_bytes: 8755367
+        digest_type: sha256
+        digest: "931b2d561bc5fe2dc9c4a86af293f0cdece1b09b096d0ae0bbe68a5942d5685d"
+        run_id: 42968193485
+        head_sha: "4507a2b65934718d15a10ad867cf0727773e58d8"
+        expires_at: "2026-11-18T06:06:38Z"
+        note: "这是 CI ZIP artifact 摘要，不是截图或 checkpoint 文件 SHA-256。"
+      - name: "m7-private-pack-builder"
+        artifact_id: 13832550482
+        size_bytes: 838938
+        digest_type: sha256
+        digest: "fd5b8d21d2fb10243b0516012dd4d1dd57afe4ce426a3ebad0804516bfe85c3e"
+        run_id: 42968193485
+        head_sha: "4507a2b65934718d15a10ad867cf0727773e58d8"
+        expires_at: "2026-11-14T05:49:48Z"
+        note: "这是 CI ZIP artifact 摘要；本任务未下载或读取 ZIP 内文件。"
+
+provenance:
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "PR #9 merge commit"
+    source_locator: "GitHub commit 98ddb468958dad3b021035d9acac7acdcf0bfc00"
+    fingerprint_type: other
+    fingerprint: "98ddb468958dad3b021035d9acac7acdcf0bfc00"
+    fingerprint_origin: "GitHub commit metadata readback"
+    raw_source_in_repository: true
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "PR #9 acceptance head commit"
+    source_locator: "test/ch1-e2e-acceptance"
+    fingerprint_type: other
+    fingerprint: "4507a2b65934718d15a10ad867cf0727773e58d8"
+    fingerprint_origin: "GitHub commit search and commit metadata readback"
+    raw_source_in_repository: true
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "web/e2e/s42-ch1-end-to-end-acceptance.spec.ts"
+    source_locator: "PR #9 acceptance spec"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "18f91405bfbe63b95eff0b3d1789b4dc64ab56af"
+    fingerprint_origin: "GitHub fetch_file at accepted source commit"
+    raw_source_in_repository: true
+    line_count: 641
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "web/e2e/s42-ch1-story-gate-entry.spec.ts"
+    source_locator: "PR #9 B4-1/B4-2 supporting spec"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "0a7791d2774d8f37a408b8c30af4fe1006ac4993"
+    fingerprint_origin: "GitHub fetch_file at accepted source commit"
+    raw_source_in_repository: true
+    line_count: 346
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "web/e2e/ch1-npc-quest1-integration.spec.ts"
+    source_locator: "PR #9 B3 NPC/Quest1 supporting spec"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "cc5ebf925c8f12cfa51276329d9704e5123b07ac"
+    fingerprint_origin: "GitHub fetch_file at accepted source commit"
+    raw_source_in_repository: true
+    line_count: 161
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "docs/verification/feature-map.ch1.yaml"
+    source_locator: "Feature Map baseline on main 98ddb468958dad3b021035d9acac7acdcf0bfc00"
+    fingerprint_type: git_blob_sha1
+    fingerprint: "8541aee32ba25a53d98b656ee03259d8101b2fb4"
+    fingerprint_origin: "GitHub fetch_file at fixed main baseline"
+    raw_source_in_repository: true
+    line_count: 503
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+  - source_project: "ybcs-offline"
+    source_artifact: "Chapter 1 NPC / Quest1 / Story-source provenance referenced by S42"
+    source_locator: "S42 A02; static_sources and checkpoints.policyEvidence"
+    fingerprint_type: NOT_RECORDED
+    fingerprint: NOT_RECORDED
+    fingerprint_origin: "本绑定任务未读取原始 ybcs-offline 文件字节，也未重新计算来源 SHA-256；只引用已验收 spec 中明确保留的来源等级。"
+    raw_source_in_repository: NOT_RECORDED
+    evidence_level: RECOVERED_SECONDARY
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "GitHub Actions Web and parser validation run #28"
+    source_locator: "run_id 42968193485; synthetic job success; private-original job skipped"
+    fingerprint_type: other
+    fingerprint: "42968193485"
+    fingerprint_origin: "GitHub Actions run/job metadata"
+    raw_source_in_repository: false
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "web-synthetic-validation CI ZIP artifact"
+    source_locator: "artifact_id 13833450497; run_id 42968193485"
+    fingerprint_type: sha256
+    fingerprint: "931b2d561bc5fe2dc9c4a86af293f0cdece1b09b096d0ae0bbe68a5942d5685d"
+    fingerprint_origin: "GitHub Actions artifact metadata digest; archive-level fingerprint only"
+    raw_source_in_repository: false
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+  - source_project: "vileosbot-bot/lapis-rebuild"
+    source_artifact: "m7-private-pack-builder CI ZIP artifact"
+    source_locator: "artifact_id 13832550482; run_id 42968193485"
+    fingerprint_type: sha256
+    fingerprint: "fd5b8d21d2fb10243b0516012dd4d1dd57afe4ce426a3ebad0804516bfe85c3e"
+    fingerprint_origin: "GitHub Actions artifact metadata digest; archive-level fingerprint only"
+    raw_source_in_repository: false
+    evidence_level: NOT_APPLICABLE
+    runtime_verified: false
+
+known_gaps:
+  - gap_id: "b4-3-worked-duration"
+    status: NOT_RECORDED
+    description: "B4-3 原始 Worked 用时无法追溯。"
+    required_evidence: "可核实的原始计时记录；不得从提交时间或对话时间推算。"
+  - gap_id: "s42-screenshot-checkpoint-sha256"
+    status: BLOCKED
+    description: "六张截图与 checkpoint JSON 的哈希仅 GPT 本机可验，总管侧无法独立取得实际字节并重算。"
+    required_evidence: "将原始截图与 checkpoint 文件置于总管可读取的获准私有证据位置，再逐文件计算 SHA-256。"
+  - gap_id: "quest1-script-cancel-deferred"
+    status: NOT_RUN
+    description: "Quest1 SCRIPT/CANCEL 仍为 deferred；当前证据只覆盖 SELECT 的当前会话选择记录。"
+    required_evidence: "后续获得可核实的 SCRIPT/CANCEL 语义及相应真实运行证据；不得推断服务端条件、完成或奖励。"
+  - gap_id: "npc350-tip-deferred"
+    status: NOT_RUN
+    description: "NPC350.Tip deferred；基线口径为 134/135 加 1 项 deferred。"
+    required_evidence: "取得并验收 NPC350.Tip 对应材料与行为证据。"
+  - gap_id: "ch1-01-route-binding"
+    status: BLOCKED
+    description: "Feature Map 中 CH1-01 的路线、目标地图、目标出生点及 runtime mapId 绑定保持 BLOCKED。"
+    required_evidence: "总管依据实际 acceptance 证据单独裁定 Feature Map 绑定；本文件不修改 Feature Map。"
+  - gap_id: "ch1-02-formal-npc-binding"
+    status: BLOCKED
+    description: "Feature Map 中 CH1-02 的正式 runtime NPC entity ID 与 Quest Actor 身份关联保持 BLOCKED。"
+    required_evidence: "正式网页实体身份及 Actor 关联的独立证据。"
+  - gap_id: "ch1-03-quest-runtime-binding"
+    status: BLOCKED
+    description: "Feature Map 中 CH1-03 的内部 quest runtime ID、服务端接取及推进语义保持 BLOCKED。"
+    required_evidence: "权威 quest ID、接取确认和推进状态的独立证据。"
+  - gap_id: "ch1-04-encounter-binding"
+    status: BLOCKED
+    description: "Feature Map 中 CH1-04 的 Quest1-to-encounter、encounter ID 与 battle-zone 绑定保持 BLOCKED。"
+    required_evidence: "实际第一章 Quest1 对应遭遇的权威关联与运行证据。"
+  - gap_id: "ch1-05-victory-return-binding"
+    status: BLOCKED
+    description: "Feature Map 中 CH1-05 的正式 victory-return record、返回地图、格子、方向及 runtime mapId 绑定保持 BLOCKED。"
+    required_evidence: "实际遭遇对应的胜利返回记录与网页 runtime 映射证据。"
+  - gap_id: "feature-map-assertions-not-executed"
+    status: NOT_RUN
+    description: "Feature Map 原有 15 个 assertion ID 本次未执行；10 个状态为 BLOCKED，5 个状态为 NOT_RUN。"
+    required_evidence: "解除业务绑定阻塞后，按 Feature Map 原有 assertion ID 逐项执行并记录；不得与 S42 A01-A11 合并计数。"
+  - gap_id: "ci-private-original-job-skipped"
+    status: NOT_RUN
+    description: "CI run #28 的 private-original job 为 skipped；CI run #28 本身不能作为 private-original 通过证据。"
+    required_evidence: "如需 CI 层面的 private-original 结果，须有该环境实际执行的独立 run；现有 S42 B4-3 验收记录保持单独引用。"
+
+worker_verdict: PARTIAL
+
+manager_review:
+  status: NOT_RECORDED
+  reviewed_commit_sha: NOT_RECORDED
+  readback_checks: NOT_RECORDED
+  verdict: NOT_RECORDED
+  note: "等待总管对本绑定文件进行连接器独立读回与逐项验收。"
