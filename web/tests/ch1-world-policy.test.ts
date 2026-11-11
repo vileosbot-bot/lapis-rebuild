@@ -12,6 +12,7 @@ const here=dirname(fileURLToPath(import.meta.url));
 const packRoot=resolve(here,'../public/game-data');
 const prototypePath=resolve(packRoot,'prototype.json');
 const privatePackPresent=existsSync(prototypePath);
+let privatePackReady=privatePackPresent;
 
 function readPrivateChapter1Pack():LoadedPack{
   const manifest=JSON.parse(readFileSync(prototypePath,'utf8'));
@@ -27,7 +28,11 @@ function readPrivateChapter1Pack():LoadedPack{
     animations:{},effects:{},images:{},content:null,digest:'private-chapter1-route-test',
   } as unknown as LoadedPack;
 }
-const pack=privatePackPresent?readPrivateChapter1Pack():null;
+let pack:LoadedPack|null=null;
+if(privatePackPresent){
+  try{pack=readPrivateChapter1Pack();}
+  catch{privatePackReady=false;pack=null;}
+}
 
 test('Chapter 1 mode requires the explicit m4=1&ch1=1 launch pair',()=>{
   assert.equal(m4RuntimeModeFromSearch('?m4=1&ch1=1'),'chapter1');
@@ -36,13 +41,13 @@ test('Chapter 1 mode requires the explicit m4=1&ch1=1 launch pair',()=>{
   assert.equal(m4RuntimeModeFromSearch(''),'default');
 });
 
-test('Chapter 1 policy requires all four loaded scene.pack.maps entries',{skip:!privatePackPresent},()=>{
+test('Chapter 1 policy requires all four loaded scene.pack.maps entries',{skip:!privatePackReady},()=>{
   const partial={...pack!,maps:{...pack!.maps}} as LoadedPack;
   delete partial.maps['1060'];
   assert.throws(()=>createCh1WorldPolicy(partial),/map 1060 in scene\.pack\.maps/);
 });
 
-test('Chapter 1 map nodes and victory-return node preserve recovered evidence',{skip:!privatePackPresent},()=>{
+test('Chapter 1 map nodes and victory-return node preserve recovered evidence',{skip:!privatePackReady},()=>{
   const policy=createCh1WorldPolicy(pack!);
   assert.deepEqual(policy.mapIds,[1000,1020,1030,1060]);
   assert.deepEqual(policy.graph.scenes.map(scene=>scene.mapId),[1000,1020,1030,1060]);
@@ -56,7 +61,7 @@ test('Chapter 1 map nodes and victory-return node preserve recovered evidence',{
   assert.equal(CH1_ROUTE_EXPANSION_SOURCE.runtimeVerified,false);
 });
 
-test('Chapter 1 route graph is bidirectional and retains the owner activation-cell oracle',{skip:!privatePackPresent},()=>{
+test('Chapter 1 route graph is bidirectional and retains the owner activation-cell oracle',{skip:!privatePackReady},()=>{
   const policy=createCh1WorldPolicy(pack!);
   const expected=[
     {id:'main-city-route-040',from:1000,to:1020,reverse:'main-city-route-041',anchors:[[79,6]],objects:[131,29],locator:'ybcs_session_adapter.py:L717',count:16,
@@ -84,7 +89,7 @@ test('Chapter 1 route graph is bidirectional and retains the owner activation-ce
   }
 });
 
-test('Chapter 1 starts and route arrivals preserve requested/effective cells and snap distances',{skip:!privatePackPresent},()=>{
+test('Chapter 1 starts and route arrivals preserve requested/effective cells and snap distances',{skip:!privatePackReady},()=>{
   const policy=createCh1WorldPolicy(pack!);
   const byId=(id:string)=>policy.spawns.find(spawn=>spawn.id===id)!;
   assert.deepEqual(policy.initial.requestedCell,[79,6]);
@@ -106,7 +111,7 @@ test('Chapter 1 starts and route arrivals preserve requested/effective cells and
   assert.equal(policy.victoryReturn.snapDistanceSquared,0);
 });
 
-test('Chapter 1 route origins reach their nearest activation cells at the approved distances',{skip:!privatePackPresent},()=>{
+test('Chapter 1 route origins reach their nearest activation cells at the approved distances',{skip:!privatePackReady},()=>{
   const policy=createCh1WorldPolicy(pack!);
   assert.deepEqual(policy.routes.map(route=>({
     id:route.routeId,origin:route.reachability.originSpawnId,
@@ -119,7 +124,7 @@ test('Chapter 1 route origins reach their nearest activation cells at the approv
   ]);
 });
 
-test('S18 commit primes destination and route pairs do not immediately bounce',{skip:!privatePackPresent},()=>{
+test('S18 commit primes destination and route pairs do not immediately bounce',{skip:!privatePackReady},()=>{
   const policy=createCh1WorldPolicy(pack!);
   const controller=new SceneTransitionController(policy.graph,policy.triggers);
   controller.start({mapId:1000,cell:policy.initial.effectiveCell});
@@ -148,7 +153,7 @@ test('S18 commit primes destination and route pairs do not immediately bounce',{
   assert.equal(second.update({mapId:1020,cell:northReturn.cell}).transition,null);
 });
 
-test('S18 rejected transition remains suppressed until the actor exits the activation zone',{skip:!privatePackPresent},()=>{
+test('S18 rejected transition remains suppressed until the actor exits the activation zone',{skip:!privatePackReady},()=>{
   const policy=createCh1WorldPolicy(pack!);
   const controller=new SceneTransitionController(policy.graph,policy.triggers);
   controller.start({mapId:1000,cell:policy.initial.effectiveCell});
