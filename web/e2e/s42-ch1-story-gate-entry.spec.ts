@@ -1,5 +1,21 @@
 import {expect,test} from '@playwright/test';
 import type {Page} from '@playwright/test';
+import {existsSync,readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+
+const ASSET_INDEX_PATH=fileURLToPath(new URL('../public/game-data/asset-index.json',import.meta.url));
+const ASSET_INDEX_TEXT=existsSync(ASSET_INDEX_PATH)?readFileSync(ASSET_INDEX_PATH,'utf8'):'';
+const ASSET_INDEX=ASSET_INDEX_TEXT?JSON.parse(ASSET_INDEX_TEXT) as Record<string,any>:null;
+const REQUIRED_MAP_FILES=[1000,1020,1030,1060].flatMap(id=>[
+  'maps/map-'+id+'.png',
+  'maps/map-'+id+'-collision.json',
+]);
+const PRIVATE_ORIGINAL_PACK_AVAILABLE=!!ASSET_INDEX
+  &&!ASSET_INDEX_TEXT.includes('SYNTHETIC')
+  &&!!ASSET_INDEX.inputs?.['Char/B4524_00.ani']
+  &&!!ASSET_INDEX.inputs?.['Char/B4524_00.spr']
+  &&REQUIRED_MAP_FILES.every(path=>existsSync(fileURLToPath(new URL('../public/game-data/'+path,import.meta.url))));
+
 
 const runtime=(page:Page)=>page.evaluate(()=>window.lapisM4!.snapshot());
 const scene=(page:Page)=>page.evaluate(()=>window.lapisDiagnostics!.snapshot());
@@ -27,6 +43,7 @@ async function waitForFieldCell(page:Page,mapId:number,x:number,y:number){
 }
 
 test('B4-1 Story source 1 movement-complete gate enters explicit battleZone 1 independently of Quest1',async({page})=>{
+  test.skip(!PRIVATE_ORIGINAL_PACK_AVAILABLE,'Chapter 1 integration acceptance requires the private-original derived pack; absent or SYNTHETIC resources cannot prove Chapter 1 runtime behavior.');
   test.setTimeout(210000);
   const pageErrors:string[]=[];
   page.on('pageerror',error=>pageErrors.push(error.message));
@@ -141,6 +158,7 @@ async function returnFromTerminalBattle(page:Page){
 }
 
 test('B4-2 Story source 1 retreat and defeat return to the original field gate and suppress re-entry until leaving all nine gate cells',async({page})=>{
+  test.skip(!PRIVATE_ORIGINAL_PACK_AVAILABLE,'Chapter 1 integration acceptance requires the private-original derived pack; absent or SYNTHETIC resources cannot prove Chapter 1 runtime behavior.');
   test.setTimeout(210000);
   const pageErrors:string[]=[];
   page.on('pageerror',error=>pageErrors.push(error.message));
@@ -237,6 +255,7 @@ test('B4-2 Story source 1 retreat and defeat return to the original field gate a
 });
 
 test('B4-2 actual Story source 1 battle victory returns to story-victory-return-01 map 1060 cell 20,120 without S9 settlement',async({page})=>{
+  test.skip(!PRIVATE_ORIGINAL_PACK_AVAILABLE,'Chapter 1 integration acceptance requires the private-original derived pack; absent or SYNTHETIC resources cannot prove Chapter 1 runtime behavior.');
   test.setTimeout(210000);
   const pageErrors:string[]=[];
   page.on('pageerror',error=>pageErrors.push(error.message));
