@@ -1,173 +1,327 @@
 # 第一章首战怪物对齐查证记录
 
-- 任务编号：`ch1-monster-fix-20261113-01`
-- 仓库：`vileosbot-bot/lapis-rebuild`
-- 基线：`main@95c07edad560729c965941a961fb666b47c29197`
-- 目标：第一章 Story source 1，gate cell `(72,30)`，`battleZone 1`
-- 查证状态：**BLOCKED（第一阶段形成候选阵容，但不足以安全确认完整的怪物—视觉—战斗数据绑定）**
-- 本分支仅新增本报告；没有修改运行时代码、测试、binding manifest 或截图。
+- 任务编号：ch1-monster-fix-20261113-01
+- 本轮请求：ch1-monster-fix-20261113-02
+- 仓库：vileosbot-bot/lapis-rebuild
+- 基线：main@95c07edad560729c965941a961fb666b47c29197
+- 分支：fix/ch1-battle-monster-20261113
+- 目标：第一章 Story source 1，gate cell (72,30)，battleZone 1
+- 本轮结论：**BLOCKED**
+- 本轮仅更新本报告；没有修改运行时代码、测试、binding manifest、截图或主分支。
 
 ## 0. 结论摘要
 
-已找到一份 ybcs 离线实现源码副本，其中明确列出 Story source 1 的离线战斗候选阵容：`1010 十步长 ×1`、`1001 步兵 ×16`、`1003 枪兵 ×3`。旧 DEO 交接位置支持主敌人及前 18 个增援的位置；第 20 个单位明确是 ybcs 离线策略追加的单位。静态故事场景目录也列出 zone 1 的 DEO 模型集合 `1001/1002/1003/1010/577/COM0`。
+本轮上传的 Set.lib 原件已成功解包并读取 ability.atr、levelabl.atr。三个目标怪物的原始基础属性、等级、移动范围、攻击范围、金币/经验字段均已提取；并且从 ability.atr 的显式 portrait_id 字段与原始 ybcs 资源校验代码确认了视觉家族映射：
 
-但这还不足以证明它就是可直接替换当前 S42 训练占位战斗的完整、正确绑定：
-1. ybcs 源码头部明确说明旧归档没有零售野外刷怪表；该模块提供的是可替换的单机 placement/drop policy。该源码副本来自 Library，不在当前云电脑指定目录。
-2. 当前云电脑没有找到原始 `Set.lib` / `ability.atr` 或对应 B1001/B1003/B1010 ANI/SPR 资源，无法核实属性、移动/攻击范围和真实视觉槽位。
-3. S2 walkman 原始日志及 excerpt 当前不在云电脑或可检索的 Drive 文件夹中；仅有此前的 prescan 报告。该报告未发现任何 6A69。
-4. `manifests/enemy-ai-binding.json` 的 `concrete_historical_bindings` 仍是 `UNVERIFIED` 且 `entries=[]`。
-5. S17 人工复核的 B4524/B4525/B4526/B4544 分别来自 zone 81 / zone 91 的视觉相关记录，不是 Chapter 1 模型 1001/1002/1003/1010 的已确认绑定。S17 明确禁止按数字相等自动绑定视觉 ID。
+- 1001 步兵 -> B1001
+- 1003 枪兵 -> B1003
+- 1010 十步长 -> B1010
 
-因此不把候选阵容冒充零售 VERIFIED，也不把 M7/S19 的 `RECONSTRUCTION_POLICY` 数值冒充原版事实。**停止第二、第三阶段：不改代码、不改测试、不改 binding、不运行 S42、不生成新截图、不创建 PR。**
+这不是按 Ability ID 数字相等自动绑定：映射来自 ability.atr 第 1 列（职业图片 / portrait_id），原始 ybcs 源码再用该列生成 Char/B{portrait_id}_00.ani 与 .spr 路径。
 
-## 1. 目标战斗定位
+但仍有两个关键缺项：
+1. Set.lib 中没有可确认的 6A69 AI 程序编号或 AI 程序字段；本次提供的 Set.lib 也没有 walkman 原始日志，无法从实玩日志补回逐怪程序绑定。
+2. levelabl.atr 对三种怪物的 sub_magic_id、usable_skill_id、hire_mercenary_id 均为 0；ability.atr 的 acom_raw / pcom_raw 等字段虽有数值，但当前没有足够的原始语义证据将其解释为技能/特性。具体技能、被动特性与 AI 行为仍为 UNKNOWN。
 
-### 1.1 S1 绑定
+因此，虽然本轮已解决原始属性与显式视觉家族映射，但任务要求的 1) 逐怪技能/AI 信息仍有缺项。按本轮硬门槛：**不改代码、不改 S42 预期、不改 binding、不修 scene.ts、不运行测试、不截图、不创建 PR。只更新本报告。**
 
-- `docs/integration-notes/s1-encounter-binding-crosswalk.md:18-20`：Chapter 1 的 `STORY_ONE_CASTLE_GATE_ZONE_ID=1`，Story source 1 对应部署地图 `map:old:1030`。
-- 同文件 `:35-39`：所有 ybcs 记录的证据等级固定为 `RECOVERED_SECONDARY`；候选 `1030 -> 1` 不是 VERIFIED；静态场景资源存在不等于地图到战斗场景的零售遭遇绑定成立。
-- `docs/integration-notes/s1-encounter-binding-crosswalk.csv:5`：`B1-S-001`，entity `22608`，Story source 1，候选 `map 1030 -> battleZone 1`，状态 MATCH。
-- ybcs 源码 `src/legacy_gui_runtime/ybcs_offline_field_encounters.py:237-289`：定义 zone 1 与 Story source 1 的 gate cells；目标 gate cell `(72,30)` 在该组中。
-- 证据等级：S1/ybcs 绑定为 `RECOVERED_SECONDARY`，不能提升为零售 VERIFIED。
+## 1. 上传原件与 Set.lib 解包验证
 
-### 1.2 原始故事场景静态目录
+### 1.1 上传文件身份
 
-`manifests/story-battle-scenes.json:1`（JSONPath `$.zones[?(@.zone_id==1)]`）记录：
+| 文件 | 字节数 | SHA-256 | 状态 |
+|---|---:|---|---|
+| Set.lib | 112,730 | ce1bb0425b367289f144e0780147f7c63abb833733035949853ce70dfb3c82fe | VERIFIED |
+| ybcs_offline_field_encounters.py | 194,299 | 94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a | VERIFIED |
 
-- DEO：64 commands、24 CHARPOS，模型集合 `1001,1002,1003,1010,577,COM0`。
-- DEE：36 commands、6 CHARPOS，模型集合 `1001,2010,577,COM0`。
+派发方提供的原始 ZIP 来源信息：192,893,156 字节，SHA-256 d79c012177c8b1701188a90825539466d28cc18dc87b3c62361b4960b315724d。本轮没有重新上传完整 ZIP，因此该 ZIP 哈希作为派发方提供的来源信息记录，不声称本轮重新计算过 ZIP 哈希。
 
-这属于固定原始客户端故事场景资源的静态元数据（`VERIFIED-STATIC-RESOURCE`），只证明该故事场景资源包含这些模型 ID；它本身不提供战斗时的敌人数量、属性、AI 程序或逐单位视觉绑定。
+### 1.2 Set.lib 容器校验
 
-## 2. ybcs Story source 1 离线阵容候选
+按 Lapis .lib 容器格式解析：
 
-### 2.1 来源与证据限制
+- 头部目录解压长度：528 字节
+- 压缩目录长度：241 字节
+- header check：0xe8356ab8
+- 数据区起始偏移：251
+- 解压目录长度：528 字节，与头部声明一致
+- 目录项大小：44 字节
+- 成员数量：12
 
-Library 中可读到 `src/legacy_gui_runtime/ybcs_offline_field_encounters.py`（5120 行，194,299 字节）。当前云电脑没有 `/home/vileo/workspace/downloads/ybcs/extracted/`，也没有找到 `/mnt/d/nds/ybcs-offline`；因此本节使用的是 Library 源码副本，不声称是本次从云电脑原始包直接读取。
+12 个成员及解压后字节数：
 
-源码头部 `:1-24` 说明：旧归档保留 world/battle maps 与 B4000 系列角色资源，但没有零售 field-spawn table；该模块提供可替换的 single-player placement/drop policy。故以下一律标记 **RECOVERED_SECONDARY**，只作为 ybcs 单机实现候选，不是零售服务器事实。
+| 成员 | 解压字节数 |
+|---|---:|
+| ability.atr | 109,656 |
+| itemtbl.atr | 339,967 |
+| levelabl.atr | 70,666 |
+| magicatr.atr | 383 |
+| Magicptn.atr | 18,664 |
+| Magictbl.atr | 32,338 |
+| solskill.atr | 4,282 |
+| SysHelp.atr | 1,074 |
+| tileattb.atr | 2,566 |
+| tileattr.atr | 2,537 |
+| Effectptn.atr | 1,567 |
+| zone_name.txt | 4,099 |
 
-### 2.2 候选阵容
+所有 12 个成员均成功解压，解压字节数与目录项声明一致。目录中没有 .log、.jsonl 或 walkman 日志成员。
 
-源码 `:1704-1786` 的 Story source 1 定义给出：
+关键成员哈希：
 
-| ybcs Ability ID | ybcs 标签 | 数量 | 单位 HP / MP | 单位胜利金币 / 经验 | 证据 |
+| 成员 | SHA-256 | 状态 |
+|---|---|---|
+| ability.atr | 0bab4c622336378e52fb0d13b6e5d50a78f2c514d687332d47042c416a07c04b | VERIFIED |
+| levelabl.atr | 0766b9ab5c357e1e830708ca90589cbe715bf02265e185a4c6ae900eefe287dc | VERIFIED |
+| Magictbl.atr | d885bbd1bddffd3d4bf05b2b4e36232c62d94fc78209d46861b01986779ef0d9 | VERIFIED |
+| Magicptn.atr | 5affdd750873e7ccb5a364cc372870b98cde95df905140fa88aedd79155cfceb | VERIFIED |
+
+ability.atr 的 SHA-256 与仓库既有原始资源校验记录一致。
+
+### 1.3 walkman 日志核查
+
+- 本轮 Set.lib 的 12 项目录中没有独立日志文件。
+- 本轮上传的 ybcs_offline_field_encounters.py 是离线遭遇实现源码，不是实玩日志。
+- 本轮没有收到 ybcs-gui-client.jsonl、ybcs-gui-server.log 或 s2-prescan-excerpt.jsonl。
+- 因此本轮没有读取或重算 walkman 日志，也没有产生新的 6A69 实玩证据。
+- 完整 192 MB ZIP 本轮未上传，故只对已上传 Set.lib 的内部成员目录作了直接核查；不声称本轮重新扫描了完整 ZIP 的所有路径。
+
+状态：本轮提供材料中没有 walkman 原始日志；6A69 绑定仍 UNKNOWN。
+
+## 2. ability.atr 原始属性提取
+
+### 2.1 字段语义
+
+ability.atr 使用 GB18030 解码，表头包含：
+
+- 字段 0：职业 / Ability ID
+- 字段 1：职业图片 / portrait_id
+- 字段 2、3：HP、MP
+- 字段 4、6、8、10、12、14：con、wis、str、dex、int、reg
+- 字段 17：mov
+- 字段 18、19、20：hit、evasion、blow
+- 字段 21、22：mhit、melu
+- 字段 23：ran
+- 字段 24：cla
+- 字段 26–29：移动/攻击/休息/魔法 tick decrement
+- 字段 30–32：command_raw、acom_raw、pcom_raw
+- 字段 33、34：gold、EXP
+- 字段 36、37：物理伤害字段、物理防御字段
+- 字段 38、39：魔法伤害字段、魔法防御字段
+- 字段 40–43：sub_magic_raw、price、face、shadow
+- 字段 44、45：职业名称、职业描述
+
+物理与魔法字段解释也与旧资源解析代码所读取的 ability.atr 列索引一致。这里报告的是客户端资源表字段值，不把它们扩写成零售服务器最终伤害公式。
+
+### 2.2 三个目标行
+
+来源：本轮上传 Set.lib 解压后的 ability.atr。
+
+- 1001：ability.atr 第 263 行
+- 1003：ability.atr 第 265 行
+- 1010：ability.atr 第 272 行
+
+| 字段 | 1001 步兵 | 1003 枪兵 | 1010 十步长 | 状态 |
+|---|---:|---:|---:|---|
+| Ability ID | 1001 | 1003 | 1010 | VERIFIED |
+| portrait_id | 1001 | 1003 | 1010 | VERIFIED |
+| HP | 100 | 100 | 150 | VERIFIED |
+| MP | 100 | 100 | 100 | VERIFIED |
+| CON | 11 | 11 | 15 | VERIFIED |
+| WIS | 10 | 10 | 10 | VERIFIED |
+| STR | 10 | 10 | 15 | VERIFIED |
+| DEX | 11 | 11 | 15 | VERIFIED |
+| INT | 15 | 15 | 15 | VERIFIED |
+| REG | 15 | 15 | 15 | VERIFIED |
+| speed_sp | 20 | 20 | 20 | VERIFIED |
+| mov | 5 | 5 | 5 | VERIFIED |
+| hit | 100 | 100 | 109 | VERIFIED |
+| evasion | 1 | 1 | 5 | VERIFIED |
+| blow | 2 | 2 | 2 | VERIFIED |
+| mhit | 180 | 180 | 180 | VERIFIED |
+| melu | 5 | 5 | 5 | VERIFIED |
+| ran | 1 | 2 | 1 | VERIFIED |
+| cla | 0 | 0 | 0 | VERIFIED |
+| cry | 0 | 0 | 0 | VERIFIED |
+| 移动 tick decrement | 6 | 6 | 6 | VERIFIED |
+| 攻击 tick decrement | 4 | 4 | 4 | VERIFIED |
+| 休息 tick decrement | 6 | 6 | 6 | VERIFIED |
+| 魔法 tick rate | 100 | 100 | 100 | VERIFIED |
+| command_raw | 4 | 4 | 4 | VERIFIED（原始字段；语义不扩写） |
+| acom_raw | 5 | 5 | 5 | VERIFIED（原始字段；语义 UNKNOWN） |
+| pcom_raw | 3 | 3 | 3 | VERIFIED（原始字段；语义 UNKNOWN） |
+| gold | 20 | 20 | 60 | VERIFIED |
+| EXP | 50 | 50 | 150 | VERIFIED |
+| attribute | 0 | 0 | 0 | VERIFIED |
+| 物理伤害字段 | 50 | 50 | 86 | VERIFIED |
+| 物理防御字段 | 25 | 25 | 33 | VERIFIED |
+| 魔法伤害字段 | 0 | 0 | 0 | VERIFIED |
+| 魔法防御字段 | 20 | 20 | 20 | VERIFIED |
+| sub_magic_raw | 0 | 0 | 0 | VERIFIED（原始字段） |
+| price | 0 | 0 | 0 | VERIFIED |
+| face | 100 | 100 | 115 | VERIFIED |
+| shadow | 2 | 2 | 2 | VERIFIED（原始字段；具体行为不扩写） |
+| 名称 | 步兵 | 枪兵 | 十步长 | VERIFIED |
+| 描述 | 空 | 空 | 空 | VERIFIED |
+
+攻击范围取 ran 字段，移动范围取 mov 字段。不能将 hit、blow 或 raw command 字段误当成攻击力或技能 ID。
+
+### 2.3 levelabl.atr 等级与技能引用
+
+levelabl.atr 使用 CP949 解码，原始表头为韩文，明确包含 직업（职业/class）、레벨（等级）、섭마법（sub magic）、사용기술（usable skill）、고용용병（hire mercenary）等列。
+
+三条目标记录：
+
+| class_id | level | 源文件行 | sub_magic_id | usable_skill_id | hire_mercenary_id | 状态 |
+|---:|---:|---:|---:|---:|---:|---|
+| 1001 | 1 | 1012 | 0 | 0 | 0 | VERIFIED |
+| 1003 | 1 | 1014 | 0 | 0 | 0 | VERIFIED |
+| 1010 | 5 | 1021 | 0 | 0 | 0 | VERIFIED |
+
+每种目标 class 在 levelabl.atr 中只有上述一条记录。class_link_raw 分别等于自身 ID；经验字段为 0。
+
+结论：
+- 三种怪物的 level 字段已恢复，修正第一阶段“个体等级 UNKNOWN”的结论。
+- 三行没有非零的 sub_magic_id、usable_skill_id 或 hire_mercenary_id。
+- 这只证明这些明确列出的资源字段为 0；不能据此断言所有被动特性、特殊动作或服务器端技能机制均不存在。
+- ability.atr 的 acom_raw=5、pcom_raw=3、shadow=2 已原样记录，但没有足够证据为它们赋予具体技能/特性语义。
+
+因此，技能/特性完整绑定仍为 UNKNOWN。
+
+## 3. 第一阶段候选阵容复核
+
+本轮以用户指定的上传原件 ybcs_offline_field_encounters.py 为准复核。
+
+源码第 1704–1786 行仍明确记录：
+
+| Ability ID | 名称 | 数量 | ybcs 离线战斗 HP / MP | gold / EXP | 证据 |
 |---:|---|---:|---:|---:|---|
 | 1010 | 十步长 | 1 | 19 / 100 | 60 / 150 | RECOVERED_SECONDARY |
 | 1001 | 步兵 | 16 | 13 / 100 | 20 / 50 | RECOVERED_SECONDARY |
 | 1003 | 枪兵 | 3 | 13 / 100 | 20 / 50 | RECOVERED_SECONDARY |
-| **合计** | | **20** | | | RECOVERED_SECONDARY |
+| 合计 | | 20 | | | RECOVERED_SECONDARY |
 
-重要限定：
-- ybcs 源码注释说明 zone 1 的两个 `1002` 伏兵在 DEO 阶段、主阵出现前被击杀；它们是战场外观/剧情阶段单位，不应直接加入这场已启动战斗的 20 人 roster。
-- 20 人中，主敌人 1010 加前 18 个增援共 19 个位置由旧 DEO battle-handoff 位置覆盖；最后一个 1001 是明确的 ybcs 离线追加单位，保留确定性 fallback cell `(44,36)`。不能把这第 20 个单位描述为已由原始 DEO 实证。
-- encounter 的 `minimum_level=1` 是最低等级门槛，不等于每个单位都有已恢复的个体等级字段；逐单位等级仍 UNKNOWN。
-- 主敌人记录的 `basic_damage=10`、`enemy_damage=8` 是 ybcs 离线战斗参数，不是已恢复的零售攻击/防御/魔攻/魔防属性。
+重要区分：
 
-### 2.3 位置
+1. ability.atr 的原始 HP 是 100 / 100 / 150；ybcs 源码候选战斗成员 HP 是 13 / 13 / 19。两者属于不同数据字段/运行口径，不能互相覆盖。
+2. ybcs 候选 gold / EXP 与 ability.atr 对应原始字段相符；原始字段本身为 VERIFIED，但这不自动证明零售服务器如何结算整场战斗奖励。
+3. ybcs 源码明确说明 20 人中前 19 个位置使用旧 DEO handoff，最后一个 1001 是单机离线追加的 fallback 单位；不能把第 20 个单位宣称为原版 DEO 直接实证。
+4. zone 1 的两个 1002 伏兵属于 DEO 阶段、主阵出现前被处理的 presentation actors，不加入这场 20 人战斗 roster。
+5. ybcs 的 map 1030 -> Story source 1 / battleZone 1 及 gate cell 关系仍是 RECOVERED_SECONDARY，不升级为零售服务器遭遇绑定 VERIFIED。
 
-来源：
-- `src/legacy_gui_runtime/ybcs_offline_field_encounters.py:3083-3105`：旧 DEO battle-handoff cells。
-- 同文件 `:3190-3220`：handoff 位置覆盖逻辑。
-- 同文件 `:1704-1786`：阵容顺序与单位标签。
+原始 ybcs 位置仍见该文件第 3083–3105 行的 Story 1 handoff 与第 3191–3220 行的应用逻辑。第 20 个 fallback cell 为 (44,36)。
 
-玩家 handoff cell 为 `(16,62)`。下表的 `Δ` 是相对玩家的 ybcs 格子偏移 `(enemy_x-16, enemy_y-62)`；这是格子偏移，不是像素偏移。
+## 4. 6A69 AI 程序查证
 
-| 顺序 | Ability ID | 标签 | ybcs cell | 相对玩家 Δ | 位置证据 |
-|---:|---:|---|---|---|---|
-| 1 | 1010 | 十步长 | (55,21) | (+39,-41) | DEO handoff |
-| 2 | 1001 | 步兵 | (53,21) | (+37,-41) | DEO handoff |
-| 3 | 1001 | 步兵 | (57,21) | (+41,-41) | DEO handoff |
-| 4 | 1001 | 步兵 | (55,19) | (+39,-43) | DEO handoff |
-| 5 | 1001 | 步兵 | (55,23) | (+39,-39) | DEO handoff |
-| 6 | 1003 | 枪兵 | (53,29) | (+37,-33) | DEO handoff |
-| 7 | 1001 | 步兵 | (51,27) | (+35,-35) | DEO handoff |
-| 8 | 1001 | 步兵 | (55,31) | (+39,-31) | DEO handoff |
-| 9 | 1001 | 步兵 | (51,31) | (+35,-31) | DEO handoff |
-| 10 | 1001 | 步兵 | (55,27) | (+39,-35) | DEO handoff |
-| 11 | 1003 | 枪兵 | (47,23) | (+31,-39) | DEO handoff |
-| 12 | 1001 | 步兵 | (49,21) | (+33,-41) | DEO handoff |
-| 13 | 1001 | 步兵 | (45,25) | (+29,-37) | DEO handoff |
-| 14 | 1001 | 步兵 | (45,21) | (+29,-41) | DEO handoff |
-| 15 | 1001 | 步兵 | (49,25) | (+33,-37) | DEO handoff |
-| 16 | 1003 | 枪兵 | (45,31) | (+29,-31) | DEO handoff |
-| 17 | 1001 | 步兵 | (47,29) | (+31,-33) | DEO handoff |
-| 18 | 1001 | 步兵 | (42,32) | (+26,-30) | DEO handoff |
-| 19 | 1001 | 步兵 | (44,34) | (+28,-28) | DEO handoff |
-| 20 | 1001 | 步兵 | (44,36) | (+28,-26) | ybcs offline fallback addition |
+### 4.1 Set.lib 内部检索
 
-友方 handoff cells：玩家 `(16,62)`；两个 companion cells `(13,59)`、`(13,63)`。像素换算需要对应战斗网格/资源几何参数；当前证据不支持像素偏移数字，故不编造。
+对 Set.lib 解压出的全部 12 个成员进行检索：
 
-### 2.4 可恢复与不可恢复的战斗参数
+- ASCII 字符串 6A69 / 6a69：无命中。
+- 十进制 27241：无命中。
+- 两种字节序 69 6a / 6a 69：无命中。
+- ability.atr、levelabl.atr 表头没有明确的 AI program / 6A69 程序字段。
 
-| 项目 | 当前结果 | 证据等级 / 说明 |
+这只能说明本次 Set.lib 中没有可确认的逐怪 6A69 程序绑定，不能证明服务器端不存在该绑定。
+
+### 4.2 walkman 日志
+
+本轮没有 walkman 原始日志文件。不能从 Set.lib 的 Ability 行、levelabl 行或 offline policy 反推出 6A69 程序号。
+
+### 4.3 结论
+
+| 怪物 | 6A69 AI 程序号 | 状态 |
 |---|---|---|
-| 敌人 ID、y b c s 标签、候选数量 | 1010×1、1001×16、1003×3 | RECOVERED_SECONDARY；非零售 VERIFIED |
-| 个体 HP / MP | 1010：19/100；1001/1003：13/100 | RECOVERED_SECONDARY |
-| 最低等级 | encounter minimum_level=1；个体等级未知 | RECOVERED_SECONDARY / UNKNOWN |
-| 攻击、物防、魔攻、魔防 | 无可核实逐单位值 | SERVER-BOUNDARY / UNKNOWN |
-| basic_damage / enemy_damage | 仅主敌人 ybcs 离线参数 10 / 8 | RECOVERED_SECONDARY；不可等同原始攻击属性 |
-| 移动范围、普通攻击范围 | 源码构造 roster 时读取 battle profile；需 `Set.lib` 中 `ability.atr` 数据 | 当前缺原始表，UNKNOWN |
-| 技能、特性 | 当前 encounter roster 未列出逐单位技能/特性绑定 | UNKNOWN |
-| 经验 / 金币 | 主敌人 150 EXP / 60 gold；每个增援 50 EXP / 20 gold | RECOVERED_SECONDARY；逐单位离线值 |
-| AI 程序 / 6A69 | 无具体绑定号 | SERVER-BOUNDARY；见第 4 节 |
-| 视觉 Bxxxx、ANI/SPR | 1001/1003/1010 没有已确认的 Bxxxx 绑定和 ANI/SPR 槽位 | UNKNOWN；见第 5 节 |
+| 1001 步兵 | UNKNOWN | Set.lib 无绑定；无原始 walkman 日志 |
+| 1003 枪兵 | UNKNOWN | Set.lib 无绑定；无原始 walkman 日志 |
+| 1010 十步长 | UNKNOWN | Set.lib 无绑定；无原始 walkman 日志 |
 
-源码中 roster 序列化将成员 model ID 写入 resource ID，并从 profile 读取移动/攻击范围（`:4680-4705`）；这只是 ybcs 离线构造逻辑，不足以证明这些字段等于零售服务器最终战斗值。
+不得将默认 AI、Native AI 或 reconstruction 行为冒充为历史 6A69 绑定。
 
-## 3. 原始数据包与 `.atr` 核查
+## 5. Bxxxx ANI/SPR 显式视觉映射
 
-- 当前云电脑：`/home/vileo/workspace/downloads/ybcs/extracted/` 不存在；`/home/vileo/workspace/downloads/ybcs/` 不存在；`/mnt/d/nds/ybcs-offline/` 不存在。
-- 当前云电脑在 WSL home、Windows 用户目录和挂载的 D: 范围内，未找到 `Set.lib`、`ability.atr` 或 B1001/B1003/B1010 ANI 文件。
-- Drive 文件夹 `ybcs-offline-zip` 当前可读到的是解析报告，不是原始 ZIP。报告记录原包 `ybcs-offline.zip` 为 192,893,156 字节，SHA-256 `d79c012177c8b1701188a90825539466d28cc18dc87b3c62361b4960b315724d`；这是此前报告中的记录值，本轮未重新下载或重算。
-- 缺少原始 `Set.lib` / `ability.atr`，不能恢复每个单位的攻击、防御、魔攻、魔防、个体等级、移动范围、攻击范围和技能细节。不得用 S19/M7 的 reconstruction 数值填补这些空缺。
+### 5.1 Set.lib 显式引用
 
-## 4. walkman 实玩日志与 AI
+ability.atr 字段 1 的表头为“职业图片”，对应 portrait_id：
 
-- 当前云电脑未找到 walkman 原始日志文件 `ybcs-gui-client.jsonl` / `ybcs-gui-server.log` 或 `s2-prescan-excerpt.jsonl`。
-- 可检索到此前的 `s2-log-prescan-2026-11-08.md` 报告摘要：记录客户端日志 32,695,814 字节、146,427 行；三种检查方法均为 0 个 6A69 命中；6A51 有两次相同帧记录。此处是既有 prescan 摘要，不冒充本轮读取原始日志。
-- `manifests/enemy-ai-binding.json:110-114`：`concrete_historical_bindings.status=UNVERIFIED`，`entries=[]`；原因是没有保留包含历史非默认逐单位程序的 live roster/network payload。
-- 结论：无法给 1001/1003/1010 绑定任何 6A69 程序号。AI 应标记 `SERVER-BOUNDARY`，不补默认 AI 伪装成原始绑定。
+| Ability ID | ability.atr 行 | portrait_id | 显式视觉家族 | 状态 |
+|---:|---:|---:|---|---|
+| 1001 | 263 | 1001 | B1001 | VERIFIED |
+| 1003 | 265 | 1003 | B1003 | VERIFIED |
+| 1010 | 272 | 1010 | B1010 | VERIFIED |
 
-## 5. 视觉资源核查
+### 5.2 原始 ybcs 资源定位代码交叉核对
 
-- `docs/integration-notes/s17-monster-visual.md:61-68`：B4524/B4525/B4526/B4544 是人工复核的外观描述，不是 canonical retail monster/species 名称；前三者只与 zone 81 DEO token 有相关性，B4544 只与 zone 91 DEO token 有相关性。
-- 同文件 `:84-93`：视觉目录不会按数字相等自动解析；battle unit 必须携带显式 visual ID。当前 `dummy-melee -> B4524`、`dummy-ranged -> B4544` 是 M5 reconstruction training bindings。
-- `manifests/story-battle-scenes.json` 的 zone 1 模型 ID 为 1001/1002/1003/1010/577/COM0；现有 S17 人工复核没有建立这些 Chapter 1 模型到 B4524/B4525/B4526/B4544 的映射。
-- `web/src/world/ch1-world-authority.ts:42-60`：吉奥老师的 source model resource ID 是 5056，当前 B4524 只是明确标记为 `RECONSTRUCTION_POLICY` 的 NPC presentation proxy。
-- 因此不能把 B4524/B4525/B4526/B4544 直接分配给 1001/1003/1010；B1001/B1003/B1010 也不能只凭数字相等就认定存在。Chapter 1 正确视觉家族和 ANI/SPR 槽位仍 UNKNOWN。
+本轮上传的原始 ybcs_offline_field_encounters.py：
 
-## 6. 吉奥老师 NPC 是否应出现在战斗视图
+- 第 3527–3547 行：_old_ability_portrait_ids() 读取 ability.atr 的字段 0 与字段 1，构造 Ability ID -> portrait_id 映射。
+- 第 3550–3574 行：_require_model_resources() 按 portrait_id 检查 Char/B{portrait_id}_00.ani 和 .spr，并兼容四位数字文件名。
+- 该函数注释明确指出，高阶故事角色可以复用其他 portrait/art ID，因此必须读字段 1，不能要求 B<Ability ID>，也不能用数字相等代替显式绑定。
 
-- `web/src/world/ch1-world-authority.ts:52-61`：吉奥老师 placement 是 `kind='npc'`，使用其世界地图 placement。
-- `web/src/m4-runtime-integration.ts:299-315`：M4 将吉奥老师作为 Chapter 1 world visual 配置；notice 明确其 B4524 是视觉替身、`RECONSTRUCTION_POLICY`。
-- `web/src/scene.ts:583-590`：`refreshRecoveredVisualVisibility()` 对所有 world visual 使用 `!inBattleView && row.spec.mapId===mapId`；进入 battle view 时隐藏 world NPC 和 label。
-- zone 1 DEO 静态模型集合不包含 NPC entity 21003 / source model 5056。
-- 结论：吉奥老师不是这场战斗的敌人或友军；按当前场景契约不应出现在战斗视图。若抽查截图确实显示他站在战场中，应视为 world-visual visibility / battle-transition bug 或截图状态残留。本任务明确不改 NPC、地图、路线或 Quest1，因此只记录，不扩展修复范围。
+因此本次确认的是 Set.lib 的显式资源映射：
+- 1001 -> portrait 1001 -> B1001
+- 1003 -> portrait 1003 -> B1003
+- 1010 -> portrait 1010 -> B1010
 
-## 7. S19 / M7 禁用证据
+本轮上传文件没有 Char 目录或上述 ANI/SPR 原始文件，所以没有验证这些文件在完整客户端包中的实际存在、动作槽位完整性、字节数或 SHA-256。视觉家族 ID 的显式映射已解决；实际资源文件完整性未在本轮验证。
 
-- `docs/integration-notes/s19-reconstruction-combat-balance.md:15-19` 明确所有推导战斗公式和调参值均为 `RECONSTRUCTION_POLICY`，不能描述为原始零售服务器公式。
-- 同文件 `:183-191` 将历史逐怪服务器属性、历史奖励/经验曲线、最终怪物 roster/视觉绑定列为尚待证据的工作。
-- `data/monsters/m7-monster-catalog.json:165-175`：`visualBinding`、`descriptiveIdentity`、`combatNumbers`、`aiBehavior`、`abilities` 均为 `RECONSTRUCTION_POLICY`；`retailEnemyStats`、`retailEnemyAi`、`fieldEncounterBinding` 为 `SERVER-BOUNDARY`。
-- 本报告没有把 M7/S19 数值用于候选 roster，也没有把 B4524/B4544 training bindings 当作 Chapter 1 怪物绑定。
+S17 的 B4524/B4525/B4526/B4544 仍不能替代这三条映射，也没有按数字相等进行推断。
 
-## 8. 阶段裁定
+## 6. 吉奥老师 NPC 21003 visibility bug
+
+第一阶段已有结论仍保留：
+
+- 吉奥老师不是 Story source 1 的敌人或友军。
+- 原场景规则要求 world NPC 在 battle view 中隐藏。
+- 先前检查的 web/src/scene.ts visibility 条件与该要求一致；若实际截图仍出现吉奥老师，应调查 battle transition / world visual visibility 状态。
+
+本轮由于怪物数据门槛仍 BLOCKED，遵守“不得改任何代码”的要求：
+- 未修改 web/src/scene.ts。
+- 未新增回归测试。
+- 未运行测试或实机验证。
+- visibility bug 状态：**未修复，仍待独立处理**。
+
+## 7. 阶段裁定与执行记录
 
 **verdict: BLOCKED**
 
-理由不是“完全没有怪物 ID”：y b c s 离线源码确实给出 20 人候选 roster。但该 roster 是 `RECOVERED_SECONDARY` 的离线 placement/drop policy，其中第 20 个单位是明确的离线追加；原始 `.atr`、原始 walkman 日志和 Chapter 1 的显式 Bxxxx/ANI/SPR 视觉绑定均缺失。若现在改代码，就必须猜测至少一项关键视觉/战斗属性/AI 绑定，违反本任务证据规则。
+已解决：
+- Set.lib 原件成功解析。
+- 1001 / 1003 / 1010 的 ability.atr 原始属性字段。
+- levelabl.atr 等级字段。
+- mov / ran 移动和攻击范围字段。
+- gold / EXP 原始字段。
+- 1001 -> B1001、1003 -> B1003、1010 -> B1010 显式 portrait 资源映射。
+- Set.lib 内没有独立 walkman 日志成员。
 
-执行结果：
-- 第一阶段：查证报告完成。
-- 第二阶段：未执行；没有代码、binding、断言或 S42 期望值改动。
-- 第三阶段：未执行；typecheck、单元测试、build、S42 E2E 均未运行；没有生成 s42x-07/08/09/10 截图。
-- GitHub：只新增本报告到指定分支；不创建 PR（硬门槛 BLOCKED），不合并、不动 main、不碰 ViLeo06 仓库。
-- 当前 S42 基线仍是任务说明中的 dummy-melee / dummy-ranged 占位战斗。
+仍缺：
+- 三种怪物的技能/特性完整语义；levelabl 明确技能引用字段为 0，但 acom_raw / pcom_raw 等字段尚不能解码为具体技能。
+- 三种怪物的 6A69 AI 程序号；Set.lib 无直接绑定，walkman 原始日志未提供。
+- 实际 Char ANI/SPR 文件字节与哈希未验证；Set.lib 显式 portrait 映射已确认。
 
-## 9. 解阻所需材料
+由于 1) 逐怪技能/AI 仍有缺项，不能通过第二阶段的代码修改硬门槛。
 
-满足以下材料后才能重新评估第二阶段：
-1. 将原始 `ybcs-offline.zip` 或解压目录恢复到当前云电脑，并可读到 `runtime/client/NRes/Set.lib` / `ability.atr`。
-2. 提供/恢复 walkman 原始 `ybcs-gui-client.jsonl`、`ybcs-gui-server.log` 和 prescan excerpt，以便重新核实 S2 序列及 6A69 / roster program。
-3. 提供 Chapter 1 模型 1001/1003/1010 到实际 Bxxxx ANI/SPR 槽位的显式绑定证据；不得以数字相等或 S17 的 zone81/91 人工样本替代。
+本轮执行：
+- 第二阶段代码修改：未执行。
+- S42 预期、binding、测试断言：未修改。
+- 吉奥老师 scene.ts 修复：未执行。
+- typecheck：未运行。
+- 单元测试：未运行。
+- build：未运行。
+- S42 单链：未运行。
+- s42x-07 / 08 / 09 / 10：未生成。
+- HP 13/125 与返回 125/125 的旧疑点：未复测。
+- PR：未创建。
+- 合并：未执行。
+- main：保持 95c07edad560729c965941a961fb666b47c29197。
+- ViLeo06 主号仓库：未访问、未修改。
+
+## 8. 后续解阻条件
+
+重新申请代码阶段前，至少需要：
+
+1. walkman 原始日志或其他可信的逐怪 AI 程序证据，以确认 1001 / 1003 / 1010 的 6A69 绑定；不能从 Set.lib 的空白字段或默认 AI 推断。
+2. 能够明确解释 ability.atr 的 acom_raw / pcom_raw 及相关字段，或提供能证明这些字段不代表目标技能/特性的原始资料。
+3. 如需完成真实视觉文件验收，再提供 Char/B1001、B1003、B1010 对应 ANI/SPR 文件或完整客户端资源目录。
+
+在这些证据补齐前，继续保持 BLOCKED，不改代码、不创建 PR。
