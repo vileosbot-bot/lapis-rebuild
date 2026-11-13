@@ -14,6 +14,7 @@
 - M8.0 集成 PR #75 head `017dc629af6094ce27946ada0c05191d05ca88d7`：Cloudflare Pages static smoke run `36188231126` success；Web and parser validation run `36188231235` success，其中 parser、typecheck、unit、production build、Chromium integration/offline 全部通过；`private-original` 按 PR 条件 skipped，不记作通过。
 - M8.0 主线 merge commit：`5f7896ffa89726a0ab864b5a9f5034047ce4fd04`。后续开发从该 main 新建分支。
 - Worker 执行模式同时升级：并行 Worker 默认只使用 GitHub/CI/在线工具；禁止使用 Desktop Commander 或用户本地电脑作为开发执行环境。仅主 Session 在明确集成排障/恢复未上传成果时可例外。
+- 2026-11-13 ch1-monster-fix-20261113-05：S42 A08 运行时 binding 已通过；此前缺字段由 Playwright 复用其他工作目录的 4173 旧预览服务导致。现已为 commit-stamped S42 使用独立 4182 端口、禁止复用并启用 strictPort。真实战斗进入 A09 后失败（玩家 HP 125→0、6 次行动、击杀 0/20、金币 0、EXP 0/500）；未改任何怪物或战斗数值，未生成 s42x-10。下一步须单独评估战斗平衡，本任务未调整。
 
 - `main` 已收口 PR #2/#3/#4/#5，以及第一波并行考古 PR #7–#11（S1 Encounter、S2 Enemy AI、S3 Damage、S4 Quest/NPC、S5 Visual）。
 - M0/G0：完成。安装包、精确 payload、全量静态展开、哈希和主要解析器均可复现。

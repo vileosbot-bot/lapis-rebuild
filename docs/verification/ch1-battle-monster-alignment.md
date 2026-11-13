@@ -469,3 +469,47 @@ S42 真实浏览器结果：
 - Production build：PASS，exit 0；仍有既有 JSON import-attributes 与 chunk-size warning。
 
 本轮仅执行一次最终版本 S42 单链，未再次重跑；未修改任何代码、战斗数值、HP 口径、攻防、技能或 AI 策略；未运行原版客户端；未修改主号仓库；未合并、未部署。
+
+
+## 11. ch1-monster-fix-20261113-05｜A08 binding 修复与 S42 单链结果（2026-11-13）
+
+### 11.1 根因
+
+目标分支源码 web/src/m4-runtime-integration.ts 在本轮开始前已从 binding manifest 读取并装配 rosterBindingId、rosterUnitCount、monsterSkillPolicy、aiProvenance，战斗入口与 runtime snapshot 均包含这四项。A08 缺字段并非 manifest 或战斗数值缺失。
+
+实际根因是 web/playwright.config.ts 默认使用 127.0.0.1:4173，且非 CI 时允许 reuseExistingServer。本机 4173 当时由另一个工作目录 /tmp/lapis-rebuild-b3-auto-3-2-batch2/web 的旧 Vite preview 占用；目标 S42 工作目录的旧 preview 另在 4175。此前 S42 因此可能读取了错误工作目录的旧构建。
+
+### 11.2 修复
+
+提交 d0eadd762eb50ab10ec7f75add5883430d28de70（test(s42): isolate acceptance preview server）只修改 web/playwright.config.ts：
+
+- 当设置 S42_TESTED_COMMIT_SHA 时，使用专用端口 4182；
+- 禁止复用既有 preview server；
+- 启用 Vite --strictPort，端口冲突时直接失败；
+- 普通 E2E 测试仍使用原 4173 端口及既有复用策略。
+
+本次未修改 m4-runtime-integration.ts、battle.ts、binding manifest、roster、怪物数值、HP 口径、攻防、技能、AI、站位或奖励。
+
+### 11.3 验证结果
+
+- TypeScript typecheck：PASS，exit 0。
+- 单元测试：375 passed / 0 failed / 0 skipped。
+- Production build：PASS，exit 0；保留既有 JSON import-attributes 与 chunk-size warning。
+- S42：仅运行一次，tested commit d0eadd762eb50ab10ec7f75add5883430d28de70，1 spec / 1 worker，运行 428.30 秒，exit 1。
+- A08：PASS。四个 runtime binding 字段均通过断言；battleZone 1 的 20 单位阵容与模型数量断言通过。
+- A09：FAIL。真实战斗结束阶段为 lost，断言期望 won。没有修改数值、没有重试。
+- 实测：玩家 HP 125/125 → 0/125（净变化 -125）；玩家行动 6；击杀 0/20；金币 0；EXP 0/500；MP 100/100。终局当前目标 ch1-s1-1001-14 HP 46/100。
+- 未取得胜利，未返回 map1060；s42x-10-return-map1060.png 未生成。A10/A11 未执行。
+- 实际 preview 进程运行在 127.0.0.1:4182，命令来自本次独立工作目录。注意：S42 spec 中 environment.preview 的文字仍硬编码为 4173，该字段与本次实际端口不一致；本次以 Playwright 实际配置和监听进程为准。
+
+### 11.4 本次战斗截图
+
+以下为本次唯一 S42 运行生成的截图，另存于独立目录，未覆盖 §10 的旧版截图：
+
+| 文件 | 字节数 | SHA-256 |
+|---|---:|---|
+| docs/verification/screenshots/ch1-monster-fix-20261113-binding-fix-20261113-05/s42x-07-battle-entry.png | 2,390,115 | 818880ab2d96e8b48cec612417b4889cca98e4c80d1537ea359e69f721b3c619 |
+| docs/verification/screenshots/ch1-monster-fix-20261113-binding-fix-20261113-05/s42x-08-battle-in-progress.png | 2,396,983 | d58e3c2cdcd13d6c7487366cfe9a9ce588ce96653f2056b60f0d13e4edfa7319 |
+| docs/verification/screenshots/ch1-monster-fix-20261113-binding-fix-20261113-05/s42x-09-not-victory.png | 2,510,839 | 9c9ba80f584e6ce547377dc97557baf8aeba1ac821e432344a8c47b9fde64f39 |
+
+S42 未胜利，因此不生成 s42x-10。真实战斗失败是本次实测结果，不代表 A08 binding 修复失败；战斗平衡留待单独授权的后续任务。
