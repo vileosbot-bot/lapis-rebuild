@@ -490,8 +490,8 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
     runtimeVerified:false,
   });
   expect(battleRuntime.chapter1StorySource1).toMatchObject({
-    deploymentLocalCell:[16,62],
-    deploymentHostileCell:[55,21],
+    deploymentLocalCell:[34,44],
+    deploymentHostileCell:[52,24],
     deploymentApplied:true,
     rosterBindingId:CH1_STORY_ONE_BATTLE_BINDING.binding_id,
     rosterUnitCount:20,
@@ -512,7 +512,6 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
   });
   expect(battleScene.battleEntryProvenance).toBe('RECOVERED_SECONDARY');
   expect(battleRuntime.chapter1StorySource1.mapToBattleZoneRetailVerified).toBe(false);
-  expect(battleScene.battleCell).toEqual([16,62]);
   expect(battleScene.enemies).toHaveLength(20);
   const expectedFormation=CH1_STORY_ONE_BATTLE_BINDING.formation.map(row=>[row.model_id,row.position[0],row.position[1]]);
   const actualFormation=battleScene.enemies.map((enemy:AnyRecord)=>[Number(String(enemy.id).split('-')[2]),enemy.cell[0],enemy.cell[1]]);

@@ -108,7 +108,6 @@ export type ReconstructionBattleSetup={
   enemyLevel?:number;
   enemyRank?:EnemyRank;
   enemies?:readonly ReconstructionEnemySetup[];
-  playerPosition?:Cell;
 };
 
 export type BattleState = {

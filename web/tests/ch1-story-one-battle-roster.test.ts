@@ -20,7 +20,6 @@ const EXPECTED_FORMATION:readonly (readonly [number,number,number])[]=[
 test('Chapter 1 Story source 1 uses the 20-unit verified-stat and explicit-portrait binding',()=>{
   const binding=CH1_STORY_ONE_BATTLE_BINDING;
   assert.equal(binding.binding_id,'ch1-story-one-battle-20261113');
-  assert.deepEqual(binding.player_position,[16,62]);
   assert.deepEqual(binding.formation.map(row=>[row.model_id,row.position[0],row.position[1]]),EXPECTED_FORMATION);
   assert.deepEqual(binding.summary,{unit_count:20,counts_by_model:{'1001':16,'1003':3,'1010':1}});
   assert.equal(binding.monster_skill_policy.mode,'NONE');
@@ -63,7 +62,6 @@ test('Chapter 1 Story source 1 uses the 20-unit verified-stat and explicit-portr
 
 test('Chapter 1 setup instantiates all 20 positioned monsters with the reconstructed default AI',()=>{
   const setup=buildChapter1StoryOneBattleSetup('100',1);
-  assert.deepEqual(setup.playerPosition,[16,62]);
   assert.equal(setup.enemies?.length,20);
   const entry:BattleEntry={battleZoneId:1,provenance:'RECOVERED_SECONDARY',authority:'offline-reconstruction'};
   const state=beginBattle(0,0,entry,setup);

@@ -29,7 +29,6 @@ type Chapter1FormationRow=Readonly<{
 
 export type Chapter1StoryOneBattleBinding=Readonly<{
   binding_id:string;
-  player_position:readonly [number,number];
   monster_types:Readonly<Record<string,Chapter1MonsterType>>;
   formation:readonly Chapter1FormationRow[];
   summary:Readonly<{unit_count:number;counts_by_model:Readonly<Record<string,number>>}>;
@@ -43,7 +42,6 @@ export const CH1_STORY_ONE_BATTLE_BINDING=bindingJson as unknown as Chapter1Stor
 const asCell=(cell:readonly [number,number]):Cell=>Object.freeze([cell[0],cell[1]]) as Cell;
 
 export const CH1_STORY_ONE_BATTLE_CELLS:readonly Cell[]=Object.freeze([
-  asCell(CH1_STORY_ONE_BATTLE_BINDING.player_position),
   ...CH1_STORY_ONE_BATTLE_BINDING.formation.map(row=>asCell(row.position)),
 ]);
 
@@ -83,7 +81,6 @@ export function buildChapter1StoryOneBattleSetup(
     playerClassId,
     level,
     equipment,
-    playerPosition:asCell(binding.player_position),
     enemies,
   };
 }

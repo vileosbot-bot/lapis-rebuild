@@ -762,8 +762,7 @@ export class LabScene extends Phaser.Scene {
     this.mapId=entry.battleZoneId;
     this.mapImage.setTexture(mapTextureKey(this.mapId));
     this.battleFocus=layout.focus;
-    const playerCell=this.reconstructionBattleSetup?.playerPosition??layout.player;
-    const pos=referenceCellToScreen(playerCell);this.anchor={x:pos[0],y:pos[1]};
+    const pos=referenceCellToScreen(layout.player);this.anchor={x:pos[0],y:pos[1]};
     this.route=[];
     this.state=beginBattle(this.anchor.x,this.anchor.y,entry,this.reconstructionBattleSetup);
     layout.enemies.forEach((cell,i)=>{

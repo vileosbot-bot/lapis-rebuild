@@ -1,0 +1,433 @@
+{
+  "schema": 1,
+  "binding_id": "ch1-story-one-battle-20261113",
+  "status": "OWNER_APPROVED_SINGLE_PLAYER_RECONSTRUCTION",
+  "scope": {
+    "story_source_id": "story-source-1",
+    "field_map_id": 1030,
+    "gate_cell": [
+      72,
+      30
+    ],
+    "battle_zone_id": 1
+  },
+  "sources": {
+    "original_archive": {
+      "file": "ybcs-offline.zip",
+      "bytes": 192893156,
+      "sha256": "d79c012177c8b1701188a90825539466d28cc18dc87b3c62361b4960b315724d",
+      "evidence": "VERIFIED"
+    },
+    "ability_atr": {
+      "file": "Set.lib::ability.atr",
+      "bytes": 109656,
+      "sha256": "0bab4c622336378e52fb0d13b6e5d50a78f2c514d687332d47042c416a07c04b",
+      "evidence": "VERIFIED",
+      "target_rows": {
+        "1001": 263,
+        "1003": 265,
+        "1010": 272
+      }
+    },
+    "levelabl_atr": {
+      "file": "Set.lib::levelabl.atr",
+      "bytes": 70666,
+      "sha256": "0766b9ab5c357e1e830708ca90589cbe715bf02265e185a4c6ae900eefe287dc",
+      "evidence": "VERIFIED",
+      "target_rows": {
+        "1001": 1012,
+        "1003": 1014,
+        "1010": 1021
+      }
+    },
+    "encounter_formation": {
+      "file": "ybcs_offline_field_encounters.py",
+      "bytes": 194299,
+      "sha256": "94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a",
+      "line_range": [
+        1704,
+        1786
+      ],
+      "evidence": "RECOVERED_SECONDARY",
+      "deo_handoff_locator": "ybcs_offline_field_encounters.py:L3083-L3105; _apply_old_deo_battle_handoff:L3191-L3220"
+    },
+    "visual_binding": {
+      "source": "ability.atr field 1 (portrait_id / 职业图片)",
+      "evidence": "VERIFIED",
+      "note": "Explicit resource reference; not an automatic numeric-equality join."
+    }
+  },
+  "hp_source_policy": {
+    "source": "ability.atr field 2 (HP)",
+    "evidence": "VERIFIED",
+    "values": {
+      "1001": 100,
+      "1003": 100,
+      "1010": 150
+    },
+    "prohibited_alternative": {
+      "source": "ybcs offline battle member HP",
+      "values": {
+        "1001": 13,
+        "1003": 13,
+        "1010": 19
+      },
+      "evidence": "RECOVERED_SECONDARY",
+      "note": "Do not use this alternate battle-policy HP in the Chapter 1 runtime binding."
+    }
+  },
+  "position_policy": {
+    "first_19": "DEO handoff cells",
+    "unit_20": "YBCS offline fallback addition",
+    "evidence": "RECOVERED_SECONDARY",
+    "deo_handoff_locator": "ybcs_offline_field_encounters.py:L3083-L3105; _apply_old_deo_battle_handoff:L3191-L3220"
+  },
+  "role_rank_policy": {
+    "role": "melee",
+    "rank": "normal",
+    "provenance": "RECONSTRUCTION_POLICY",
+    "note": "Offline runtime classification only; not a recovered retail rank/role assertion."
+  },
+  "monster_skill_policy": {
+    "mode": "NONE",
+    "scope": "all monsters in the Lapis single-player build",
+    "provenance": "OWNER_DECISION",
+    "decision_date": "2026-11-13",
+    "note": "Owner-approved simplification. Do not add per-monster skill or ability fields."
+  },
+  "ai_policy": {
+    "mode": "existing-default-reconstruction",
+    "binding": "trainingAiBinding",
+    "source": "reconstruction",
+    "program": "ODNORMAL REST(20),ATTACK(80)",
+    "provenance": "RECONSTRUCTION_POLICY",
+    "historical_6a69_binding": "NOT_ASSERTED"
+  },
+  "reward_policy": {
+    "runtime_settlement": "not-applied",
+    "provenance": "RECONSTRUCTION_POLICY",
+    "raw_source_sum": {
+      "gold": 440,
+      "exp": 1100,
+      "evidence": "RECOVERED_SECONDARY",
+      "note": "Derived from the recovered 20-unit formation counts and VERIFIED ability.atr gold/EXP fields; not the runtime payout."
+    }
+  },
+  "monster_types": {
+    "1001": {
+      "model_id": 1001,
+      "name": "步兵",
+      "level": 1,
+      "hp": 100,
+      "mp": 100,
+      "attack": 50,
+      "defense": 25,
+      "magic_attack": 0,
+      "magic_defense": 20,
+      "movement_range": 5,
+      "attack_range": 1,
+      "gold": 20,
+      "exp": 50,
+      "visual_resource_id": 1001,
+      "portrait_source": "ability.atr field 1 (portrait_id)",
+      "visual_assets": {
+        "00": {
+          "ani_sha256": "73245e271210c84518fadf313583aa7b774fb3e61f1b490a521aa04074a1de9c",
+          "spr_sha256": "03d62868ede9777a868588226679c42b5166c85c0675937039b491c757c04902"
+        },
+        "01": {
+          "ani_sha256": "713021fd30a02003160d9625d9eb0a1127fc86a69634befbd679a9c78c9f0d50",
+          "spr_sha256": "4a00a2a52a451c3129f289cb559e78b08120880bcc8c77cea32b4a64b5be68e7"
+        },
+        "02": {
+          "ani_sha256": "1dfed2ace8bc5033db5db127cddfa38c947dbd1d983c20864b107acea5c086a5",
+          "spr_sha256": "4c558124f369182696a7e957cb1d738a782bdd1500989ac9c0a76b84c09c373e"
+        },
+        "03": {
+          "ani_sha256": "56580dbeb0ef9707106f1977dd2488070dc0318098d778c8942eeb86f6b347c8",
+          "spr_sha256": "7b1841f9efb71b28633c5412763266c2d40c25dfc79735059ea3695009aed47e"
+        }
+      }
+    },
+    "1003": {
+      "model_id": 1003,
+      "name": "枪兵",
+      "level": 1,
+      "hp": 100,
+      "mp": 100,
+      "attack": 50,
+      "defense": 25,
+      "magic_attack": 0,
+      "magic_defense": 20,
+      "movement_range": 5,
+      "attack_range": 2,
+      "gold": 20,
+      "exp": 50,
+      "visual_resource_id": 1003,
+      "portrait_source": "ability.atr field 1 (portrait_id)",
+      "visual_assets": {
+        "00": {
+          "ani_sha256": "517010c5437552c55a580e0d08a240840a0b6447a15c2859b8b80846db202f54",
+          "spr_sha256": "1acbfa20969f726dc83c836b4df9a8acfe24316a1f017ffc1c302d2e67e5ecf4"
+        },
+        "01": {
+          "ani_sha256": "8ac5693b517b6665c877dd511bee058dc031aa751a2e12959a612dabc2d6fceb",
+          "spr_sha256": "105931c34b70bee45a4d452e30443a8580e0e74c439ba652c7c3ccd39965b494"
+        },
+        "02": {
+          "ani_sha256": "c632bae56f8b3971a0385f9c0edebb1284175112b1c76018c940e2ea128dfb06",
+          "spr_sha256": "f7876d27e2de8ec369f9a396e7c88ebe52803181083cee3d4615cd944a89bd8b"
+        },
+        "03": {
+          "ani_sha256": "76909bd0c13ec909f302d81430bdef0de3b6a74b81f300e69d0bcc7b034c5cc1",
+          "spr_sha256": "28ef748e27e6c593ae40304d1f83802c8fd76cab73b8e8d2ff3eb1c90564556b"
+        }
+      }
+    },
+    "1010": {
+      "model_id": 1010,
+      "name": "十步长",
+      "level": 5,
+      "hp": 150,
+      "mp": 100,
+      "attack": 86,
+      "defense": 33,
+      "magic_attack": 0,
+      "magic_defense": 20,
+      "movement_range": 5,
+      "attack_range": 1,
+      "gold": 60,
+      "exp": 150,
+      "visual_resource_id": 1010,
+      "portrait_source": "ability.atr field 1 (portrait_id)",
+      "visual_assets": {
+        "00": {
+          "ani_sha256": "f4d255c425e7e830c395d96604cb46ad03bcfdc63764a5c61dc12664485f8c40",
+          "spr_sha256": "068fd8145f02cb89b832bf2262400946c9c9f96f1bfb4c5cbcfd6bbba9fae700"
+        },
+        "01": {
+          "ani_sha256": "0d8d759901e63c1367551c2a08cf4fa5d6b36d64fa33e06f1adc3e4786465ea5",
+          "spr_sha256": "8cb947e17d9f83f174262e973e6d62089b36bfeb30a33d64e6f04b5700d21ed6"
+        },
+        "02": {
+          "ani_sha256": "e981c8bf5325b4da68b98fb1e5f86ff868b6157178ce2208d597629ce67aeab7",
+          "spr_sha256": "9db5476ebe985e9f58dae1b6ae982944489928e682443755ad44a255b6ace079"
+        },
+        "03": {
+          "ani_sha256": "769caf80316bd93f1a8bad51c7710d5d2c9c48efbf064998262ba4f89d05ebe2",
+          "spr_sha256": "786e1742f3f3bd81745b95228a678a0baeb4eac8201e75a1c145f051e0059caa"
+        }
+      }
+    }
+  },
+  "formation": [
+    {
+      "unit_id": "ch1-s1-1010-01",
+      "model_id": 1010,
+      "position": [
+        55,
+        21
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-01",
+      "model_id": 1001,
+      "position": [
+        53,
+        21
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-02",
+      "model_id": 1001,
+      "position": [
+        57,
+        21
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-03",
+      "model_id": 1001,
+      "position": [
+        55,
+        19
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-04",
+      "model_id": 1001,
+      "position": [
+        55,
+        23
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1003-01",
+      "model_id": 1003,
+      "position": [
+        53,
+        29
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-05",
+      "model_id": 1001,
+      "position": [
+        51,
+        27
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-06",
+      "model_id": 1001,
+      "position": [
+        55,
+        31
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-07",
+      "model_id": 1001,
+      "position": [
+        51,
+        31
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-08",
+      "model_id": 1001,
+      "position": [
+        55,
+        27
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1003-02",
+      "model_id": 1003,
+      "position": [
+        47,
+        23
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-09",
+      "model_id": 1001,
+      "position": [
+        49,
+        21
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-10",
+      "model_id": 1001,
+      "position": [
+        45,
+        25
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-11",
+      "model_id": 1001,
+      "position": [
+        45,
+        21
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-12",
+      "model_id": 1001,
+      "position": [
+        49,
+        25
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1003-03",
+      "model_id": 1003,
+      "position": [
+        45,
+        31
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-13",
+      "model_id": 1001,
+      "position": [
+        47,
+        29
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-14",
+      "model_id": 1001,
+      "position": [
+        42,
+        32
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-15",
+      "model_id": 1001,
+      "position": [
+        44,
+        34
+      ],
+      "position_source": "DEO handoff",
+      "position_evidence": "RECOVERED_SECONDARY"
+    },
+    {
+      "unit_id": "ch1-s1-1001-16",
+      "model_id": 1001,
+      "position": [
+        44,
+        36
+      ],
+      "position_source": "YBCS offline fallback addition",
+      "position_evidence": "RECOVERED_SECONDARY"
+    }
+  ],
+  "summary": {
+    "unit_count": 20,
+    "counts_by_model": {
+      "1001": 16,
+      "1003": 3,
+      "1010": 1
+    }
+  }
+}
