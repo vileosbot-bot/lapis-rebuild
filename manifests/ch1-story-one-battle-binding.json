@@ -76,11 +76,6 @@
       "note": "Do not use this alternate battle-policy HP in the Chapter 1 runtime binding."
     }
   },
-  "player_position": [
-    16,
-    62
-  ],
-  "player_position_evidence": "RECOVERED_SECONDARY",
   "position_policy": {
     "first_19": "DEO handoff cells",
     "unit_20": "YBCS offline fallback addition",
