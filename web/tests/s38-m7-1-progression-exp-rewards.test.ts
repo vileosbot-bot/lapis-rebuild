@@ -61,11 +61,16 @@ test('S38 fixed-hash levelabl EXP authority is identical for swordsman and wizar
   assert.equal(m71AuthoredExperienceValue(65),16939705);
 });
 
+
+test('S43 M7.1 cumulative thresholds are not accumulated a second time',()=>{
+  assert.deepEqual([1,2,3,4,5,6].map(level=>m71TotalExpForLevel(level)),[0,500,1000,2250,4125,6300]);
+});
+
 test('S38 authored per-level reconstruction crosses every required M7.1 boundary exactly',()=>{
   for(const toLevel of [2,6,16,26,36,46,56,65]){
     const fromLevel=toLevel-1;
     const state={level:fromLevel,exp:m71TotalExpForLevel(fromLevel),policyId:M71_EXPERIENCE_POLICY.id};
-    const result=applyExperience(state,m71AuthoredExperienceValue(fromLevel));
+    const result=applyExperience(state,m71AuthoredExperienceValue(fromLevel)-m71TotalExpForLevel(fromLevel));
     assert.equal(result.state.level,toLevel,fromLevel+' -> '+toLevel);
     assert.deepEqual(result.levelUps.map(event=>event.toLevel),[toLevel]);
   }
@@ -86,7 +91,9 @@ test('S38 legacy progression migrates by level and fractional progress without c
   const migrated=migrateProgressionToM71(legacy);
   assert.equal(migrated.policyId,M71_EXPERIENCE_POLICY.id);
   assert.equal(migrated.level,legacyLevel);
-  const expected=m71TotalExpForLevel(legacyLevel)+Math.floor(m71AuthoredExperienceValue(legacyLevel)/2);
+  const nextThreshold=m71AuthoredExperienceValue(legacyLevel);
+  const currentThreshold=m71TotalExpForLevel(legacyLevel);
+  const expected=currentThreshold+Math.floor((nextThreshold-currentThreshold)/2);
   assert.equal(migrated.exp,expected);
 });
 

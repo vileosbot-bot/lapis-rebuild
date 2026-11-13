@@ -1,4 +1,5 @@
 import {M71_EXPERIENCE_POLICY} from './m7-1-experience-policy.ts';
+import {attributePointsGrantedAtLevel} from './attribute-points.ts';
 import {grantItem, validateInventory} from './inventory.ts';
 import type {InventoryState} from './inventory.ts';
 import {applyExperience, validateProgression} from './progression.ts';
@@ -27,6 +28,7 @@ export type RewardEvent =
   | {type: 'quest_flag'; flag: string; source: RewardSource}
   | {type:'exp';amount:number;source:RewardSource}
   | {type:'skill_point';amount:1;level:number;source:RewardSource;provenance:'RECONSTRUCTION_POLICY'}
+  | {type:'attribute_point';amount:number;level:number;source:RewardSource;provenance:'RECONSTRUCTION_POLICY'}
   | LevelUpEvent;
 export type RewardApplication = { state: RewardState; events: RewardEvent[]; applied: boolean };
 
@@ -89,6 +91,7 @@ export function applyRewardBundle(state: RewardState, bundle: RewardBundle): Rew
     events.push(levelUp);
     if(expResult.state.policyId===M71_EXPERIENCE_POLICY.id){
       events.push({type:'skill_point',amount:1,level:levelUp.toLevel,source:reward.source,provenance:'RECONSTRUCTION_POLICY'});
+      events.push({type:'attribute_point',amount:attributePointsGrantedAtLevel(levelUp.toLevel),level:levelUp.toLevel,source:reward.source,provenance:'RECONSTRUCTION_POLICY'});
     }
   }
   const questFlags = {...current.questFlags};

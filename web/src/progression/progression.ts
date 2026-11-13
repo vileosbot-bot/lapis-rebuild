@@ -55,7 +55,7 @@ export function migrateProgressionToM71(state:ProgressionState):ProgressionState
   const legacyNext=totalExpForLevel(current.level+1,RECONSTRUCTION_PROGRESSION_POLICY.id);
   const legacyRequirement=legacyNext-legacyStart;
   const legacyProgress=current.exp-legacyStart;
-  const authoredRequirement=m71AuthoredExperienceValue(current.level);
+  const authoredRequirement=m71AuthoredExperienceValue(current.level)-m71TotalExpForLevel(current.level);
   const scaledProgress=Math.floor((legacyProgress/legacyRequirement)*authoredRequirement);
   const exp=m71TotalExpForLevel(current.level)+Math.min(authoredRequirement-1,Math.max(0,scaledProgress));
   return validateProgression({level:current.level,exp,policyId:M71_EXPERIENCE_POLICY.id});

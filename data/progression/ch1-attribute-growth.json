@@ -1,0 +1,1728 @@
+{
+  "schemaVersion": 1,
+  "id": "m7-2-ch1-attribute-growth-v1",
+  "source": {
+    "container": "Set.lib",
+    "containerSha256": "ce1bb0425b367289f144e0780147f7c63abb833733035949853ce70dfb3c82fe",
+    "member": "levelabl.atr",
+    "memberSha256": "0766b9ab5c357e1e830708ca90589cbe715bf02265e185a4c6ae900eefe287dc",
+    "sourceAbilityId": 100,
+    "sourceRows": "physical lines 2-101",
+    "evidenceLevel": "RECOVERED_SECONDARY"
+  },
+  "runtimePolicy": {
+    "id": "m7-2-attribute-growth-runtime-v1",
+    "provenance": "RECONSTRUCTION_POLICY",
+    "enabledLevelRange": [
+      1,
+      65
+    ],
+    "importedLevelRange": [
+      1,
+      100
+    ],
+    "note": "Rows 66-100 are retained as source-derived data only; runtime progression remains capped at Lv65."
+  },
+  "rows": [
+    {
+      "level": 1,
+      "sourceAbilityId": 100,
+      "sourceRank": 1,
+      "sourceRow": 2,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 1,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 2,
+      "sourceAbilityId": 100,
+      "sourceRank": 2,
+      "sourceRow": 3,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 1,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 3,
+      "sourceAbilityId": 100,
+      "sourceRank": 3,
+      "sourceRow": 4,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 1,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 4,
+      "sourceAbilityId": 100,
+      "sourceRank": 4,
+      "sourceRow": 5,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 1,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 5,
+      "sourceAbilityId": 100,
+      "sourceRank": 5,
+      "sourceRow": 6,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 1,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 6,
+      "sourceAbilityId": 100,
+      "sourceRank": 6,
+      "sourceRow": 7,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 7,
+      "sourceAbilityId": 100,
+      "sourceRank": 7,
+      "sourceRow": 8,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 8,
+      "sourceAbilityId": 100,
+      "sourceRank": 8,
+      "sourceRow": 9,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 9,
+      "sourceAbilityId": 100,
+      "sourceRank": 9,
+      "sourceRow": 10,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 10,
+      "sourceAbilityId": 100,
+      "sourceRank": 10,
+      "sourceRow": 11,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 11,
+      "sourceAbilityId": 100,
+      "sourceRank": 11,
+      "sourceRow": 12,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 12,
+      "sourceAbilityId": 100,
+      "sourceRank": 12,
+      "sourceRow": 13,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 13,
+      "sourceAbilityId": 100,
+      "sourceRank": 13,
+      "sourceRow": 14,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 14,
+      "sourceAbilityId": 100,
+      "sourceRank": 14,
+      "sourceRow": 15,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 15,
+      "sourceAbilityId": 100,
+      "sourceRank": 15,
+      "sourceRow": 16,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 16,
+      "sourceAbilityId": 100,
+      "sourceRank": 16,
+      "sourceRow": 17,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 17,
+      "sourceAbilityId": 100,
+      "sourceRank": 17,
+      "sourceRow": 18,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 18,
+      "sourceAbilityId": 100,
+      "sourceRank": 18,
+      "sourceRow": 19,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 19,
+      "sourceAbilityId": 100,
+      "sourceRank": 19,
+      "sourceRow": 20,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 20,
+      "sourceAbilityId": 100,
+      "sourceRank": 20,
+      "sourceRow": 21,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 21,
+      "sourceAbilityId": 100,
+      "sourceRank": 21,
+      "sourceRow": 22,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 22,
+      "sourceAbilityId": 100,
+      "sourceRank": 22,
+      "sourceRow": 23,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 23,
+      "sourceAbilityId": 100,
+      "sourceRank": 23,
+      "sourceRow": 24,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 24,
+      "sourceAbilityId": 100,
+      "sourceRank": 24,
+      "sourceRow": 25,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 25,
+      "sourceAbilityId": 100,
+      "sourceRank": 25,
+      "sourceRow": 26,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 26,
+      "sourceAbilityId": 100,
+      "sourceRank": 26,
+      "sourceRow": 27,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 27,
+      "sourceAbilityId": 100,
+      "sourceRank": 27,
+      "sourceRow": 28,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 28,
+      "sourceAbilityId": 100,
+      "sourceRank": 28,
+      "sourceRow": 29,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 29,
+      "sourceAbilityId": 100,
+      "sourceRank": 29,
+      "sourceRow": 30,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 30,
+      "sourceAbilityId": 100,
+      "sourceRank": 30,
+      "sourceRow": 31,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 31,
+      "sourceAbilityId": 100,
+      "sourceRank": 31,
+      "sourceRow": 32,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 32,
+      "sourceAbilityId": 100,
+      "sourceRank": 32,
+      "sourceRow": 33,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 33,
+      "sourceAbilityId": 100,
+      "sourceRank": 33,
+      "sourceRow": 34,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 34,
+      "sourceAbilityId": 100,
+      "sourceRank": 34,
+      "sourceRow": 35,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 35,
+      "sourceAbilityId": 100,
+      "sourceRank": 35,
+      "sourceRow": 36,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 36,
+      "sourceAbilityId": 100,
+      "sourceRank": 36,
+      "sourceRow": 37,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 37,
+      "sourceAbilityId": 100,
+      "sourceRank": 37,
+      "sourceRow": 38,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 38,
+      "sourceAbilityId": 100,
+      "sourceRank": 38,
+      "sourceRow": 39,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 39,
+      "sourceAbilityId": 100,
+      "sourceRank": 39,
+      "sourceRow": 40,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 40,
+      "sourceAbilityId": 100,
+      "sourceRank": 40,
+      "sourceRow": 41,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 41,
+      "sourceAbilityId": 100,
+      "sourceRank": 41,
+      "sourceRow": 42,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 42,
+      "sourceAbilityId": 100,
+      "sourceRank": 42,
+      "sourceRow": 43,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 43,
+      "sourceAbilityId": 100,
+      "sourceRank": 43,
+      "sourceRow": 44,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 44,
+      "sourceAbilityId": 100,
+      "sourceRank": 44,
+      "sourceRow": 45,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 45,
+      "sourceAbilityId": 100,
+      "sourceRank": 45,
+      "sourceRow": 46,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 46,
+      "sourceAbilityId": 100,
+      "sourceRank": 46,
+      "sourceRow": 47,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 47,
+      "sourceAbilityId": 100,
+      "sourceRank": 47,
+      "sourceRow": 48,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 48,
+      "sourceAbilityId": 100,
+      "sourceRank": 48,
+      "sourceRow": 49,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 49,
+      "sourceAbilityId": 100,
+      "sourceRank": 49,
+      "sourceRow": 50,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 50,
+      "sourceAbilityId": 100,
+      "sourceRank": 50,
+      "sourceRow": 51,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 51,
+      "sourceAbilityId": 100,
+      "sourceRank": 51,
+      "sourceRow": 52,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 52,
+      "sourceAbilityId": 100,
+      "sourceRank": 52,
+      "sourceRow": 53,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 53,
+      "sourceAbilityId": 100,
+      "sourceRank": 53,
+      "sourceRow": 54,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 54,
+      "sourceAbilityId": 100,
+      "sourceRank": 54,
+      "sourceRow": 55,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 55,
+      "sourceAbilityId": 100,
+      "sourceRank": 55,
+      "sourceRow": 56,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 56,
+      "sourceAbilityId": 100,
+      "sourceRank": 56,
+      "sourceRow": 57,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 57,
+      "sourceAbilityId": 100,
+      "sourceRank": 57,
+      "sourceRow": 58,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 58,
+      "sourceAbilityId": 100,
+      "sourceRank": 58,
+      "sourceRow": 59,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 59,
+      "sourceAbilityId": 100,
+      "sourceRank": 59,
+      "sourceRow": 60,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 60,
+      "sourceAbilityId": 100,
+      "sourceRank": 60,
+      "sourceRow": 61,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 61,
+      "sourceAbilityId": 100,
+      "sourceRank": 61,
+      "sourceRow": 62,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 62,
+      "sourceAbilityId": 100,
+      "sourceRank": 62,
+      "sourceRow": 63,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 63,
+      "sourceAbilityId": 100,
+      "sourceRank": 63,
+      "sourceRow": 64,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 64,
+      "sourceAbilityId": 100,
+      "sourceRank": 64,
+      "sourceRow": 65,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 65,
+      "sourceAbilityId": 100,
+      "sourceRank": 65,
+      "sourceRow": 66,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": true,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 66,
+      "sourceAbilityId": 100,
+      "sourceRank": 66,
+      "sourceRow": 67,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 67,
+      "sourceAbilityId": 100,
+      "sourceRank": 67,
+      "sourceRow": 68,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 68,
+      "sourceAbilityId": 100,
+      "sourceRank": 68,
+      "sourceRow": 69,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 69,
+      "sourceAbilityId": 100,
+      "sourceRank": 69,
+      "sourceRow": 70,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 70,
+      "sourceAbilityId": 100,
+      "sourceRank": 70,
+      "sourceRow": 71,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 71,
+      "sourceAbilityId": 100,
+      "sourceRank": 71,
+      "sourceRow": 72,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 72,
+      "sourceAbilityId": 100,
+      "sourceRank": 72,
+      "sourceRow": 73,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 73,
+      "sourceAbilityId": 100,
+      "sourceRank": 73,
+      "sourceRow": 74,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 74,
+      "sourceAbilityId": 100,
+      "sourceRank": 74,
+      "sourceRow": 75,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 75,
+      "sourceAbilityId": 100,
+      "sourceRank": 75,
+      "sourceRow": 76,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 76,
+      "sourceAbilityId": 100,
+      "sourceRank": 76,
+      "sourceRow": 77,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 77,
+      "sourceAbilityId": 100,
+      "sourceRank": 77,
+      "sourceRow": 78,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 78,
+      "sourceAbilityId": 100,
+      "sourceRank": 78,
+      "sourceRow": 79,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 79,
+      "sourceAbilityId": 100,
+      "sourceRank": 79,
+      "sourceRow": 80,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 80,
+      "sourceAbilityId": 100,
+      "sourceRank": 80,
+      "sourceRow": 81,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 81,
+      "sourceAbilityId": 100,
+      "sourceRank": 81,
+      "sourceRow": 82,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 82,
+      "sourceAbilityId": 100,
+      "sourceRank": 82,
+      "sourceRow": 83,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 83,
+      "sourceAbilityId": 100,
+      "sourceRank": 83,
+      "sourceRow": 84,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 84,
+      "sourceAbilityId": 100,
+      "sourceRank": 84,
+      "sourceRow": 85,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 85,
+      "sourceAbilityId": 100,
+      "sourceRank": 85,
+      "sourceRow": 86,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 86,
+      "sourceAbilityId": 100,
+      "sourceRank": 86,
+      "sourceRow": 87,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 87,
+      "sourceAbilityId": 100,
+      "sourceRank": 87,
+      "sourceRow": 88,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 88,
+      "sourceAbilityId": 100,
+      "sourceRank": 88,
+      "sourceRow": 89,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 89,
+      "sourceAbilityId": 100,
+      "sourceRank": 89,
+      "sourceRow": 90,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 90,
+      "sourceAbilityId": 100,
+      "sourceRank": 90,
+      "sourceRow": 91,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 91,
+      "sourceAbilityId": 100,
+      "sourceRank": 91,
+      "sourceRow": 92,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 92,
+      "sourceAbilityId": 100,
+      "sourceRank": 92,
+      "sourceRow": 93,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 93,
+      "sourceAbilityId": 100,
+      "sourceRank": 93,
+      "sourceRow": 94,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 94,
+      "sourceAbilityId": 100,
+      "sourceRank": 94,
+      "sourceRow": 95,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 95,
+      "sourceAbilityId": 100,
+      "sourceRank": 95,
+      "sourceRow": 96,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 96,
+      "sourceAbilityId": 100,
+      "sourceRank": 96,
+      "sourceRow": 97,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 97,
+      "sourceAbilityId": 100,
+      "sourceRank": 97,
+      "sourceRow": 98,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 98,
+      "sourceAbilityId": 100,
+      "sourceRank": 98,
+      "sourceRow": 99,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 99,
+      "sourceAbilityId": 100,
+      "sourceRank": 99,
+      "sourceRow": 100,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    },
+    {
+      "level": 100,
+      "sourceAbilityId": 100,
+      "sourceRank": 100,
+      "sourceRow": 101,
+      "automaticGrowth": {
+        "con": 1,
+        "wis": 1,
+        "str": 1,
+        "dex": 1,
+        "int": 1,
+        "reg": 1
+      },
+      "distributablePoints": 2,
+      "runtimeEnabled": false,
+      "evidenceLevel": "RECOVERED_SECONDARY"
+    }
+  ]
+}
