@@ -427,3 +427,45 @@ S42 真实浏览器结果：
 在唯一一次 S42 实测结束后，代码审查发现玩家落点 (16,62) 并非用户本轮要求的换怪范围；本地最终代码已移除该额外覆盖，恢复现有 chooseBattleLayout 玩家落点，同时保留 20 只怪物显式站位。binding 中也移除了没有被用户要求的 player_position 字段，并恢复原有 source deployment metadata (34,44)/(52,24)，避免将其误标成实际玩家/怪物部署坐标。
 
 因此，S42 的一次实测（tested commit 3d952f44348fc999bdb95a2adcd2dfceb25c2e75）是“旧玩家落点覆盖 + 新 20 怪 roster”的实测；最终远端分支提交包含上述玩家落点收敛，但按“一次 S42 单链”要求未重跑。最终分支已重新通过 typecheck 与 375 项单元测试；production build 结果见本报告 §9.4 的最终补记。S42 的最终代码验收仍为未完成，不能将旧落点版本的失败结果冒充最终版本完整复测。
+
+
+## 10. ch1-monster-fix-20261113-04｜最终版本 S42 单链复测与截图归档
+
+### 10.1 测试基线
+
+- 目标远端分支：`fix/ch1-battle-monster-20261113`
+- 测试前远端 HEAD：`b77ca3b11f59f8fc4ca16cdf62b7281de7252adf`
+- 远端 HEAD tree：`60383211c7298a64315884fed34e5a7da9b28e6e`
+- 本地执行工作树 tree 与远端 tree 完全一致；本地执行工作树 HEAD 为 `784f2ff4fb1b370b5d18794db39436d7e0c5bc81`。
+- 测试环境变量 `S42_TESTED_COMMIT_SHA` 设置为目标远端 HEAD。
+- 仅执行一次：`npx playwright test e2e/s42-ch1-end-to-end-acceptance.spec.ts --workers=1`。
+
+### 10.2 S42 结果：FAIL（A08）
+
+- 1 个 spec，1 worker，运行 417.32 秒；退出码 1。
+- 失败位置：`web/e2e/s42-ch1-end-to-end-acceptance.spec.ts:479`，A08 入口 runtime binding 断言。
+- 已进入 battleZone 1，runtime 基础字段包含 `sourceId=story-source-1`、`fieldMapId=1030`、`gateCell=[72,30]`、`battleZoneId=1`、`entryProvenance=RECOVERED_SECONDARY`、`authority=offline-reconstruction`、`runtimeVerified=false`。
+- 但 `battleRuntime.chapter1StoryBattle` 缺少以下四个预期字段：`rosterBindingId`、`rosterUnitCount`、`monsterSkillPolicy`、`aiProvenance`。Playwright 因此在 A08 停止，尚未执行后续 `battleScene.enemies` 20 单位阵容断言，也未进入玩家战斗行动循环。
+- 失败时页面快照：玩家 HP 125/125、MP 100/100、金币 0、EXP 0/500；当前目标显示 `dummy-melee` HP 90/90；行动槽 20/20 且暂停。
+- 玩家行动数：0（失败发生在行动循环之前）；击杀数：0；HP 变化：125/125 至停止时仍为 125/125，净变化 0。
+- 实际战斗奖励：未结算；金币增量 0、EXP 增量 0。这里的 0 表示测试在战斗行动和奖励结算前停止，不代表完成战斗后奖励为零。
+- 本次没有胜利，没有返回 map1060；`s42x-10-return-map1060.png` 未生成。
+
+### 10.3 三张既有截图归档
+
+以下三张图来自此前提交 `3d952f44348fc999bdb95a2adcd2dfceb25c2e75` 的初始实现版本测试，按本次请求原样归档；不是本次最终版本 S42 重跑生成的截图。本次重跑在 A08 断言处停止，未到达截图 capture 位置。文件名未改，原始字节未压缩或转换。
+
+| 分支内路径 | SHA-256 |
+|---|---|
+| `docs/verification/screenshots/ch1-monster-fix-20261113/s42x-07-battle-entry.png` | `245d436fd3093684cdf5d8c2541f3a4817e99729c4b019186dffc04bcf954207` |
+| `docs/verification/screenshots/ch1-monster-fix-20261113/s42x-08-battle-in-progress.png` | `0134ec4e372b35ef7caf5c42b3fda171fd2c2f401150c1d9ee5c938d1afdf01d` |
+| `docs/verification/screenshots/ch1-monster-fix-20261113/s42x-09-not-victory.png` | `90f0f910f03fda31ee064e1c265b14b5e80c117d48c2cd1beb5dbd7aa5bf91ba` |
+
+### 10.4 静态检查复核
+
+在与目标远端 HEAD tree 相同的最终代码树上重新执行：
+- TypeScript typecheck：PASS，exit 0。
+- 单元测试：375 passed / 0 failed / 0 skipped。
+- Production build：PASS，exit 0；仍有既有 JSON import-attributes 与 chunk-size warning。
+
+本轮未修改任何代码、战斗数值、HP 口径、攻防、技能或 AI 策略；未重跑 S42；未运行原版客户端；未修改主号仓库；未合并、未部署。
