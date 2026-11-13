@@ -5,6 +5,9 @@ import type {M6EvidenceLevel} from './m6-evidence.ts';
 
 export type M6EquipmentSlot='weapon'|'armor'|'accessory';
 export type M6EquipmentStats={
+  accuracy?:number;
+  evasion?:number;
+  criticalChance?:number;
   attack?:number;
   defense?:number;
   magicAttack?:number;
@@ -19,6 +22,8 @@ export type M6EquipmentRule={
   allowedStageIds?:readonly number[];
   minimumLevel?:number;
   statContribution?:M6EquipmentStats;
+  requiredAttributes?:Readonly<Partial<Record<'con'|'wis'|'str'|'dex'|'int'|'reg',number>>>;
+  damageRange?:Readonly<{physical:Readonly<{min:number;max:number;range:number}>;magic:Readonly<{min:number;max:number;range:number}>}>;
   provenance:{
     itemRecord:M6EvidenceLevel;
     slot:M6EvidenceLevel;
@@ -33,8 +38,9 @@ export type M6EquipmentCharacterContext={
   family:ClassFamily;
   stageId:number;
   level:number;
+  attributes?:Readonly<Partial<Record<'con'|'wis'|'str'|'dex'|'int'|'reg',number>>>;
 };
-export type M6EquipmentRejectReason='class-restricted'|'stage-restricted'|'level-restricted';
+export type M6EquipmentRejectReason='class-restricted'|'stage-restricted'|'level-restricted'|'attribute-restricted';
 export type M6EquipmentEligibilityDecision={
   allowed:boolean;
   reasons:M6EquipmentRejectReason[];
@@ -46,7 +52,7 @@ export type M6EquipmentReconcileResult={loadout:M6EquipmentLoadout;unequipped:nu
 const slots:readonly M6EquipmentSlot[]=['weapon','armor','accessory'];
 const evidenceLevels=new Set<M6EvidenceLevel>([
   'VERIFIED','VERIFIED-STATIC-ORIGINAL','VERIFIED-HISTORICAL','RECOVERED_SECONDARY',
-  'INFERRED','SERVER-BOUNDARY','RECONSTRUCTION_POLICY','UNVERIFIED',
+  'INFERRED','SERVER-BOUNDARY','RECONSTRUCTION_POLICY','UNVERIFIED','UNKNOWN',
 ]);
 
 const integerIn=(value:unknown,min:number,max:number):value is number=>
@@ -63,7 +69,7 @@ function assertContext(context:M6EquipmentCharacterContext):void{
 function validateStats(raw:M6EquipmentStats|undefined):M6EquipmentStats|undefined{
   if(raw===undefined)return undefined;
   const out:M6EquipmentStats={};
-  for(const key of ['attack','defense','magicAttack','magicDefense','maxHp','maxMp'] as const){
+  for(const key of ['attack','defense','magicAttack','magicDefense','maxHp','maxMp','accuracy','evasion','criticalChance'] as const){
     const value=raw[key];
     if(value===undefined)continue;
     if(!Number.isFinite(value)||Math.abs(value)>1000000)throw new Error('Invalid M6 equipment stat contribution');
@@ -79,6 +85,7 @@ export function validateM6EquipmentRule(rule:M6EquipmentRule):M6EquipmentRule{
   const allowedStageIds=rule.allowedStageIds===undefined?undefined:[...rule.allowedStageIds];
   if(allowedStageIds&&(allowedStageIds.length===0||new Set(allowedStageIds).size!==allowedStageIds.length||allowedStageIds.some(value=>!integerIn(value,0,999999))))throw new Error('Invalid M6 equipment stage restriction');
   if(rule.minimumLevel!==undefined&&!integerIn(rule.minimumLevel,1,999))throw new Error('Invalid M6 equipment level restriction');
+  if(rule.requiredAttributes){for(const [key,value] of Object.entries(rule.requiredAttributes)){if(!['con','wis','str','dex','int','reg'].includes(key)||!integerIn(value,0,999999))throw new Error('Invalid M6 equipment attribute requirement');}}
   if(!rule.provenance||Object.keys(rule.provenance).length!==6)throw new Error('Incomplete M6 equipment provenance');
   for(const value of Object.values(rule.provenance))if(!evidenceLevels.has(value))throw new Error('Invalid M6 equipment evidence');
   return{
@@ -119,6 +126,7 @@ export function evaluateM6EquipmentEligibility(
   if(rule.allowedFamilies&&!rule.allowedFamilies.includes(context.family))reasons.push('class-restricted');
   if(rule.allowedStageIds&&!rule.allowedStageIds.includes(context.stageId))reasons.push('stage-restricted');
   if(rule.minimumLevel!==undefined&&context.level<rule.minimumLevel)reasons.push('level-restricted');
+  if(rule.requiredAttributes&&context.attributes){for(const [key,value] of Object.entries(rule.requiredAttributes)){if((context.attributes[key as 'con'|'wis'|'str'|'dex'|'int'|'reg']??0)<(value as number)){reasons.push('attribute-restricted');break;}}}
   return{allowed:reasons.length===0,reasons,provenance:{...rule.provenance}};
 }
 
@@ -206,7 +214,7 @@ export function m6EquipmentStatContribution(
 ):Required<M6EquipmentStats>{
   const valid=validateM6EquipmentLoadoutShape(loadout);
   const ruleMap=new Map(rules.map(entry=>{const rule=validateM6EquipmentRule(entry);return[rule.itemId,rule] as const;}));
-  const total={attack:0,defense:0,magicAttack:0,magicDefense:0,maxHp:0,maxMp:0};
+  const total={attack:0,defense:0,magicAttack:0,magicDefense:0,maxHp:0,maxMp:0,accuracy:0,evasion:0,criticalChance:0};
   for(const itemId of Object.values(valid)){
     if(itemId===null)continue;
     const stats=ruleMap.get(itemId)?.statContribution;

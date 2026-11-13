@@ -9,6 +9,13 @@ export type SkillDamageRoute = 'direct' | 'support-only';
 export type EnemyRank = 'normal' | 'elite' | 'boss';
 export type EnemyRole = 'melee' | 'ranged' | 'caster';
 
+export const EQUIPMENT_COMBAT_POLICY=Object.freeze({
+  id:'m7-2-equipment-attribute-combat-composition-v1',
+  provenance:'RECONSTRUCTION_POLICY' as const,
+  composition:'M6 weapon/armor/accessory contributions and S43 attribute projection enter the same playerStats EquipmentCombatBonuses input.',
+  note:'This is the offline combat projection contract. It does not claim recovery of retail-server stat formulas.'
+});
+
 export type EquipmentCombatBonuses = Readonly<{
   maxHp?: number;
   maxMp?: number;
@@ -358,6 +365,8 @@ export class ReconstructionCombatBalance {
     validateLevel(level, this.tuning);
     const family = definition.family;
     const base = this.tuning.player[family];
+    // S44 supplies the summed M6 three-slot equipment contribution plus S43 attribute projection here.
+    // Both are intentionally consumed by the same CombatantStats construction under EQUIPMENT_COMBAT_POLICY.
     const bonus = normalizeEquipment(equipment);
     const scale = levelScale(this.tuning.level.playerStatGrowth, level);
     const authored = definition.baseAuthoredStats;

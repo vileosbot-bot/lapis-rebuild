@@ -51,6 +51,7 @@ export type M6GrowthState={
   questChain:M6QuestChainState;
   stage:M6StageProgressionState;
   equipment:M6EquipmentLoadout;
+  attributes?:Readonly<Partial<Record<'con'|'wis'|'str'|'dex'|'int'|'reg',number>>>;
 };
 
 export type M6GrowthAuthorityConfig={
@@ -118,9 +119,9 @@ export class ReconstructionM6GrowthAuthority{
     validateM6InventoryCapacity(rewards.inventory,this.inventoryPolicy);
     const stage=validateM6StageProgressionState(raw.stage,this.stageTrack);
     const questChain=validateM6QuestChainStateForDefinition(raw.questChain,this.questChain);
-    const context={characterId:String(stage.stageId),family:stage.family,stageId:stage.stageId,level:rewards.progression.level};
+    const context={characterId:String(stage.stageId),family:stage.family,stageId:stage.stageId,level:rewards.progression.level,attributes:raw.attributes};
     const equipment=validateM6EquipmentLoadout(raw.equipment,rewards.inventory,this.equipmentRules,context);
-    return{rewards,questChain,stage,equipment};
+    return{rewards,questChain,stage,equipment,...(raw.attributes?{attributes:raw.attributes}:{})};
   }
 
   acceptQuest(state:M6GrowthState,questId:string,npcId:string):{state:M6GrowthState;accepted:boolean}{
@@ -145,7 +146,7 @@ export class ReconstructionM6GrowthAuthority{
     itemId:number|null,
   ):M6GrowthState{
     const current=this.validate(state);
-    const context={characterId:String(current.stage.stageId),family:current.stage.family,stageId:current.stage.stageId,level:current.rewards.progression.level};
+    const context={characterId:String(current.stage.stageId),family:current.stage.family,stageId:current.stage.stageId,level:current.rewards.progression.level,attributes:current.attributes};
     const equipment=equipM6Item(current.equipment,current.rewards.inventory,this.equipmentRules,context,slot,itemId);
     return{...current,equipment};
   }
@@ -199,10 +200,10 @@ export class ReconstructionM6GrowthAuthority{
       stage=promotion.state;
     }
 
-    const context={characterId:String(stage.stageId),family:stage.family,stageId:stage.stageId,level:reward.state.progression.level};
+    const context={characterId:String(stage.stageId),family:stage.family,stageId:stage.stageId,level:reward.state.progression.level,attributes:current.attributes};
     const reconciled=reconcileM6EquipmentLoadout(current.equipment,reward.state.inventory,this.equipmentRules,context);
     return{
-      state:{rewards:reward.state,questChain:committed.state,stage,equipment:reconciled.loadout},
+      state:{rewards:reward.state,questChain:committed.state,stage,equipment:reconciled.loadout,...(current.attributes?{attributes:current.attributes}:{})},
       settled:true,
       rewardApplied:reward.applied,
       promotion,
