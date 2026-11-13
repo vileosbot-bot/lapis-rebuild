@@ -5,13 +5,14 @@ function disabledQuickSlot(key:string,label:string):string{
   return `<button type="button" class="legacy-quick-slot" disabled aria-label="${escapeHtml(label)}"><b>${escapeHtml(key)}</b><span>未恢复</span></button>`;
 }
 
-function command(label:string,action?:'inventory'|'menu'):string{
+function command(label:string,action?:'inventory'|'menu'|'attribute-panel'):string{
   if(action)return `<button type="button" class="top-command-button" data-action="${action}">${escapeHtml(label)}</button>`;
   return `<button type="button" class="top-command-button" disabled aria-label="${escapeHtml(label)}，尚未恢复">${escapeHtml(label)}</button>`;
 }
 
 export function renderFieldHud(player:PlayerHudState,field:FieldHudState):string{
   const level=player.level==null?'':`<span class="hud-level">Lv.${Math.max(1,Math.floor(player.level))}</span>`;
+  const attributePoints=player.attributePoints==null?'':`<span class="hud-attribute-points">属性点 ${Math.max(0,Math.floor(player.attributePoints))}</span>`;
   const questTitle=field.questTitle||'任务';
   const questDetail=field.questDetail||'暂无追踪任务';
   const interaction=field.interactionPrompt?`<button type="button" class="interaction-prompt" data-action="interact" aria-label="${escapeHtml(field.interactionPrompt)}"><span class="keycap" aria-hidden="true">E</span><span class="interaction-label">${escapeHtml(field.interactionPrompt)}</span><span class="touch-hint" aria-hidden="true">轻点交互</span></button>`:'';
@@ -19,7 +20,7 @@ export function renderFieldHud(player:PlayerHudState,field:FieldHudState):string
   const magicSlots=['Z','X','C','V'].map(key=>disabledQuickSlot(key,`魔法快捷槽 ${key}，尚未恢复`)).join('');
   const topCommands=[
     command('帮助'),
-    command('状态'),
+    command('状态','attribute-panel'),
     command('物品'),
     command('魔法'),
     command('队伍'),
@@ -46,7 +47,7 @@ export function renderFieldHud(player:PlayerHudState,field:FieldHudState):string
     <section class="player-plate hud-corner-lower-left" aria-label="角色状态">
       <div class="portrait-frame" aria-hidden="true">${escapeHtml(player.portraitLabel)}</div>
       <div class="player-vitals">
-        <div class="player-title"><b>${escapeHtml(player.name)}</b><span>${escapeHtml(player.className)}</span>${level}</div>
+        <div class="player-title"><b>${escapeHtml(player.name)}</b><span>${escapeHtml(player.className)}</span>${level}${attributePoints}</div>
         ${meter('HP',player.hp,player.hpMax,'hp')}
         ${meter('MP',player.mp,player.mpMax,'mp')}
       </div>

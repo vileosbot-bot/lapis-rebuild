@@ -31,7 +31,7 @@ export const M71_EXPERIENCE_POLICY=Object.freeze({
   globalLevelMappingEvidence:'INFERRED' as const,
   consumptionRuleEvidence:'RECONSTRUCTION_POLICY' as const,
   oldServerFormulaEvidence:'SERVER-BOUNDARY' as const,
-  note:'M7.1 consumes each mapped levelabl.atr experience_value as the EXP required to advance from that global level. The values are original static data; this consumption meaning is an explicit offline reconstruction, not a recovered retail-server formula.',
+  note:'Each levelabl.atr experience_value is already the cumulative threshold for reaching the next global level. M7.1 must not sum these cumulative thresholds again. The old retail-server reward and penalty algorithm remains outside the evidence boundary.',
 });
 
 if(M71_LEVELABL_EXPERIENCE_VALUES.length!==M71_EXPERIENCE_POLICY.maxLevel){
@@ -40,31 +40,23 @@ if(M71_LEVELABL_EXPERIENCE_VALUES.length!==M71_EXPERIENCE_POLICY.maxLevel){
 for(let index=0;index<M71_LEVELABL_EXPERIENCE_VALUES.length;index+=1){
   const value=M71_LEVELABL_EXPERIENCE_VALUES[index]!;
   if(!Number.isSafeInteger(value)||value<=0)throw new Error('Invalid M7.1 authored EXP value');
-  if(index>0&&value<=M71_LEVELABL_EXPERIENCE_VALUES[index-1]!)throw new Error('M7.1 authored EXP values must be strictly increasing');
+  if(index>0&&value<=M71_LEVELABL_EXPERIENCE_VALUES[index-1]!)throw new Error('M7.1 authored EXP thresholds must be strictly increasing');
 }
-
-const TOTAL_EXP_THRESHOLDS:readonly number[]=Object.freeze((()=>{
-  const totals=[0];
-  let total=0;
-  for(let level=1;level<M71_EXPERIENCE_POLICY.maxLevel;level+=1){
-    total+=M71_LEVELABL_EXPERIENCE_VALUES[level-1]!;
-    totals.push(total);
-  }
-  return totals;
-})());
 
 function validLevel(level:number):void{
   if(!Number.isInteger(level)||level<1||level>M71_EXPERIENCE_POLICY.maxLevel)throw new Error('M7.1 level must be 1..65');
 }
 
+/** Raw row rank L: cumulative EXP threshold for reaching global level L+1. */
 export function m71AuthoredExperienceValue(level:number):number{
   validLevel(level);
   return M71_LEVELABL_EXPERIENCE_VALUES[level-1]!;
 }
 
+/** Cumulative EXP lower bound for the supplied global level. Lv1 starts at zero. */
 export function m71TotalExpForLevel(level:number):number{
   validLevel(level);
-  return TOTAL_EXP_THRESHOLDS[level-1]!;
+  return level===1?0:M71_LEVELABL_EXPERIENCE_VALUES[level-2]!;
 }
 
 export function m71LevelForExperience(exp:number):number{

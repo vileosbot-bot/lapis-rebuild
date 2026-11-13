@@ -25,6 +25,9 @@ import {equipM6Item,evaluateM6EquipmentEligibility} from './progression/m6-equip
 import {migrateSaveToM7,serializeM7SaveV2} from './progression/m7-save-migration.ts';
 import type {M7SaveV2} from './progression/m7-save-migration.ts';
 import {createM7SaveExtension} from './progression/m7-save-extension.ts';
+import {createAttributeAllocationState,createAttributeAllocationDraft,addAttributePointToDraft,confirmAttributeAllocation,cancelAttributeAllocationDraft,grantAttributeLevels,retainAttributeAllocationAcrossStageChange,totalAttributeValue} from './progression/attribute-points.ts';
+import type {AttributeAllocationState,AttributeAllocationDraft} from './progression/attribute-points.ts';
+import {projectAttributeCombatBonuses} from './progression/attribute-stat-policy.ts';
 import {
   M6_CHARACTER_IDS,M6_RUNTIME_EQUIPMENT_RULES,M6_SAVE_CONTENT,createM6StageState,m6QuestChainForLegacyStage,
   m6SkillAvailableForCharacter,m6SkillIdsForCharacter,m6StageTrackForCharacter,
@@ -42,6 +45,7 @@ import type {NpcDialogueChoiceId,NpcDialogueSession,NpcInteractionInputSource} f
 import {renderFieldHud} from './ui/field-hud.ts';
 import {renderBattleHud} from './ui/battle-hud.ts';
 import {renderGameMenu} from './ui/game-menu.ts';
+import {renderAttributeAllocationPanel} from './ui/attribute-allocation-panel.ts';
 import {renderDebugPanel} from './ui/debug-panel.ts';
 import {escapeHtml} from './ui/ui-utils.ts';
 import type {BattleHudState,BattleStatusView,DiagnosticsState,FieldHudState,PlayerHudState} from './ui/types.ts';
@@ -207,6 +211,7 @@ export class M4RuntimeIntegration{
   rewards:RewardState;
   m6Stage:M6StageProgressionState;
   m7Skills:M7IntegratedSkillState;
+  attributeState:AttributeAllocationState;
   pendingEncounter:EncounterRequest|null=null;
   menuOpen=false;
   developerMode=false;
@@ -220,6 +225,8 @@ export class M4RuntimeIntegration{
   private chapter1StoryOneApproachCells:readonly Cell[]=Object.freeze([]);
   private chapter1StoryOneArchRuntimeCollisionWalkable=false;
   private trainingManagerOpen=false;
+  private attributePanelOpen=false;
+  private attributeDraft:AttributeAllocationDraft|null=null;
   private battleExitConfirm=false;
   private battleTargetingState:M7SkillTargetingState=createM7SkillTargetingState();
   private battleTargetingCommandId:string|null=null;
@@ -280,6 +287,7 @@ export class M4RuntimeIntegration{
     this.rewards=createM4RewardState(scene.gold);
     this.m6Stage=createM6StageState(scene.character);
     this.m7Skills=createM7IntegratedSkillState(scene.character,1);
+    this.attributeState=createAttributeAllocationState(1);
   }
 
   install():void{
@@ -323,7 +331,7 @@ export class M4RuntimeIntegration{
       this.spatial?.start({mapId:initial.mapId,cell:[initial.x,initial.y]});
       this.setNotice('训练管理员就在出生点附近：按 E / 轻点“与训练管理员交谈”即可打开 15 场训练。');
     }
-    this.applyClassProfile(false);
+    this.applyClassProfile(true);
     window.addEventListener('lapis-state',event=>this.onSnapshot((event as CustomEvent<Snapshot>).detail));
     this.render(this.scene.snapshot());
     this.installS14AcceptanceBridge();
@@ -351,6 +359,7 @@ export class M4RuntimeIntegration{
     const cell=nearestAnchor(this.scene.anchor.x,this.scene.anchor.y);
     return{
       runtimeMode:this.runtimeMode,
+      character:this.scene.character,
       chapter1:this.chapter1World?{
         mapIds:[...this.chapter1World.mapIds],
         routes:this.chapter1World.routes.map(route=>({routeId:route.routeId,sourceMapId:route.sourceMapId,targetMapId:route.targetMapId,activationCellCount:route.activationCells.length})),
@@ -414,6 +423,7 @@ export class M4RuntimeIntegration{
       chapter1Quest1:this.chapter1Quest1Selection?{...this.chapter1Quest1Selection}:null,
       world:{mapId:this.scene.mapId,x:cell[0],y:cell[1]},
       progression:{...this.rewards.progression},
+      attributes:{level:this.attributeState.level,automaticGrowth:{...this.attributeState.automaticGrowth},allocated:{...this.attributeState.allocated},total:{con:totalAttributeValue(this.attributeState,'con'),wis:totalAttributeValue(this.attributeState,'wis'),str:totalAttributeValue(this.attributeState,'str'),dex:totalAttributeValue(this.attributeState,'dex'),int:totalAttributeValue(this.attributeState,'int'),reg:totalAttributeValue(this.attributeState,'reg')},unspentPoints:this.attributeState.unspentPoints,rewardReceipts:[...this.attributeState.rewardReceipts],policyId:'m7-2-six-dimension-combat-projection-v1',provenance:'RECONSTRUCTION_POLICY'},
       inventory:{items:this.rewards.inventory.items.map(item=>({itemId:item.itemId,quantity:item.quantity})),equipped:{...this.rewards.inventory.equipped}},
       gold:this.rewards.gold,
       pendingEncounter:this.pendingEncounter?{...this.pendingEncounter}:null,
@@ -535,6 +545,10 @@ export class M4RuntimeIntegration{
       else if(action==='save')void this.save();
       else if(action==='load')void this.load();
       else if(action==='inventory'){this.inventoryOpen=!this.inventoryOpen;document.body.classList.toggle('m4-inventory-open',this.inventoryOpen);}
+      else if(action==='attribute-panel')this.openAttributePanel();
+      else if(action==='attribute-add')this.addAttributePoint(target.dataset.attribute);
+      else if(action==='attribute-cancel')this.cancelAttributePanel();
+      else if(action==='attribute-confirm')this.confirmAttributePanel();
       else if(action==='fullscreen')void this.scene.toggleFullscreen().then(ok=>this.setNotice(ok?'全屏状态已切换':'当前浏览器未允许全屏切换'));
       else if(action==='zoom-in'){this.scene.zoomIn();this.setNotice('视角已放大');}
       else if(action==='zoom-out'){this.scene.zoomOut();this.setNotice('视角已缩小');}
@@ -607,6 +621,7 @@ export class M4RuntimeIntegration{
       return;
     }
     if(this.battleExitConfirm){this.cancelBattleExit();return;}
+    if(this.attributePanelOpen){this.cancelAttributePanel();return;}
     if(this.activeDialogue||this.activeChapter1Dialogue){this.activeDialogue=null;this.activeChapter1Dialogue=null;this.render(this.scene.snapshot());return;}
     this.menuOpen=!this.menuOpen;
     this.render(this.scene.snapshot());
@@ -744,10 +759,14 @@ export class M4RuntimeIntegration{
     this.world=this.worldAuthority.initial(this.m5World?.content.start??START_STATE);
     this.m6Stage=createM6StageState(id);
     this.m7Skills=createM7IntegratedSkillState(id,1);
+    this.attributeState=createAttributeAllocationState(1);
+    this.attributePanelOpen=false;
+    this.attributeDraft=null;
     this.scene.setCharacter(id);
     this.m6Stage=createM6StageState(id);
     this.syncSceneInventory();
     this.applyWorldState(this.m5World?.content.start??START_STATE);
+    this.applyClassProfile(true);
     this.menuOpen=false;
     this.setNotice(id==='100'?'已开始新的剑士职业档':'已开始新的巫师职业档');
     this.render(this.scene.snapshot());
@@ -936,6 +955,7 @@ export class M4RuntimeIntegration{
       const receipt=`s29-acceptance:stage-${this.scene.character}:level-${targetLevel}`;
       const applied=applyBattleReward(this.rewards,'s29-acceptance-fixture',receipt,{gold:0,exp:amount});
       this.rewards=applied.state;
+      if(applied.applied)this.reconcileM7Attributes(receipt);
       this.reconcileM7Skills(oldLevel);
     }
     this.scene.gold=this.rewards.gold;
@@ -962,6 +982,11 @@ export class M4RuntimeIntegration{
     if(!result.applied){
       this.setNotice(result.duplicate?'该晋阶已经完成':`暂不能晋阶：${result.reasons.join('、')}`);
       return;
+    }
+    const fromFamily=playableClassById(this.scene.character).family;
+    const toFamily=playableClassById(String(result.state.stageId)).family;
+    if((fromFamily==='swordsman'||fromFamily==='wizard')&&(toFamily==='swordsman'||toFamily==='wizard')){
+      this.attributeState=retainAttributeAllocationAcrossStageChange(this.attributeState,fromFamily,toFamily);
     }
     this.scene.setCharacter(String(result.state.stageId));
     this.m6Stage=result.state;
@@ -1024,6 +1049,11 @@ export class M4RuntimeIntegration{
       return;
     }
     if(next>previous)this.m7Skills=reconcileM7IntegratedSkillState(this.m7Skills,this.scene.character,previous,next);
+  }
+
+  private reconcileM7Attributes(receiptId:string):void{
+    const next=this.m7Level();
+    if(next>this.attributeState.level)this.attributeState=grantAttributeLevels(this.attributeState,next,receiptId);
   }
 
   private runtimeSkillCommands():readonly M7RuntimeSkillCommand[]{
@@ -1191,6 +1221,7 @@ export class M4RuntimeIntegration{
     const storyBattle=this.activeChapter1StoryBattle;
     this.clearBattleTargeting(false);
     this.scene.leaveBattle();
+    this.applyClassProfile(false);
     this.scene.gold=this.rewards.gold;
     this.world={...this.world,world:this.currentWorldState()};
     this.pendingEncounter=null;
@@ -1453,13 +1484,15 @@ export class M4RuntimeIntegration{
       const oldLevel=this.rewards.progression.level;
       const receiptPrefix='battle:m7-training:'+preset.id+':win:';
       const runNumber=1+this.rewards.rewardReceipts.filter(id=>id.startsWith(receiptPrefix)).length;
+      const receiptId=receiptPrefix+runNumber;
       const applied=applyBattleReward(
         this.rewards,
         'm7-training-battle-'+preset.id,
-        receiptPrefix+runNumber,
+        receiptId,
         {gold:combatReward.gold,exp:preset.expReward},
       );
       this.rewards=applied.state;
+      if(applied.applied)this.reconcileM7Attributes(receiptId);
       this.reconcileM7Skills(oldLevel);
       this.scene.gold=this.rewards.gold;
       const levels=applied.events.filter(event=>event.type==='level_up').map(event=>'Lv.'+event.toLevel);
@@ -1477,14 +1510,17 @@ export class M4RuntimeIntegration{
       const level=Math.max(1,this.rewards.progression.level);
       const reward=DEFAULT_RECONSTRUCTION_COMBAT_BALANCE.rewardForEncounter([{level,rank:'normal'},{level,rank:'normal'}]);
       const oldLevel=this.rewards.progression.level;
-      const applied=applyBattleReward(this.rewards,'m5-training-house','battle:m5-training-house:win',{gold:reward.gold,exp:reward.exp});
-      this.rewards=applied.state;this.reconcileM7Skills(oldLevel);this.scene.gold=this.rewards.gold;
+      const receiptId='battle:m5-training-house:win';
+      const applied=applyBattleReward(this.rewards,'m5-training-house',receiptId,{gold:reward.gold,exp:reward.exp});
+      this.rewards=applied.state;if(applied.applied)this.reconcileM7Attributes(receiptId);this.reconcileM7Skills(oldLevel);this.scene.gold=this.rewards.gold;
       this.setNotice(`战斗胜利：金币 +${reward.gold}，EXP +${reward.exp}，当前 Lv.${this.rewards.progression.level} / RECONSTRUCTION_POLICY`);
       return;
     }
     const oldLevel=this.rewards.progression.level;
-    const applied=applyBattleReward(this.rewards,'s9-training-battle','battle:s9-training-run:win',{gold:10,exp:100});
+    const receiptId='battle:s9-training-run:win';
+    const applied=applyBattleReward(this.rewards,'s9-training-battle',receiptId,{gold:10,exp:100});
     this.rewards=applied.state;
+    if(applied.applied)this.reconcileM7Attributes(receiptId);
     this.reconcileM7Skills(oldLevel);
     this.scene.gold=this.rewards.gold;
     if(applied.events.some(event=>event.type==='level_up'))this.setNotice(`战斗胜利：金币 +10，EXP +100，当前 Lv.${this.rewards.progression.level}`);
@@ -1494,16 +1530,33 @@ export class M4RuntimeIntegration{
     const questId=this.worldAuthority.content.questId;
     const reward=this.m5World?{gold:7,exp:230,questFlags:['m5.training.complete']}:{gold:5,exp:200,questFlags:['m4.training.complete']};
     const oldLevel=this.rewards.progression.level;
-    const applied=applyQuestReward(this.rewards,questId,`quest:${questId}:turn-in`,reward);
+    const receiptId=`quest:${questId}:turn-in`;
+    const applied=applyQuestReward(this.rewards,questId,receiptId,reward);
     this.rewards=applied.state;
+    if(applied.applied)this.reconcileM7Attributes(receiptId);
     this.reconcileM7Skills(oldLevel);
     this.scene.gold=this.rewards.gold;
+    this.applyClassProfile(false);
     this.setNotice(`任务完成：金币 +${reward.gold}，EXP +${reward.exp}，当前 Lv.${this.rewards.progression.level} / RECONSTRUCTION_POLICY`);
   }
 
   private combatEquipment(){
     const bonus=legacyEquipmentBonus(this.scene.inventory,this.scene.character);
-    return playableClassById(this.scene.character).family==='wizard'?{defense:bonus.defense,magicAttack:bonus.attack}:{attack:bonus.attack,defense:bonus.defense};
+    const attributes=projectAttributeCombatBonuses(this.attributeState);
+    const wizard=playableClassById(this.scene.character).family==='wizard';
+    const level=Math.max(1,this.rewards.progression.level);
+    const statScale=1+DEFAULT_RECONSTRUCTION_COMBAT_BALANCE.tuning.level.playerStatGrowth*(level-1);
+    // CombatBalance scales equipment attack/defense bonuses with level. Divide
+    // the attribute contribution here so its final projected value remains
+    // exactly +1 per point after that scale is applied.
+    return{
+      maxHp:attributes.maxHp,
+      maxMp:attributes.maxMp,
+      attack:(wizard?0:bonus.attack)+attributes.attack/statScale,
+      defense:bonus.defense+attributes.defense/statScale,
+      magicAttack:(wizard?bonus.attack:0)+attributes.magicAttack/statScale,
+      magicDefense:attributes.magicDefense/statScale,
+    };
   }
 
   private playerCombatStats(){
@@ -1588,23 +1641,15 @@ export class M4RuntimeIntegration{
 
   private applyClassProfile(resetVitals:boolean):void{
     if(!M6_CHARACTER_IDS.includes(this.scene.character))return;
-    const definition=playableClassById(this.scene.character);
     const profile=battleProfileForClass(this.scene.character);
-    if(this.m5World){
-      if(!this.scene.inBattleView){
-        const stats=this.playerCombatStats();
-        this.scene.state.maxHp=stats.maxHp;this.scene.state.maxMp=stats.maxMp;this.scene.state.hp=stats.maxHp;this.scene.state.mp=stats.maxMp;
-      }
-    }else{
-      this.scene.state.maxHp=definition.baseAuthoredStats.hp;
-      this.scene.state.maxMp=definition.baseAuthoredStats.mp;
-      if(resetVitals||!this.scene.inBattleView){
-        this.scene.state.hp=this.scene.state.maxHp;
-        this.scene.state.mp=this.scene.state.maxMp;
-      }else{
-        this.scene.state.hp=Math.min(this.scene.state.hp,this.scene.state.maxHp);
-        this.scene.state.mp=Math.min(this.scene.state.mp,this.scene.state.maxMp);
-      }
+    if(!this.scene.inBattleView){
+      const stats=this.playerCombatStats();
+      const currentHp=this.scene.state.hp;
+      const currentMp=this.scene.state.mp;
+      this.scene.state.maxHp=stats.maxHp;
+      this.scene.state.maxMp=stats.maxMp;
+      this.scene.state.hp=resetVitals?stats.maxHp:Math.min(currentHp,stats.maxHp);
+      this.scene.state.mp=resetVitals?stats.maxMp:Math.min(currentMp,stats.maxMp);
     }
     this.scene.state.moveReadinessCost=profile.movementReadinessCost;
     this.scene.state.attackReadinessCost=profile.attackReadinessCost;
@@ -1668,7 +1713,7 @@ export class M4RuntimeIntegration{
       x:this.scene.anchor.x,y:this.scene.anchor.y,gold:this.rewards.gold,inventory:this.rewards.inventory,
       quest:{questId:this.world.quest.questId,stage:this.world.quest.stage} as JsonValue,
       questFlags:{...this.rewards.questFlags},progression:{...this.rewards.progression},rewardReceipts:[...this.rewards.rewardReceipts],m6,
-      m7:createM7SaveExtension(this.scene.character,this.m7Level(),this.m7Skills,{hp:this.scene.state.hp,mp:this.scene.state.mp}),savedAt:new Date().toISOString(),
+      m7:createM7SaveExtension(this.scene.character,this.m7Level(),this.m7Skills,{hp:this.scene.state.hp,mp:this.scene.state.mp},this.attributeState),savedAt:new Date().toISOString(),
     };
   }
 
@@ -1690,6 +1735,8 @@ export class M4RuntimeIntegration{
     this.activeChapter1Dialogue=null;
     if(this.chapter1Authority)this.chapter1Quest1Selection=this.chapter1Authority.initialQuest1State();
     this.trainingManagerOpen=false;
+    this.attributePanelOpen=false;
+    this.attributeDraft=null;
     this.activeTrainingBattleId=null;
     this.trainingLaunchPending=false;
     this.developerPresetActive=false;
@@ -1703,6 +1750,9 @@ export class M4RuntimeIntegration{
     this.scene.setCharacter(save.character);
     this.m6Stage=save.m6.stage;
     this.m7Skills=save.m7.skills;
+    this.attributeState=save.m7.attributes;
+    this.attributePanelOpen=false;
+    this.attributeDraft=null;
     this.scene.setMap(save.mapId);
     this.scene.anchor={x:save.x,y:save.y};
     this.scene.route=[];
@@ -1915,14 +1965,14 @@ export class M4RuntimeIntegration{
   private render(snapshot:Snapshot):void{
     if(!M6_CHARACTER_IDS.includes(snapshot.character))return;
     const definition=playableClassById(snapshot.character);
-    const fieldStats=this.m5World?this.playerCombatStats():null;
+    const fieldStats=this.playerCombatStats();
     const expHud=this.playerExpHud();
     const presentationStats=this.playerPresentationStats();
     const player:PlayerHudState={
       name:'佣兵',className:definition.displayName,portraitLabel:definition.family==='swordsman'?'剑':'巫',level:this.rewards.progression.level,
       hp:snapshot.inBattleView?snapshot.hp:fieldStats?.maxHp??definition.baseAuthoredStats.hp,hpMax:snapshot.inBattleView?this.scene.state.maxHp:fieldStats?.maxHp??definition.baseAuthoredStats.hp,
       mp:snapshot.inBattleView?snapshot.mp:fieldStats?.maxMp??definition.baseAuthoredStats.mp,mpMax:snapshot.inBattleView?this.scene.state.maxMp:fieldStats?.maxMp??definition.baseAuthoredStats.mp,
-      exp:expHud.exp,expMax:expHud.expMax,atk:presentationStats.atk,def:presentationStats.def,gold:this.rewards.gold,
+      exp:expHud.exp,expMax:expHud.expMax,atk:presentationStats.atk,def:presentationStats.def,attributePoints:this.attributeState.unspentPoints,gold:this.rewards.gold,
     };
     const quest=this.chapter1Quest1Selection?chapter1Quest1Hud(this.chapter1Quest1Selection):questHud(this.world.quest.stage);
     const field:FieldHudState={mapId:snapshot.mapId,mapName:snapshot.mapName,...quest,interactionPrompt:this.nearestInteraction(snapshot)};
@@ -1997,6 +2047,41 @@ export class M4RuntimeIntegration{
     if(status)status.textContent=this.noticeText;
   }
 
+  private openAttributePanel():void{
+    if(this.scene.inBattleView){this.setNotice('战斗中不能分配属性点');return;}
+    this.menuOpen=false;
+    this.attributePanelOpen=true;
+    this.attributeDraft=createAttributeAllocationDraft(this.attributeState);
+    this.render(this.scene.snapshot());
+  }
+
+  private addAttributePoint(key:string|undefined):void{
+    if(!this.attributePanelOpen||!this.attributeDraft)return;
+    try{this.attributeDraft=addAttributePointToDraft(this.attributeState,this.attributeDraft,key);}
+    catch(error){this.setNotice('属性加点未执行：'+String(error));}
+    this.render(this.scene.snapshot());
+  }
+
+  private cancelAttributePanel():void{
+    if(!this.attributePanelOpen)return;
+    this.attributeDraft=cancelAttributeAllocationDraft(this.attributeState);
+    this.attributePanelOpen=false;
+    this.attributeDraft=null;
+    this.render(this.scene.snapshot());
+  }
+
+  private confirmAttributePanel():void{
+    if(!this.attributePanelOpen||!this.attributeDraft)return;
+    try{
+      this.attributeState=confirmAttributeAllocation(this.attributeState,this.attributeDraft);
+      this.attributePanelOpen=false;
+      this.attributeDraft=null;
+      this.applyClassProfile(false);
+      this.setNotice('属性分配已确认并写入当前角色状态');
+    }catch(error){this.setNotice('属性分配失败：'+String(error));}
+    this.render(this.scene.snapshot());
+  }
+
   private renderDialogue():string{
     if(this.battleExitConfirm&&this.scene.inBattleView&&this.scene.state.phase==='active'){
       return `<section class="npc-dialogue battle-exit-dialogue" data-ui="battle-exit-confirm" aria-label="退出战斗确认">
@@ -2008,6 +2093,9 @@ export class M4RuntimeIntegration{
           <small class="npc-dialogue-provenance">RECONSTRUCTION_POLICY</small>
         </div>
       </section>`;
+    }
+    if(this.attributePanelOpen&&this.attributeDraft&&!this.scene.inBattleView){
+      return renderAttributeAllocationPanel(this.attributeState,this.attributeDraft);
     }
     if(this.trainingManagerOpen&&!this.scene.inBattleView){
       return renderM7TrainingManagerDialog(this.rewards.progression.level,this.selectedTrainingBattleId,true);
