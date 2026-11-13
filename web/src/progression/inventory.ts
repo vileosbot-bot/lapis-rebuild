@@ -1,4 +1,5 @@
 import catalogData from '../../../data/items/training-catalog.json' with { type: 'json' };
+import ch1EquipmentData from '../../../data/items/ch1-equipment-catalog.json' with {type:'json'};
 
 export type EquipmentSlot = 'weapon' | 'armor';
 export type AcquisitionKind = 'starter' | 'battle' | 'quest' | 'migration' | 'system';
@@ -51,6 +52,13 @@ const metadata = new Map<number, ItemMetadata>(catalog.map(item => [item.item_id
   compatibilityEvidence: item.training.evidence,
 }]));
 
+const legacyMetadataIds=new Set(metadata.keys());
+const ch1Rows=(ch1EquipmentData as unknown as {rows:Array<{itemResourceId:number;name:string;description:string;slot:'weapon'|'armor'|'accessory'}>}).rows;
+for(const row of ch1Rows){
+  if(metadata.has(row.itemResourceId))continue;
+  metadata.set(row.itemResourceId,{itemId:row.itemResourceId,name:row.name,description:row.description,metadataRef:'itemtbl:'+row.itemResourceId,slot:row.slot==='weapon'?'weapon':'armor',classRestriction:'swordsman',textEvidence:'RECOVERED_SECONDARY',compatibilityEvidence:'UNVERIFIED'});
+}
+
 const integerIn = (value: unknown, min: number, max: number): value is number =>
   Number.isInteger(value) && (value as number) >= min && (value as number) <= max;
 
@@ -70,7 +78,7 @@ export function itemMetadata(itemId: number): ItemMetadata {
 }
 
 export function knownItemIds(): number[] {
-  return [...metadata.keys()].sort((a, b) => a - b);
+  return [...legacyMetadataIds].sort((a, b) => a - b);
 }
 
 export function emptyInventory(): InventoryState {

@@ -17,3 +17,5 @@ export interface BattleHudState {
 export interface MenuState { open:boolean; canSave:boolean; canLoad:boolean; devEnabled:boolean; }
 export interface DiagnosticsState { open:boolean; mapSelector?:string; rawTiming?:string; actionSlot?:string; direction?:string; bounds?:string; magicRes?:string; provenance?:string; }
 export interface GameShellState { mode:GameMode; player:PlayerHudState; field:FieldHudState; battle?:BattleHudState; menu:MenuState; diagnostics:DiagnosticsState; notice?:string; }
+
+export interface EquipmentPanelState {open:boolean;slots:Readonly<{weapon:number|null;armor:number|null;accessory:number|null}>;candidateItemIds:readonly number[];provenance:'RECONSTRUCTION_POLICY';}

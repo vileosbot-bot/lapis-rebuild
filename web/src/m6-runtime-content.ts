@@ -1,7 +1,7 @@
 import {SWORDSMAN_STAGE_IDS,availableSwordsmanSkillIds,promotionRequirementForStage} from './classes/swordsman-ten-stage.ts';
 import {WIZARD_STAGE_IDS,availableWizardSkillIds,wizardPromotionRequirementForStage} from './classes/wizard-ten-stage.ts';
 import {classFamilyForCharacter} from './progression/equipment.ts';
-import {legacyTrainingEquipmentRules} from './progression/m6-equipment.ts';
+import {CH1_EQUIPMENT_RULES} from './progression/equipment-stat-policy.ts';
 import {createM6StageProgression} from './progression/m6-stage-promotion.ts';
 import type {M6PromotionRequirement,M6StageProgressionState,M6StageTrack} from './progression/m6-stage-promotion.ts';
 import type {M6SaveContentContext} from './progression/m6-save-migration.ts';
@@ -46,7 +46,7 @@ export const M6_RUNTIME_QUEST_CHAIN:M6QuestChainDefinition=Object.freeze({
   }]),
 });
 
-export const M6_RUNTIME_EQUIPMENT_RULES=Object.freeze(legacyTrainingEquipmentRules());
+export const M6_RUNTIME_EQUIPMENT_RULES=CH1_EQUIPMENT_RULES;
 export const M6_SAVE_CONTENT: M6SaveContentContext=Object.freeze({
   stageTracks:M6_STAGE_TRACKS,
   questChain:M6_RUNTIME_QUEST_CHAIN,

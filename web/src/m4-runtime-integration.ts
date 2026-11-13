@@ -8,7 +8,7 @@ import {playableClassById,isEquipmentCompatibleWithClass} from './content/classe
 import rawSkills from '../../data/skills/mvp.json' with {type:'json'};
 import {BattlePresentation} from './presentation/battle-presentation.ts';
 import type {BattlePresentationBatch} from './presentation/battle-presentation.ts';
-import {createInventory,knownItemIds} from './progression/inventory.ts';
+import {createInventory} from './progression/inventory.ts';
 import type {InventoryState} from './progression/inventory.ts';
 import {equipItem as equipProgression,reconcileEquipmentForCharacter} from './progression/equipment.ts';
 import type {EquipmentCompatibilityResolver} from './progression/equipment.ts';
@@ -21,7 +21,8 @@ import type {JsonValue,SaveV2,SaveValidationContext} from './progression/save-sc
 import {applyM6Promotion} from './progression/m6-stage-promotion.ts';
 import type {M6StageProgressionState} from './progression/m6-stage-promotion.ts';
 import {createM6SaveExtension} from './progression/m6-save-extension.ts';
-import {equipM6Item,evaluateM6EquipmentEligibility} from './progression/m6-equipment.ts';
+import {equipM6Item,evaluateM6EquipmentEligibility,m6EquipmentStatContribution,reconcileM6EquipmentLoadout} from './progression/m6-equipment.ts';
+import type {M6EquipmentLoadout,M6EquipmentSlot} from './progression/m6-equipment.ts';
 import {migrateSaveToM7,serializeM7SaveV2} from './progression/m7-save-migration.ts';
 import type {M7SaveV2} from './progression/m7-save-migration.ts';
 import {createM7SaveExtension} from './progression/m7-save-extension.ts';
@@ -46,6 +47,7 @@ import {renderFieldHud} from './ui/field-hud.ts';
 import {renderBattleHud} from './ui/battle-hud.ts';
 import {renderGameMenu} from './ui/game-menu.ts';
 import {renderAttributeAllocationPanel} from './ui/attribute-allocation-panel.ts';
+import {renderEquipmentPanel} from './ui/equipment-panel.ts';
 import {renderDebugPanel} from './ui/debug-panel.ts';
 import {escapeHtml} from './ui/ui-utils.ts';
 import type {BattleHudState,BattleStatusView,DiagnosticsState,FieldHudState,PlayerHudState} from './ui/types.ts';
@@ -141,7 +143,8 @@ const CLASS_RESOLVER:EquipmentCompatibilityResolver=(characterId,item)=>{
 };
 
 function starterInventory():InventoryState{
-  return createInventory(knownItemIds().map(itemId=>({itemId,source:{kind:'starter' as const,ref:'m4-starter'}})));
+  // The six legacy starter entries remain unchanged. The broader S44 catalog is metadata only; no catalog item is auto-granted.
+  return createInventory([1,3,10,12,25,31].map(itemId=>({itemId,source:{kind:'starter' as const,ref:'m4-starter'}})));
 }
 
 export function createM4RewardState(gold=0):RewardState{
@@ -212,10 +215,12 @@ export class M4RuntimeIntegration{
   m6Stage:M6StageProgressionState;
   m7Skills:M7IntegratedSkillState;
   attributeState:AttributeAllocationState;
+  m6Equipment:M6EquipmentLoadout;
   pendingEncounter:EncounterRequest|null=null;
   menuOpen=false;
   developerMode=false;
   inventoryOpen=false;
+  equipmentPanelOpen=false;
   private activeDialogue:NpcDialogueSession|null=null;
   private activeChapter1Dialogue:Ch1NpcDialogueSession|null=null;
   private chapter1Quest1Selection:Ch1Quest1SelectionState|null=null;
@@ -285,6 +290,7 @@ export class M4RuntimeIntegration{
       :m5?.content.start??START_STATE;
     this.world=this.worldAuthority.initial(initial);
     this.rewards=createM4RewardState(scene.gold);
+    this.m6Equipment={weapon:this.rewards.inventory.equipped.weapon,armor:this.rewards.inventory.equipped.armor,accessory:null};
     this.m6Stage=createM6StageState(scene.character);
     this.m7Skills=createM7IntegratedSkillState(scene.character,1);
     this.attributeState=createAttributeAllocationState(1);
@@ -423,6 +429,8 @@ export class M4RuntimeIntegration{
       chapter1Quest1:this.chapter1Quest1Selection?{...this.chapter1Quest1Selection}:null,
       world:{mapId:this.scene.mapId,x:cell[0],y:cell[1]},
       progression:{...this.rewards.progression},
+      equipment:{...this.m6Equipment,statContribution:m6EquipmentStatContribution(this.m6Equipment,M6_RUNTIME_EQUIPMENT_RULES)},
+      combatStats:this.playerCombatStats(),
       attributes:{level:this.attributeState.level,automaticGrowth:{...this.attributeState.automaticGrowth},allocated:{...this.attributeState.allocated},total:{con:totalAttributeValue(this.attributeState,'con'),wis:totalAttributeValue(this.attributeState,'wis'),str:totalAttributeValue(this.attributeState,'str'),dex:totalAttributeValue(this.attributeState,'dex'),int:totalAttributeValue(this.attributeState,'int'),reg:totalAttributeValue(this.attributeState,'reg')},unspentPoints:this.attributeState.unspentPoints,rewardReceipts:[...this.attributeState.rewardReceipts],policyId:'m7-2-six-dimension-combat-projection-v1',provenance:'RECONSTRUCTION_POLICY'},
       inventory:{items:this.rewards.inventory.items.map(item=>({itemId:item.itemId,quantity:item.quantity})),equipped:{...this.rewards.inventory.equipped}},
       gold:this.rewards.gold,
@@ -468,6 +476,10 @@ export class M4RuntimeIntegration{
       if(String(this.m6Stage.stageId)!==this.scene.character)this.m6Stage=createM6StageState(this.scene.character);
       const reconciled=reconcileEquipmentForCharacter(this.rewards.inventory,this.scene.character,CLASS_RESOLVER);
       this.rewards={...this.rewards,inventory:reconciled.inventory};
+      const definition=playableClassById(this.scene.character);
+      const m6Context={characterId:this.scene.character,family:definition.family,stageId:Number(this.scene.character),level:this.rewards.progression.level,attributes:this.currentEquipmentAttributes()};
+      const m6Reconciled=reconcileM6EquipmentLoadout(this.m6Equipment,this.rewards.inventory,M6_RUNTIME_EQUIPMENT_RULES,m6Context);
+      this.m6Equipment=m6Reconciled.loadout;
       this.syncSceneInventory();
       this.applyClassProfile(false);
       if(reconciled.unequipped.length)this.setNotice(`职业切换：自动卸下 ${reconciled.unequipped.length} 件不兼容装备。`);
@@ -481,12 +493,13 @@ export class M4RuntimeIntegration{
           {weapon:this.rewards.inventory.equipped.weapon,armor:this.rewards.inventory.equipped.armor,accessory:null},
           this.rewards.inventory,
           M6_RUNTIME_EQUIPMENT_RULES,
-          {characterId:this.scene.character,family:definition.family,stageId:Number(this.scene.character),level:this.rewards.progression.level},
+          {characterId:this.scene.character,family:definition.family,stageId:Number(this.scene.character),level:this.rewards.progression.level,attributes:this.currentEquipmentAttributes()},
           slot,
           id,
         );
         const inventory=equipProgression(this.rewards.inventory,this.scene.character,slot,id,CLASS_RESOLVER);
         this.rewards={...this.rewards,inventory};
+        this.m6Equipment={...this.m6Equipment,[slot]:id};
         this.syncSceneInventory();
         this.applyClassProfile(false);
         this.setNotice('装备已更新 / RECONSTRUCTION_POLICY');
@@ -544,7 +557,10 @@ export class M4RuntimeIntegration{
       else if(action==='menu-close'){this.menuOpen=false;this.render(this.scene.snapshot());}
       else if(action==='save')void this.save();
       else if(action==='load')void this.load();
-      else if(action==='inventory'){this.inventoryOpen=!this.inventoryOpen;document.body.classList.toggle('m4-inventory-open',this.inventoryOpen);}
+      else if(action==='inventory'){this.inventoryOpen=!this.inventoryOpen;this.equipmentPanelOpen=this.inventoryOpen;this.menuOpen=false;document.body.classList.toggle('m4-inventory-open',this.inventoryOpen);this.render(this.scene.snapshot());}
+      else if(action==='equipment-close'){this.equipmentPanelOpen=false;this.inventoryOpen=false;document.body.classList.remove('m4-inventory-open');this.render(this.scene.snapshot());}
+      else if(action==='equipment-equip')this.equipEquipmentPanelItem(target.dataset.slot,target.dataset.itemId);
+      else if(action==='equipment-unequip')this.equipEquipmentPanelItem(target.dataset.slot,null);
       else if(action==='attribute-panel')this.openAttributePanel();
       else if(action==='attribute-add')this.addAttributePoint(target.dataset.attribute);
       else if(action==='attribute-cancel')this.cancelAttributePanel();
@@ -622,6 +638,7 @@ export class M4RuntimeIntegration{
     }
     if(this.battleExitConfirm){this.cancelBattleExit();return;}
     if(this.attributePanelOpen){this.cancelAttributePanel();return;}
+    if(this.equipmentPanelOpen){this.equipmentPanelOpen=false;this.inventoryOpen=false;this.render(this.scene.snapshot());return;}
     if(this.activeDialogue||this.activeChapter1Dialogue){this.activeDialogue=null;this.activeChapter1Dialogue=null;this.render(this.scene.snapshot());return;}
     this.menuOpen=!this.menuOpen;
     this.render(this.scene.snapshot());
@@ -756,6 +773,7 @@ export class M4RuntimeIntegration{
     this.developerUnlockAllSkills=false;
     this.developerSkillPoints=0;
     this.rewards=createM4RewardState(0);
+    this.m6Equipment={weapon:this.rewards.inventory.equipped.weapon,armor:this.rewards.inventory.equipped.armor,accessory:null};
     this.world=this.worldAuthority.initial(this.m5World?.content.start??START_STATE);
     this.m6Stage=createM6StageState(id);
     this.m7Skills=createM7IntegratedSkillState(id,1);
@@ -1035,6 +1053,7 @@ export class M4RuntimeIntegration{
       if(rule)inventory=equipProgression(inventory,this.scene.character,slot,rule.itemId,CLASS_RESOLVER);
     }
     this.rewards={...this.rewards,inventory};
+    this.m6Equipment={weapon:inventory.equipped.weapon,armor:inventory.equipped.armor,accessory:this.m6Equipment.accessory};
     this.syncSceneInventory();
   }
 
@@ -1540,22 +1559,39 @@ export class M4RuntimeIntegration{
     this.setNotice(`任务完成：金币 +${reward.gold}，EXP +${reward.exp}，当前 Lv.${this.rewards.progression.level} / RECONSTRUCTION_POLICY`);
   }
 
+  private currentEquipmentAttributes(){
+    return {con:10+totalAttributeValue(this.attributeState,'con'),wis:10+totalAttributeValue(this.attributeState,'wis'),str:10+totalAttributeValue(this.attributeState,'str'),dex:10+totalAttributeValue(this.attributeState,'dex'),int:10+totalAttributeValue(this.attributeState,'int'),reg:10+totalAttributeValue(this.attributeState,'reg')};
+  }
+
+  private equipEquipmentPanelItem(rawSlot:string|undefined,rawItemId:string|null|undefined):void{
+    if(this.scene.inBattleView){this.setNotice('战斗中不能更换装备');return;}
+    if(!['weapon','armor','accessory'].includes(String(rawSlot))){this.setNotice('非法装备槽位');return;}
+    const slot=rawSlot as M6EquipmentSlot;
+    const itemId=rawItemId===null?null:Number(rawItemId);
+    if(itemId!==null&&!Number.isSafeInteger(itemId)){this.setNotice('非法物品 ID');return;}
+    const definition=playableClassById(this.scene.character);
+    try{
+      this.m6Equipment=equipM6Item(this.m6Equipment,this.rewards.inventory,M6_RUNTIME_EQUIPMENT_RULES,
+        {characterId:this.scene.character,family:definition.family,stageId:Number(this.scene.character),level:this.rewards.progression.level,attributes:this.currentEquipmentAttributes()},slot,itemId);
+      this.syncSceneInventory();
+      this.applyClassProfile(false);
+      this.setNotice(itemId===null?'装备已卸下；旧装备仍保留在背包':'装备已更新；旧装备仍保留在背包 / RECONSTRUCTION_POLICY');
+    }catch(error){this.setNotice('装备操作失败：'+String(error));}
+    this.render(this.scene.snapshot());
+  }
+
   private combatEquipment(){
-    const bonus=legacyEquipmentBonus(this.scene.inventory,this.scene.character);
+    const bonus=m6EquipmentStatContribution(this.m6Equipment,M6_RUNTIME_EQUIPMENT_RULES);
     const attributes=projectAttributeCombatBonuses(this.attributeState);
-    const wizard=playableClassById(this.scene.character).family==='wizard';
     const level=Math.max(1,this.rewards.progression.level);
     const statScale=1+DEFAULT_RECONSTRUCTION_COMBAT_BALANCE.tuning.level.playerStatGrowth*(level-1);
-    // CombatBalance scales equipment attack/defense bonuses with level. Divide
-    // the attribute contribution here so its final projected value remains
-    // exactly +1 per point after that scale is applied.
     return{
       maxHp:attributes.maxHp,
       maxMp:attributes.maxMp,
-      attack:(wizard?0:bonus.attack)+attributes.attack/statScale,
+      attack:bonus.attack+attributes.attack/statScale,
       defense:bonus.defense+attributes.defense/statScale,
-      magicAttack:(wizard?bonus.attack:0)+attributes.magicAttack/statScale,
-      magicDefense:attributes.magicDefense/statScale,
+      magicAttack:bonus.magicAttack+attributes.magicAttack/statScale,
+      magicDefense:bonus.magicDefense+attributes.magicDefense/statScale,
     };
   }
 
@@ -1660,8 +1696,8 @@ export class M4RuntimeIntegration{
   private syncSceneInventory():void{
     this.scene.inventory={
       owned:this.rewards.inventory.items.map(item=>item.itemId),
-      weapon:this.rewards.inventory.equipped.weapon,
-      armor:this.rewards.inventory.equipped.armor,
+      weapon:this.m6Equipment.weapon,
+      armor:this.m6Equipment.armor,
     };
     this.scene.gold=this.rewards.gold;
   }
@@ -1706,7 +1742,7 @@ export class M4RuntimeIntegration{
     const m6=createM6SaveExtension(this.scene.character,{
       stage:this.m6Stage,
       questChain:m6QuestChainForLegacyStage(this.world.quest.stage,this.rewards.questFlags),
-      equipment:{weapon:this.rewards.inventory.equipped.weapon,armor:this.rewards.inventory.equipped.armor,accessory:null},
+      equipment:this.m6Equipment,
     });
     return{
       kind:SAVE_KIND,version:CURRENT_SAVE_VERSION,pack:this.scene.pack.digest,character:this.scene.character,mapId:this.scene.mapId,
@@ -1746,6 +1782,7 @@ export class M4RuntimeIntegration{
     if(this.chapter1World&&!this.chapter1World.mapIds.includes(save.mapId as 1000|1020|1030|1060))throw new Error('Chapter 1 save map is outside the route graph: '+save.mapId);
     const quest=parseM4Quest(save.quest,this.worldAuthority.content.questId);
     this.rewards={gold:save.gold,inventory:save.inventory,progression:save.progression,questFlags:save.questFlags,rewardReceipts:save.rewardReceipts};
+    this.m6Equipment=save.m6.equipment;
     this.world={world:{mapId:save.mapId,...(()=>{const cell=nearestAnchor(save.x,save.y);return{x:cell[0],y:cell[1]};})()},quest};
     this.scene.setCharacter(save.character);
     this.m6Stage=save.m6.stage;
@@ -2096,6 +2133,11 @@ export class M4RuntimeIntegration{
     }
     if(this.attributePanelOpen&&this.attributeDraft&&!this.scene.inBattleView){
       return renderAttributeAllocationPanel(this.attributeState,this.attributeDraft);
+    }
+    if(this.equipmentPanelOpen&&!this.scene.inBattleView){
+      const definition=playableClassById(this.scene.character);
+      const context={characterId:this.scene.character,family:definition.family,stageId:Number(this.scene.character),level:this.rewards.progression.level,attributes:this.currentEquipmentAttributes()};
+      return renderEquipmentPanel({loadout:this.m6Equipment,inventory:this.rewards.inventory,rules:M6_RUNTIME_EQUIPMENT_RULES,context,preview:m6EquipmentStatContribution(this.m6Equipment,M6_RUNTIME_EQUIPMENT_RULES)});
     }
     if(this.trainingManagerOpen&&!this.scene.inBattleView){
       return renderM7TrainingManagerDialog(this.rewards.progression.level,this.selectedTrainingBattleId,true);

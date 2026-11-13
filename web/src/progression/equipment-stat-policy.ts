@@ -1,0 +1,17 @@
+import catalogData from '../../../data/items/ch1-equipment-catalog.json' with {type:'json'};
+import type {M6EquipmentRule,M6EquipmentSlot} from './m6-equipment.ts';
+export const EQUIPMENT_STAT_POLICY=Object.freeze({id:'m7-2-itemtbl-to-combat-stats-v1',provenance:'RECONSTRUCTION_POLICY' as const,damageConversion:'rounded midpoint of authored min/max range',defenseConversion:'raw physical/magic defense fields',stageEligibility:'UNKNOWN: itemtbl has no explicit stage id',professionFlagMapping:'RECONSTRUCTION_POLICY: selector 0..4 swordsman; 5..9 wizard',note:'Raw physical/magic min/max/range fields remain in catalog; conversion is offline policy, not a retail-server formula.'});
+export type EquipmentCatalogRow=Readonly<{itemResourceId:number;name:string;description:string;shopNumber:number;equipPosition:number;slot:M6EquipmentSlot;requiredLevel:number;durabilityMax:number;price:number;professionFlags:readonly number[];attributeRequirements:Readonly<{con:number;str:number;dex:number;int:number;wis:number;reg:number}>;damageRange:Readonly<{physical:Readonly<{min:number;max:number;range:number}>;magic:Readonly<{min:number;max:number;range:number}>}>;defense:Readonly<{physical:number;magic:number}>;source:Readonly<{sourcePath:string;sourceBlobSha:string;sourceMemberHash:string;sourceRow:number;rawLineSha256:string;evidenceLevel:'RECOVERED_SECONDARY';runtimeVerified:false}>}>;
+const rows=(catalogData as unknown as {rows:EquipmentCatalogRow[]}).rows;
+export const CH1_EQUIPMENT_CATALOG:readonly EquipmentCatalogRow[]=Object.freeze(rows);
+export function equipmentCatalogRow(itemId:number):EquipmentCatalogRow|undefined{return CH1_EQUIPMENT_CATALOG.find(row=>row.itemResourceId===itemId);}
+const midpoint=(min:number,max:number)=>Math.round((min+max)/2);
+export function equipmentRuleForCatalogRow(row:EquipmentCatalogRow):M6EquipmentRule{
+ const flags=row.professionFlags;const sword=flags.slice(0,5).some(Boolean),wizard=flags.slice(5,10).some(Boolean);
+ const allowedFamilies=sword&&wizard?['swordsman','wizard'] as const:sword?['swordsman'] as const:wizard?['wizard'] as const:undefined;
+ return {itemId:row.itemResourceId,slot:row.slot,...(allowedFamilies?{allowedFamilies}:{}),minimumLevel:Math.max(1,row.requiredLevel),requiredAttributes:row.attributeRequirements,damageRange:row.damageRange,
+ statContribution:{attack:row.slot==='weapon'?midpoint(row.damageRange.physical.min,row.damageRange.physical.max):0,magicAttack:row.slot==='weapon'?midpoint(row.damageRange.magic.min,row.damageRange.magic.max):0,defense:row.defense.physical,magicDefense:row.defense.magic},
+ provenance:{itemRecord:'RECOVERED_SECONDARY',slot:'RECONSTRUCTION_POLICY',classRestriction:allowedFamilies?'RECONSTRUCTION_POLICY':'UNKNOWN',stageRestriction:'UNKNOWN',levelRestriction:'RECONSTRUCTION_POLICY',statContribution:'RECONSTRUCTION_POLICY'}};
+}
+export const CH1_EQUIPMENT_RULES:readonly M6EquipmentRule[]=Object.freeze(CH1_EQUIPMENT_CATALOG.map(equipmentRuleForCatalogRow));
+export function equipmentCombatContribution(itemIds:readonly (number|null)[]){const total={attack:0,magicAttack:0,defense:0,magicDefense:0};for(const id of itemIds){if(id===null)continue;const row=equipmentCatalogRow(id);if(!row)continue;const s=equipmentRuleForCatalogRow(row).statContribution??{};total.attack+=s.attack??0;total.magicAttack+=s.magicAttack??0;total.defense+=s.defense??0;total.magicDefense+=s.magicDefense??0;}return Object.freeze(total);}
