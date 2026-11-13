@@ -108,7 +108,7 @@
 - 使用真实 M4 战斗循环，最多 40 次玩家行动；不使用设置玩家 HP、敌人 HP 或强制胜利的 fixture。
 - 当前断言胜利、玩家 HP 大于 0、行动数不超过 40，并记录 HP at entry / victory、攻击、移动、行动序列。
 - 当前故事战斗不结算金币或 EXP；这项行为应在新系统整合后保持，除非另有明确奖励设计。
-- 当前 S42 记录六张真实浏览器截图与 checkpoint JSON。现有截图编号 s42-01 至 s42-06。
+- 当前 S42 记录六张真实浏览器截图与 checkpoint JSON。现有截图编号 s42-01 至 s42-06。历史 ch1-auto3-binding.yaml 将六张图标记为 CAPTURED，但 sha256 为 NOT_AVAILABLE、artifact_location 为 NOT_RECORDED；这只能证明当时记录了采集状态，不能当作已独立哈希核验的图片交付。S46 必须对新截图重新计算 SHA-256 与字节数。
 - **当前 spec 没有明确断言敌人数量为 20。** 因此“20 只怪”是本任务的目标验收要求，但现有测试并未证明当前 battleZone 1 的实际 roster 数量；需在 S46 前对齐目标 roster，未确认前标 UNKNOWN。
 
 ## 3. 分阶段实施计划
@@ -513,8 +513,8 @@ web/package.json 当前 scripts：
 | YBCS 属性贡献候选、范围转标量差异、部分 stat code | docs/integration-notes/s3-source-inventory.md：L183–218、L220–248 | Git blob SHA-1 610e84c6cdb47d9814914cfd70282dd015fccb01；RECOVERED_SECONDARY / RECONSTRUCTION_POLICY，不是 VERIFIED |
 | HP 125/100/150 的角色区分与 2 敌模拟结果 | docs/integration-notes/s3-full-simulation-report.md：L49–75 | Git blob SHA-1 acd2c717ab030bf3a36992cf17c8b8dc1a290fe2；YBCS 结果 RECOVERED_SECONDARY，S19 结果 RECONSTRUCTION_POLICY |
 | 当前 Web authored class JSON 数值（class 100 HP=125；class 109 HP=100） | data/classes/swordsman.json：L2；data/classes/wizard.json：L2 | Git blob SHA-1 38726a1ae1a4ede81c65b0174202185e20674096；def580ed4f0b13c8067cb3585e695f570f45d38d；VERIFIED（仓库数据值）；与原始 ability.atr 逐行映射仍 UNKNOWN / RECOVERED_SECONDARY |
-| S42 真实战斗、40 行动上限、HP 与胜利检查 | web/e2e/s42-ch1-end-to-end-acceptance.spec.ts：L31–41、L470–570 | Git blob SHA-1 18f91405bfbe63b95eff0b3d1789b4dc64ab56af；VERIFIED（测试代码存在），测试结果需未来重新执行 |
-| S42 六张截图、checkpoint 与历史证据口径 | docs/verification/ch1-auto3-binding.yaml：L61–82、L156–163、L449–502 | Git blob SHA-1 8b1b1c46d1179d2c5e93a7434298a4971faaff35；VERIFIED（历史绑定文档） |
+| S42 真实战斗、40 行动上限、HP 与胜利检查、截图哈希生成器 | web/e2e/s42-ch1-end-to-end-acceptance.spec.ts：L31–41、L147–172、L470–570 | Git blob SHA-1 18f91405bfbe63b95eff0b3d1789b4dc64ab56af；VERIFIED（测试代码存在），测试结果需未来重新执行 |
+| S42 六张截图、checkpoint 与历史哈希缺口 | docs/verification/ch1-auto3-binding.yaml：L61–82、L449–502 | Git blob SHA-1 8b1b1c46d1179d2c5e93a7434298a4971faaff35；VERIFIED（历史绑定文档） |
 | Story source 1 map1030 / battleZone1 绑定及 provenance | web/src/m4-runtime-integration.ts：L92–108、L1820–1854 | Git blob SHA-1 6a0c9f7777ecb9922aae727ced508a3121d6ecfc；source binding RECOVERED_SECONDARY |
 | 当前 combat bonus 字段 | web/src/combat/reconstruction-combat-balance.ts：L12–40 | Git blob SHA-1 cfd76e345ce6089870881325ca4c6ecccf7dfde6；VERIFIED（仓库实现），公式 RECONSTRUCTION_POLICY |
 | 当前 typecheck / unit / build / E2E 命令 | web/package.json：L1 | Git blob SHA-1 c6174e0d99a7f51a37f2c6f5a459981833c0b6bc；VERIFIED（仓库 scripts） |
