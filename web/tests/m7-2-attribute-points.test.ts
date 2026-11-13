@@ -1,7 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import growthData from '../../data/progression/ch1-attribute-growth.json' with {type:'json'};
 import {createInventory} from '../src/progression/inventory.ts';
-import {initialM71Progression,m71TotalExpForLevel} from '../src/progression/progression.ts';
+import {initialM71Progression} from '../src/progression/progression.ts';
+import {m71TotalExpForLevel} from '../src/progression/m7-1-experience-policy.ts';
 import {applyBattleReward} from '../src/progression/rewards.ts';
 import type {RewardState} from '../src/progression/rewards.ts';
 import {
@@ -29,7 +31,12 @@ const rewardState=():RewardState=>({
   rewardReceipts:[],
 });
 
-test('S43 imports 100 source rows but enables only Lv1..65 at runtime',()=>{
+test('S43 imports all 100 source rows while enabling only Lv1..65 at runtime',()=>{
+  assert.equal(growthData.rows.length,100);
+  assert.equal(growthData.rows[0]!.sourceRow,2);
+  assert.equal(growthData.rows[99]!.sourceRow,101);
+  assert.equal(growthData.rows[85]!.distributablePoints,3);
+  assert.equal(growthData.rows[99]!.runtimeEnabled,false);
   assert.equal(attributePointsGrantedAtLevel(1),1);
   assert.equal(attributePointsGrantedAtLevel(5),1);
   assert.equal(attributePointsGrantedAtLevel(6),2);
@@ -105,14 +112,14 @@ test('allocation rejects insufficient balance, negative, decimal, unknown and ov
 });
 
 test('all six stat projections carry independent policy mappings and preserve their approved point values',()=>{
-  const state=createAttributeAllocationState(1);
-  const projection=projectAttributeCombatBonuses(state);
-  assert.deepEqual(projection,{maxHp:50,maxMp:50,attack:1,defense:1,magicAttack:1,magicDefense:1});
+  const levelOne=createAttributeAllocationState(1);
+  assert.deepEqual(projectAttributeCombatBonuses(levelOne),{maxHp:50,maxMp:50,attack:1,defense:1,magicAttack:1,magicDefense:1});
+  const state=createAttributeAllocationState(6);
   let draft=createAttributeAllocationDraft(state);
   for(const key of ATTRIBUTE_KEYS)draft=addAttributePointToDraft(state,draft,key);
   const committed=confirmAttributeAllocation(state,draft);
-  assert.equal(totalAttributeValue(committed,'con'),2);
-  assert.deepEqual(projectAttributeCombatBonuses(committed),{maxHp:100,maxMp:100,attack:2,defense:2,magicAttack:2,magicDefense:2});
+  assert.equal(totalAttributeValue(committed,'con'),7);
+  assert.deepEqual(projectAttributeCombatBonuses(committed),{maxHp:350,maxMp:350,attack:7,defense:7,magicAttack:7,magicDefense:7});
 });
 
 test('attribute allocation survives same-family stage changes and rejects cross-family carry-over',()=>{

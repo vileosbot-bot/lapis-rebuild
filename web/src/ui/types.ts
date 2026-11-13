@@ -4,7 +4,7 @@ export type BattlePhase='safe'|'active'|'won'|'lost';
 export interface PlayerHudState {
   name:string; className:string; portraitLabel:string; level?:number;
   hp:number; hpMax:number; mp:number; mpMax:number;
-  exp?:number; expMax?:number; atk?:number; def?:number; gold:number;
+  exp?:number; expMax?:number; atk?:number; def?:number; attributePoints?:number; gold:number;
 }
 export interface FieldHudState { mapId:number; mapName:string; questTitle?:string; questDetail?:string; interactionPrompt?:string; }
 export interface BattleSkillView { id:string|number; name:string; mpCost:number; disabled?:boolean; hotkey?:string; }

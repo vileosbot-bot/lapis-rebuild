@@ -45,9 +45,13 @@ export function migrateSaveToM7(
   const base=migrated.progression.level<=65
     ?{...migrated,progression:migrateProgressionToM71(migrated.progression)}
     :migrated;
-  if(base.m7)return validateM7SaveForContent(base,saveContext,content);
   const legacy=legacyWizardSkillState(base,saveContext);
-  const m7=createM7SaveExtension(base.character,base.progression.level,legacy??undefined);
+  // validateM7SaveExtension accepts nested schema 1 and upgrades it to schema
+  // 2. If there was no M7 extension, creation grants the current-level history
+  // as unspent attribute points and leaves M6 equipment/progression untouched.
+  const m7=base.m7
+    ?validateM7SaveExtension(base.m7,base.character,base.progression.level)
+    :createM7SaveExtension(base.character,base.progression.level,legacy??undefined);
   return validateM7SaveForContent({...base,m7},saveContext,content);
 }
 

@@ -1,4 +1,3 @@
-import type {EquipmentCombatBonuses} from '../combat/reconstruction-combat-balance.ts';
 import {totalAttributeValue,validateAttributeAllocationState} from './attribute-points.ts';
 import type {AttributeAllocationState,AttributeKey} from './attribute-points.ts';
 
@@ -17,7 +16,14 @@ export const ATTRIBUTE_STAT_POLICY=Object.freeze({
   note:'This is an explicit offline reconstruction policy. RECOVERED_SECONDARY describes the YBCS evidence source, not retail-server verification. S46 may recalibrate these projections without changing the stored six-dimension state.',
 });
 
-export type AttributeCombatProjection=Readonly<Required<Pick<EquipmentCombatBonuses,'maxHp'|'maxMp'|'attack'|'defense'|'magicAttack'|'magicDefense'>>>;
+export type AttributeCombatProjection=Readonly<{
+  maxHp:number;
+  maxMp:number;
+  attack:number;
+  defense:number;
+  magicAttack:number;
+  magicDefense:number;
+}>;
 
 export function projectAttributeCombatBonuses(rawState:AttributeAllocationState):AttributeCombatProjection{
   const state=validateAttributeAllocationState(rawState);
