@@ -56,7 +56,7 @@ def _manifest(png_sha256):
             {
                 "path": "scripts/evidence-bundle-check.py",
                 "change_status": "added",
-                "line_count": 533,
+                "line_count": 532,
                 "git_blob_sha": "d" * 40,
             }
         ],
