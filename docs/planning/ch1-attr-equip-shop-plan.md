@@ -510,12 +510,13 @@ web/package.json 当前 scripts：
 | M7 Save extension schema 1 | web/src/progression/m7-save-extension.ts：L8–68 | Git blob SHA-1 ea93adb83df7170486df42b720975bcddce98e47；VERIFIED（仓库实现） |
 | M7 Save migration 与旧 M6 migration 接口 | web/src/progression/m7-save-migration.ts：L28–60 | Git blob SHA-1 01a8afbb962380836cc5dc736bfd4f686452600f；VERIFIED（仓库实现） |
 | SaveV2 version 2 与 M6/M7 extension 验证 | web/src/progression/save-schema.ts：L11–36、L79–112 | Git blob SHA-1 fe4641b4042e03a9727b260cf2abcc80a33d9bec；VERIFIED（仓库实现） |
-| YBCS 属性贡献候选、范围转标量差异、部分 stat code | docs/integration-notes/s3-source-inventory.md：L4–39、L41–69 | Git blob SHA-1 610e84c6cdb47d9814914cfd70282dd015fccb01；RECOVERED_SECONDARY / RECONSTRUCTION_POLICY，不是 VERIFIED |
-| HP 125/100/150 的角色区分与 2 敌模拟结果 | docs/integration-notes/s3-full-simulation-report.md：L3–34、L49–75、L118–154、L175–179 | Git blob SHA-1 acd2c717ab030bf3a36992cf17c8b8dc1a290fe2；YBCS 结果 RECOVERED_SECONDARY，S19 结果 RECONSTRUCTION_POLICY |
+| YBCS 属性贡献候选、范围转标量差异、部分 stat code | docs/integration-notes/s3-source-inventory.md：L183–218、L220–248 | Git blob SHA-1 610e84c6cdb47d9814914cfd70282dd015fccb01；RECOVERED_SECONDARY / RECONSTRUCTION_POLICY，不是 VERIFIED |
+| HP 125/100/150 的角色区分与 2 敌模拟结果 | docs/integration-notes/s3-full-simulation-report.md：L49–75 | Git blob SHA-1 acd2c717ab030bf3a36992cf17c8b8dc1a290fe2；YBCS 结果 RECOVERED_SECONDARY，S19 结果 RECONSTRUCTION_POLICY |
+| 当前 Web authored class JSON 数值（class 100 HP=125；class 109 HP=100） | data/classes/swordsman.json：L2；data/classes/wizard.json：L2 | Git blob SHA-1 38726a1ae1a4ede81c65b0174202185e20674096；def580ed4f0b13c8067cb3585e695f570f45d38d；VERIFIED（仓库数据值）；与原始 ability.atr 逐行映射仍 UNKNOWN / RECOVERED_SECONDARY |
 | S42 真实战斗、40 行动上限、HP 与胜利检查 | web/e2e/s42-ch1-end-to-end-acceptance.spec.ts：L31–41、L470–570 | Git blob SHA-1 18f91405bfbe63b95eff0b3d1789b4dc64ab56af；VERIFIED（测试代码存在），测试结果需未来重新执行 |
 | S42 六张截图、checkpoint 与历史证据口径 | docs/verification/ch1-auto3-binding.yaml：L61–82、L156–163、L449–502 | Git blob SHA-1 8b1b1c46d1179d2c5e93a7434298a4971faaff35；VERIFIED（历史绑定文档） |
 | Story source 1 map1030 / battleZone1 绑定及 provenance | web/src/m4-runtime-integration.ts：L92–108、L1820–1854 | Git blob SHA-1 6a0c9f7777ecb9922aae727ced508a3121d6ecfc；source binding RECOVERED_SECONDARY |
-| 当前 combat bonus 字段与 playerStats | web/src/combat/reconstruction-combat-balance.ts：L12–40、L356–384 | Git blob SHA-1 cfd76e345ce6089870881325ca4c6ecccf7dfde6；VERIFIED（仓库实现），公式 RECONSTRUCTION_POLICY |
+| 当前 combat bonus 字段 | web/src/combat/reconstruction-combat-balance.ts：L12–40 | Git blob SHA-1 cfd76e345ce6089870881325ca4c6ecccf7dfde6；VERIFIED（仓库实现），公式 RECONSTRUCTION_POLICY |
 | 当前 typecheck / unit / build / E2E 命令 | web/package.json：L1 | Git blob SHA-1 c6174e0d99a7f51a37f2c6f5a459981833c0b6bc；VERIFIED（仓库 scripts） |
 
 用户随任务提供的 attr-equip-shop-research-20261113.md 是本规划的起点材料，使用其 §1–4 的总管核实结论；该附件不是 bot 仓库文件，因此本文不伪造其 Git blob SHA。根目录 GOAL.md 在 bot main 上未找到；GOAL 队列对应关系仅按该附件记录引用。
