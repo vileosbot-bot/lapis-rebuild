@@ -55,12 +55,12 @@
 |---|---|---:|---|
 | CON | 最大 HP | +50 | `m7-2-con-max-hp-50-v1` |
 | WIS | 最大 MP | +50 | `m7-2-wis-max-mp-50-v1` |
-| STR | 物理攻击 | +1 | `m7-2-str-physical-attack-1-v1` |
-| DEX | 物理防御 | +1 | `m7-2-dex-physical-defense-1-v1` |
-| INT | 魔法攻击 | +1 | `m7-2-int-magic-attack-1-v1` |
-| REG | 魔法防御 | +1 | `m7-2-reg-magic-defense-1-v1` |
+| STR | 物理攻击、物理防御 | 各 +1 | `m7-2-str-physical-offense-defense-1-v1` |
+| INT | 魔法攻击、魔法防御 | 各 +1 | `m7-2-int-magic-offense-defense-1-v1` |
+| DEX | 未映射，不产生战斗数值贡献 | UNKNOWN | `m7-2-dex-unmapped-pending-s46-v1` |
+| REG | 未映射，不产生战斗数值贡献 | UNKNOWN | `m7-2-reg-unmapped-pending-s46-v1` |
 
-每个映射均独立记录 `policyId`、`provenance=RECONSTRUCTION_POLICY` 与 `evidenceLevel=RECOVERED_SECONDARY`。这些数值是获批的离线重构策略，不代表零售服务器公式已验证；S46 可依据实测调整投影，而不改写已保存的六维状态。
+CON/WIS/STR/INT 的映射均独立记录 `policyId`、`provenance=RECONSTRUCTION_POLICY` 与 `evidenceLevel=RECOVERED_SECONDARY`。DEX/REG 只记录 `status=unmapped`、`evidenceLevel=UNKNOWN` 与 `provenance=RECONSTRUCTION_POLICY`，不编造数值。获批数值是离线重构策略，不代表零售服务器公式已验证；S46 可依据实测调整投影，而不改写已保存的六维状态。
 
 ## 发点与幂等
 

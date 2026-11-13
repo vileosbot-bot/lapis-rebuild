@@ -21,7 +21,7 @@ import {
   totalAttributeValue,
   validateAttributeAllocationState,
 } from '../src/progression/attribute-points.ts';
-import {projectAttributeCombatBonuses} from '../src/progression/attribute-stat-policy.ts';
+import {ATTRIBUTE_STAT_POLICY,projectAttributeCombatBonuses} from '../src/progression/attribute-stat-policy.ts';
 
 const rewardState=():RewardState=>({
   gold:0,
@@ -111,15 +111,32 @@ test('allocation rejects insufficient balance, negative, decimal, unknown and ov
   assert.throws(()=>validateAttributeAllocationState({...state,allocated:{...state.allocated,con:2}}));
 });
 
-test('all six stat projections carry independent policy mappings and preserve their approved point values',()=>{
+test('approved CON/WIS/STR/INT mappings project combat values while DEX/REG remain unmapped',()=>{
   const levelOne=createAttributeAllocationState(1);
   assert.deepEqual(projectAttributeCombatBonuses(levelOne),{maxHp:50,maxMp:50,attack:1,defense:1,magicAttack:1,magicDefense:1});
+  assert.deepEqual(ATTRIBUTE_STAT_POLICY.unmapped.dex,{status:'unmapped',evidenceLevel:'UNKNOWN',provenance:'RECONSTRUCTION_POLICY',policyId:'m7-2-dex-unmapped-pending-s46-v1'});
+  assert.deepEqual(ATTRIBUTE_STAT_POLICY.unmapped.reg,{status:'unmapped',evidenceLevel:'UNKNOWN',provenance:'RECONSTRUCTION_POLICY',policyId:'m7-2-reg-unmapped-pending-s46-v1'});
+  assert.equal(Object.hasOwn(ATTRIBUTE_STAT_POLICY.mappings,'dex'),false);
+  assert.equal(Object.hasOwn(ATTRIBUTE_STAT_POLICY.mappings,'reg'),false);
+
   const state=createAttributeAllocationState(6);
   let draft=createAttributeAllocationDraft(state);
-  for(const key of ATTRIBUTE_KEYS)draft=addAttributePointToDraft(state,draft,key);
+  for(const key of ['con','wis','str','int'] as const)draft=addAttributePointToDraft(state,draft,key);
   const committed=confirmAttributeAllocation(state,draft);
   assert.equal(totalAttributeValue(committed,'con'),7);
+  assert.equal(totalAttributeValue(committed,'dex'),6);
+  assert.equal(totalAttributeValue(committed,'reg'),6);
   assert.deepEqual(projectAttributeCombatBonuses(committed),{maxHp:350,maxMp:350,attack:7,defense:7,magicAttack:7,magicDefense:7});
+
+  // DEX/REG may continue growing and being allocated without contributing
+  // combat values until the S46 evidence gate is completed.
+  let unmappedDraft=createAttributeAllocationDraft(committed);
+  unmappedDraft=addAttributePointToDraft(committed,unmappedDraft,'dex');
+  unmappedDraft=addAttributePointToDraft(committed,unmappedDraft,'reg');
+  const unmappedAllocated=confirmAttributeAllocation(committed,unmappedDraft);
+  assert.equal(totalAttributeValue(unmappedAllocated,'dex'),7);
+  assert.equal(totalAttributeValue(unmappedAllocated,'reg'),7);
+  assert.deepEqual(projectAttributeCombatBonuses(unmappedAllocated),projectAttributeCombatBonuses(committed));
 });
 
 test('attribute allocation survives same-family stage changes and rejects cross-family carry-over',()=>{
