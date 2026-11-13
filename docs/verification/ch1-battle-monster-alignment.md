@@ -468,4 +468,4 @@ S42 真实浏览器结果：
 - 单元测试：375 passed / 0 failed / 0 skipped。
 - Production build：PASS，exit 0；仍有既有 JSON import-attributes 与 chunk-size warning。
 
-本轮未修改任何代码、战斗数值、HP 口径、攻防、技能或 AI 策略；未重跑 S42；未运行原版客户端；未修改主号仓库；未合并、未部署。
+本轮仅执行一次最终版本 S42 单链，未再次重跑；未修改任何代码、战斗数值、HP 口径、攻防、技能或 AI 策略；未运行原版客户端；未修改主号仓库；未合并、未部署。
