@@ -204,7 +204,7 @@ class EvidenceBundleCheckTests(unittest.TestCase):
             out = Path(tmp) / "out"
             self.assertEqual(self._run(artifacts, out), 0)
             bundle = self._read_out(out)
-            self.assertEqual(bundle["verdict"], "PASS")
+            self.assertEqual(bundle["worker_verdict"], "PASS")
             self.assertEqual(bundle["errors"], [])
             self.assertTrue(all(c["result"] == "PASS" for c in bundle["checks"]))
             markdown = (out / "evidence-bundle.md").read_text(encoding="utf-8")
