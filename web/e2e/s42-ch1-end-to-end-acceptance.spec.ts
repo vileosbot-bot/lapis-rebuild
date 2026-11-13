@@ -9,6 +9,7 @@ import {
   CH1_GIO_TEACHER_VISUAL_BINDING,
   CH1_QUEST1_SELECT_RECORD,
 } from '../src/world/ch1-world-authority.ts';
+import {CH1_STORY_ONE_BATTLE_BINDING} from '../src/world/ch1-story-one-battle-roster.ts';
 
 const ASSET_INDEX_PATH=fileURLToPath(new URL('../public/game-data/asset-index.json',import.meta.url));
 const CONTENT_SUMMARY_PATH=fileURLToPath(new URL('../public/game-data/content/summary.json',import.meta.url));
@@ -21,10 +22,23 @@ const REQUIRED_MAP_FILES=[1000,1020,1030,1060].flatMap(id=>[
   'maps/map-'+id+'.png',
   'maps/map-'+id+'-collision.json',
 ]);
+const CH1_MONSTER_VISUAL_RESOURCE_IDS=[1001,1003,1010] as const;
+const CH1_MONSTER_VISUAL_FILES=CH1_MONSTER_VISUAL_RESOURCE_IDS.flatMap(id=>
+  ['00','01','02','03'].flatMap(slot=>[
+    'Char/B'+id+'_'+slot+'.ani',
+    'Char/B'+id+'_'+slot+'.spr',
+  ])
+);
+const CH1_MONSTER_VISUALS_AVAILABLE=!!ASSET_INDEX
+  &&CH1_MONSTER_VISUAL_FILES.every(path=>typeof ASSET_INDEX.inputs?.[path]==='string'&&/^[a-f0-9]{64}$/.test(ASSET_INDEX.inputs[path]))
+  &&CH1_MONSTER_VISUAL_RESOURCE_IDS.every(id=>
+    ['00','01','02','03'].every(slot=>existsSync(fileURLToPath(new URL('../public/game-data/visuals/B'+id+'/'+slot+'/animation.json',import.meta.url))))
+  );
 const PRIVATE_ORIGINAL_PACK_AVAILABLE=!!ASSET_INDEX
   &&!ASSET_INDEX_TEXT.includes('SYNTHETIC')
   &&!!ASSET_INDEX.inputs?.['Char/B4524_00.ani']
   &&!!ASSET_INDEX.inputs?.['Char/B4524_00.spr']
+  &&CH1_MONSTER_VISUALS_AVAILABLE
   &&REQUIRED_MAP_FILES.every(path=>existsSync(fileURLToPath(new URL('../public/game-data/'+path,import.meta.url))));
 
 type AnyRecord=Record<string,any>;
@@ -82,6 +96,7 @@ function compactScene(value:AnyRecord):AnyRecord{
     phase:value.phase,
     hp:value.hp,
     maxHp:value.maxHp,
+    battleReward:value.battleReward,
     mp:value.mp,
     maxMp:value.maxMp,
     action:value.action,
@@ -90,7 +105,11 @@ function compactScene(value:AnyRecord):AnyRecord{
     battlePaused:value.battlePaused,
     target:value.target,
     enemies:(value.enemies??[]).map((enemy:AnyRecord)=>({
-      id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,cell:enemy.cell,visible:enemy.visible,visualResourceId:enemy.visualResourceId,
+      id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,mp:enemy.mp,maxMp:enemy.maxMp,cell:enemy.cell,
+      visible:enemy.visible,visualResourceId:enemy.visualResourceId,level:enemy.level,rank:enemy.rank,
+      attack:enemy.attack,defense:enemy.defense,magicAttack:enemy.magicAttack,magicDefense:enemy.magicDefense,
+      movementRangeCells:enemy.movementRangeCells,attackRangeCells:enemy.attackRangeCells,
+      abilities:enemy.abilities,aiBinding:enemy.aiBinding,
     })),
     worldVisuals:value.worldVisuals,
   };
@@ -151,10 +170,28 @@ async function capture(
   featureId:string,
   capturePoint:string,
   screenshots:ScreenshotRecord[],
+  annotationText?:string,
 ):Promise<ScreenshotRecord>{
   mkdirSync('test-results',{recursive:true});
   const path='test-results/'+filename;
+  if(annotationText){
+    await page.evaluate((text)=>{
+      document.getElementById('s42-capture-annotation')?.remove();
+      const node=document.createElement('div');
+      node.id='s42-capture-annotation';
+      node.textContent=text;
+      Object.assign(node.style,{
+        position:'fixed',left:'10px',top:'10px',zIndex:'2147483647',
+        maxWidth:'min(900px, calc(100vw - 20px))',padding:'9px 13px',
+        color:'#fff',background:'rgba(0,0,0,.88)',border:'1px solid #fff',
+        borderRadius:'4px',font:'bold 14px/1.45 sans-serif',whiteSpace:'pre-wrap',
+        pointerEvents:'none',
+      });
+      document.body.append(node);
+    },annotationText);
+  }
   await page.screenshot({path,fullPage:true});
+  await page.evaluate(()=>document.getElementById('s42-capture-annotation')?.remove());
   const bytes=readFileSync(path);
   const item:ScreenshotRecord={
     screenshot_id:screenshotId,
@@ -185,9 +222,9 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
   const screenshots:ScreenshotRecord[]=[];
   const checkpoints:AnyRecord={
     schema_version:1,
-    bundle_id:'s42-ch1-b4-3-20261110',
-    request_id:'auto-3-2',
-    base_commit_sha:'8a844202cb77d915d8b6ee1eb9c4c50b9e7d4f6b',
+    bundle_id:'s42-ch1-monster-fix-20261113',
+    request_id:'ch1-monster-fix-20261113-03',
+    base_commit_sha:'88065e3e73dacc55eddbad3c7ad71ba4ffb7514f',
     tested_commit_sha:process.env.S42_TESTED_COMMIT_SHA??'WORKTREE_UNCOMMITTED',
     environment:{
       environment_kind:'private_original',
@@ -198,7 +235,7 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
       fully_parallel:false,
       test_timeout_ms:720000,
       action_ready_wait_timeout_ms:12000,
-      max_player_turns:40,
+      max_player_turns:160,
       preview:'Vite production preview at http://127.0.0.1:4173',
       resource_pack_kind:'private-original derived Web pack; original NeoDark.exe is not executed',
       asset_index_sha256:sha256File(ASSET_INDEX_PATH),
@@ -207,16 +244,18 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
         const absolute=fileURLToPath(new URL('../public/game-data/'+path,import.meta.url));
         return {path,bytes:statSync(absolute).size,sha256:sha256File(absolute)};
       }),
-      proxy_animation_inputs:{
+      npc_proxy_animation_inputs:{
         ani_sha256:ASSET_INDEX.inputs['Char/B4524_00.ani'],
         spr_sha256:ASSET_INDEX.inputs['Char/B4524_00.spr'],
       },
+      chapter1_monster_visual_inputs:CH1_MONSTER_VISUAL_FILES.map(path=>({path,sha256:ASSET_INDEX.inputs[path]})),
     },
     static_sources:{
       npc_candidate:CH1_GIO_TEACHER_CANDIDATE,
       npc_runtime_entity:CH1_GIO_TEACHER_ENTITY,
       npc_visual_binding:CH1_GIO_TEACHER_VISUAL_BINDING,
       quest1_select_record:CH1_QUEST1_SELECT_RECORD,
+      monster_binding:CH1_STORY_ONE_BATTLE_BINDING,
       quest1_content_summary:CONTENT_SUMMARY?.quests?.find((row:AnyRecord)=>row.source==='Quest1.TXT')??null,
       story_one_source:{
         source_file:'src/legacy_gui_runtime/ybcs_offline_field_encounters.py',
@@ -237,9 +276,12 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
   expect(ASSET_INDEX_TEXT).not.toContain('SYNTHETIC');
   expect(ASSET_INDEX.inputs['Char/B4524_00.ani']).toMatch(/^[a-f0-9]{64}$/);
   expect(ASSET_INDEX.inputs['Char/B4524_00.spr']).toMatch(/^[a-f0-9]{64}$/);
+  expect(CH1_MONSTER_VISUALS_AVAILABLE).toBe(true);
+  expect(CH1_MONSTER_VISUAL_FILES).toHaveLength(24);
   expect(REQUIRED_MAP_FILES).toHaveLength(8);
-  assertions.push({id:'A01',status:'PASS',description:'Private-original derived pack preflight passes: non-synthetic asset index, B4524 ANI/SPR inputs and all four required map image/collision pairs are present.',evidence_refs:['checkpoints.privateResourcePrecheck','checkpoints.resourcePack']});
-  stateCheckpoints.privateResourcePrecheck={available:PRIVATE_ORIGINAL_PACK_AVAILABLE,syntheticMarker:false,proxyAnimationInputs:checkpoints.environment.proxy_animation_inputs,requiredMapFiles:checkpoints.environment.required_map_files};
+  assertions.push({id:'A01',status:'PASS',description:'Private-original derived pack preflight passes: non-synthetic index, B4524 NPC proxy, complete B1001/B1003/B1010 ANI/SPR action slots, and all four required map image/collision pairs are present.',evidence_refs:['checkpoints.privateResourcePrecheck','checkpoints.resourcePack','checkpoints.monsterVisuals']});
+  stateCheckpoints.privateResourcePrecheck={available:PRIVATE_ORIGINAL_PACK_AVAILABLE,syntheticMarker:false,npcProxyAnimationInputs:checkpoints.environment.npc_proxy_animation_inputs,chapter1MonsterVisualInputs:checkpoints.environment.chapter1_monster_visual_inputs,requiredMapFiles:checkpoints.environment.required_map_files};
+  stateCheckpoints.monsterVisuals={resourceIds:CH1_MONSTER_VISUAL_RESOURCE_IDS,visualFiles:CH1_MONSTER_VISUAL_FILES,visualsAvailable:CH1_MONSTER_VISUALS_AVAILABLE};
 
   await ready(page);
   const initialRuntime=await runtime(page);
@@ -441,7 +483,20 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
     battleZoneId:1,
     entryProvenance:'RECOVERED_SECONDARY',
     authority:'offline-reconstruction',
+    rosterBindingId:CH1_STORY_ONE_BATTLE_BINDING.binding_id,
+    rosterUnitCount:20,
+    monsterSkillPolicy:'NONE',
+    aiProvenance:'RECONSTRUCTION_POLICY',
     runtimeVerified:false,
+  });
+  expect(battleRuntime.chapter1StorySource1).toMatchObject({
+    deploymentLocalCell:[16,62],
+    deploymentHostileCell:[55,21],
+    deploymentApplied:true,
+    rosterBindingId:CH1_STORY_ONE_BATTLE_BINDING.binding_id,
+    rosterUnitCount:20,
+    monsterSkillPolicy:'NONE',
+    aiProvenance:'RECONSTRUCTION_POLICY',
   });
   expect(battleRuntime.chapter1StorySource1.triggerSemantics).toBe('movement-complete-gate-cell-offline-policy');
   stateCheckpoints.gateMovementInProgress={scene:compactScene(duringGateMovement),runtime:compactRuntime(battleRuntime)};
@@ -457,10 +512,45 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
   });
   expect(battleScene.battleEntryProvenance).toBe('RECOVERED_SECONDARY');
   expect(battleRuntime.chapter1StorySource1.mapToBattleZoneRetailVerified).toBe(false);
-  assertions.push({id:'A08',status:'PASS',description:'Story source 1 is admitted at the movement-complete gate edge into explicit battleZone 1, independent of Quest1 SELECT; entry provenance remains RECOVERED_SECONDARY and runtimeVerified=false. This rechecks the B4-1 Story-entry result.',evidence_refs:['checkpoints.gateMovementInProgress','checkpoints.battleEntry','checkpoints.quest1Selected']});
-  // A08 is the B4-1 Story source 1 -> battleZone 1 binding; this full-chain run rechecks it in context.
+  expect(battleScene.battleCell).toEqual([16,62]);
+  expect(battleScene.enemies).toHaveLength(20);
+  const expectedFormation=CH1_STORY_ONE_BATTLE_BINDING.formation.map(row=>[row.model_id,row.position[0],row.position[1]]);
+  const actualFormation=battleScene.enemies.map((enemy:AnyRecord)=>[Number(String(enemy.id).split('-')[2]),enemy.cell[0],enemy.cell[1]]);
+  expect(actualFormation).toEqual(expectedFormation);
+  const countsByModel=Object.fromEntries(CH1_MONSTER_VISUAL_RESOURCE_IDS.map(id=>[
+    String(id),battleScene.enemies.filter((enemy:AnyRecord)=>enemy.visualResourceId===id).length,
+  ]));
+  expect(countsByModel).toEqual({'1001':16,'1003':3,'1010':1});
+  for(const enemy of battleScene.enemies as AnyRecord[]){
+    const modelId=Number(String(enemy.id).split('-')[2]);
+    const source=CH1_STORY_ONE_BATTLE_BINDING.monster_types[String(modelId)];
+    expect(enemy).toMatchObject({
+      visualResourceId:source.visual_resource_id,
+      maxHp:source.hp,
+      maxMp:source.mp,
+      level:source.level,
+      attack:source.attack,
+      defense:source.defense,
+      magicAttack:source.magic_attack,
+      magicDefense:source.magic_defense,
+      movementRangeCells:source.movement_range,
+      attackRangeCells:source.attack_range,
+      abilities:[],
+      aiBinding:{source:'reconstruction',program:'ODNORMAL REST(20),ATTACK(80)',provenance:'RECONSTRUCTION_POLICY'},
+    });
+    expect(enemy.visible).toBe(true);
+  }
+  expect(battleScene.enemies[19].cell).toEqual([44,36]);
+  const gioVisualInBattle=battleScene.worldVisuals.find((row:AnyRecord)=>row.id===CH1_GIO_TEACHER_ENTITY.id);
+  expect(gioVisualInBattle?.visible??false).toBe(false);
+  expect((battleScene.worldPointerTargets??[]).some((row:AnyRecord)=>row.id===CH1_GIO_TEACHER_ENTITY.id)).toBe(false);
+  assertions.push({id:'A08',status:'PASS',description:'Story source 1 enters battleZone 1 with the exact 20-unit formation (1010x1/1001x16/1003x3), ability.atr stats, explicit B1001/B1003/B1010 visuals, no monster abilities, RECONSTRUCTION_POLICY default AI, and NPC 21003 hidden from battle view.',evidence_refs:['checkpoints.battleEntry','checkpoints.monsterRoster','checkpoints.gioTeacherBattleVisibility','checkpoints.quest1Selected','s42-04-battle-zone1.png','s42x-07-battle-entry.png']});
+  stateCheckpoints.monsterRoster={bindingId:CH1_STORY_ONE_BATTLE_BINDING.binding_id,expectedFormation,actualFormation,countsByModel,playerCell:battleScene.battleCell,enemies:compactScene(battleScene).enemies,skillsPolicy:'NONE',aiPolicy:'RECONSTRUCTION_POLICY'};
+  stateCheckpoints.gioTeacherBattleVisibility={entityId:CH1_GIO_TEACHER_ENTITY.id,templateId:CH1_GIO_TEACHER_CANDIDATE.candidateEntityId,worldVisual:gioVisualInBattle??null,pointerTargetPresent:false};
   stateCheckpoints.battleEntry={runtime:compactRuntime(battleRuntime),scene:compactScene(battleScene)};
   await capture(page,'s42-04','s42-04-battle-zone1.png','CH1-04','Real browser Story source 1 battle entry in battleZone 1, before any player combat action.',screenshots);
+  await capture(page,'s42x-07','s42x-07-battle-entry.png','CH1-04','20-unit Chapter 1 battle entry; player HP '+battleScene.hp+'/'+battleScene.maxHp+'.',screenshots,
+    'S42x-07 进战斗 | 玩家 HP '+battleScene.hp+'/'+battleScene.maxHp+' | 敌方 20：十步长 1、步兵 16、枪兵 3 | 怪物技能 NONE | AI RECONSTRUCTION_POLICY');
 
   // Quest1 SELECT is not the battle cause: the recorded selection remains
   // transient/local, quest stage stays not_started, and no pending S9 encounter
@@ -490,16 +580,16 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
   let moves=0;
   let simulatedWaitMs=0;
 
-  for(let turn=0;turn<40;turn++){
+  let midBattleScreenshotCaptured=false;
+  const maxPlayerActions=160;
+  for(let turn=0;turn<maxPlayerActions;turn++){
     let state=await scene(page);
-    if(state.phase==='won')break;
-    expect(state.phase,'Story source 1 combat must remain active until a real terminal phase').toBe('active');
+    if(state.phase!=='active')break;
 
     const wait=await waitForActionReady(page);
     simulatedWaitMs+=wait.simulatedMs;
     state=await scene(page);
-    if(state.phase==='won')break;
-    expect(state.phase).toBe('active');
+    if(state.phase!=='active')break;
 
     const live=state.enemies.filter((enemy:AnyRecord)=>enemy.hp>0);
     if(!live.length)break;
@@ -530,13 +620,28 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
       combatTurns.push({turn:turn+1,action:'ordinary-attack',targetId:target.id,targetCell:target.cell,readinessWait:wait});
     }
     playerActions++;
+    if(!midBattleScreenshotCaptured&&playerActions>=1){
+      const midState=await scene(page);
+      if(midState.phase==='active'){
+        const alive=midState.enemies.filter((enemy:AnyRecord)=>enemy.hp>0).length;
+        stateCheckpoints.battleMid={playerActions,scene:compactScene(midState),aliveEnemies:alive};
+        await capture(page,'s42x-08','s42x-08-battle-in-progress.png','CH1-04',
+          'Battle in progress after '+playerActions+' player actions; HP '+midState.hp+'/'+midState.maxHp+', '+alive+' enemies alive.',screenshots,
+          'S42x-08 战斗中 | 玩家行动 '+playerActions+' | 玩家 HP '+midState.hp+'/'+midState.maxHp+' | 存活敌人 '+alive+'/20');
+        midBattleScreenshotCaptured=true;
+      }
+    }
   }
 
   const victoryScene=await scene(page);
   const victoryRuntime=await runtime(page);
+  const victoryFilename=victoryScene.phase==='won'?'s42x-09-victory.png':'s42x-09-not-victory.png';
+  await capture(page,'s42x-09',victoryFilename,'CH1-04',
+    'Combat terminal phase '+victoryScene.phase+' after '+playerActions+' player actions; HP '+victoryScene.hp+'/'+victoryScene.maxHp+'.',screenshots,
+    'S42x-09 终局 '+victoryScene.phase+' | 玩家 HP '+victoryScene.hp+'/'+victoryScene.maxHp+' | 行动 '+playerActions+' | 击杀 '+(20-victoryScene.enemies.filter((enemy:AnyRecord)=>enemy.hp>0).length)+'/20');
   expect(victoryScene.phase,'Story source 1 must reach victory through actual combat, not a forced phase fixture').toBe('won');
   expect(playerActions).toBeGreaterThan(0);
-  expect(playerActions).toBeLessThanOrEqual(40);
+  expect(playerActions).toBeLessThanOrEqual(maxPlayerActions);
   expect(attacks).toBeGreaterThan(0);
   expect(victoryScene.hp).toBeGreaterThan(0);
   expect(victoryScene.hp).toBeLessThanOrEqual(hpAtEntry);
@@ -548,7 +653,7 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
   expect(victoryRuntime.progression).toEqual(baselineProgression);
   expect(victoryRuntime.quest).toEqual(baselineQuest);
   expect(victoryRuntime.chapter1StorySource1.bossVictoryRuntimeEnforced).toBe(false);
-  assertions.push({id:'A09',status:'PASS',description:'Real Story source 1 M4 combat reaches phase won within 40 player actions, with 12-second action-ready waits, no HP/enemy-HP/forced-victory fixture and no reward settlement.',evidence_refs:['checkpoints.battleVictory.turns','checkpoints.battleVictory','s42-05-victory.png']});
+  assertions.push({id:'A09',status:'PASS',description:'Real Story source 1 M4 combat reaches phase won with the ability.atr 100/100/150 monster HP, within the 160-action ceiling, without HP/enemy-HP/forced-victory fixtures; runtime reward settlement remains zero/not applied.',evidence_refs:['checkpoints.battleVictory.turns','checkpoints.battleVictory','s42-05-victory.png','s42x-09-victory.png']});
   stateCheckpoints.battleVictory={
     runtime:compactRuntime(victoryRuntime),
     scene:compactScene(victoryScene),
@@ -560,6 +665,12 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
     maxStepsPerWait:40,
     hpAtEntry,
     hpAtVictory:victoryScene.hp,
+    maxHpAtEntry:battleScene.maxHp,
+    maxHpAtVictory:victoryScene.maxHp,
+    battleReward:victoryScene.battleReward,
+    goldBefore:battleRuntime.gold,
+    goldAtVictory:victoryRuntime.gold,
+    expRewardApplied:0,
     hpMutationFixtureUsed:false,
     enemyHpMutationFixtureUsed:false,
     forcedVictoryFixtureUsed:false,
@@ -606,7 +717,15 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
   expect(returnedRuntime.pendingEncounter).toBeNull();
   expect(returnedScene.mapId).toBe(1060);
   expect(returnedScene.inBattleView).toBe(false);
-  assertions.push({id:'A10',status:'PASS',description:'Victory returns through story-victory-return-01 to map1060 (20,120); route-052 is not used and S9 rewards/Quest1 completion remain untouched.',evidence_refs:['checkpoints.victoryReturn','s42-06-map1060-return.png']});
+  const hpReturnComparison={
+    victoryHp:victoryScene.hp,
+    victoryMaxHp:victoryScene.maxHp,
+    returnedHp:returnedScene.hp,
+    returnedMaxHp:returnedScene.maxHp,
+    returnedAtFullHp:returnedScene.hp===returnedScene.maxHp,
+    hpDeltaOnReturn:returnedScene.hp-victoryScene.hp,
+  };
+  assertions.push({id:'A10',status:'PASS',description:'Victory returns through story-victory-return-01 to map1060 (20,120); the exact post-return HP is compared with the terminal battle HP and recorded without changing the HP policy.',evidence_refs:['checkpoints.victoryReturn','checkpoints.hpReturnComparison','s42-06-map1060-return.png','s42x-10-return-map1060.png']});
   stateCheckpoints.victoryReturn={
     runtime:compactRuntime(returnedRuntime),
     scene:compactScene(returnedScene),
@@ -615,13 +734,18 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
     returnCell:[20,120],
     route052Used:false,
     rewardSettlement:'not-applied',
+    hpReturnComparison,
   };
+  stateCheckpoints.hpReturnComparison=hpReturnComparison;
   await capture(page,'s42-06','s42-06-map1060-return.png','CH1-05','Returned to the Chapter 1 victory-return spawn on map1060 at (20,120).',screenshots);
+  await capture(page,'s42x-10','s42x-10-return-map1060.png','CH1-05',
+    'Returned to map1060 (20,120); victory HP '+victoryScene.hp+'/'+victoryScene.maxHp+', returned HP '+returnedScene.hp+'/'+returnedScene.maxHp+'.',screenshots,
+    'S42x-10 返回 map1060 (20,120) | 胜利时 HP '+victoryScene.hp+'/'+victoryScene.maxHp+' | 返回后 HP '+returnedScene.hp+'/'+returnedScene.maxHp+' | HP 差值 '+hpReturnComparison.hpDeltaOnReturn);
 
   expect(pageErrors).toEqual([]);
-  expect(screenshots).toHaveLength(6);
-  expect(screenshots.map(item=>item.screenshot_id)).toEqual(['s42-01','s42-02','s42-03','s42-04','s42-05','s42-06']);
-  assertions.push({id:'A11',status:'PASS',description:'Six real-browser screenshots and the checkpoint JSON are captured and readable; pageerror count is zero.',evidence_refs:screenshots.map(item=>item.filename).concat(['test-results/s42-ch1-checkpoints.json'])});
+  expect(screenshots).toHaveLength(10);
+  expect(screenshots.map(item=>item.screenshot_id)).toEqual(['s42-01','s42-02','s42-03','s42-04','s42-05','s42-06','s42x-07','s42x-08','s42x-09','s42x-10']);
+  assertions.push({id:'A11',status:'PASS',description:'Ten real-browser screenshots, including four annotated battle HP/roster checkpoints, and the checkpoint JSON are captured and readable; pageerror count is zero.',evidence_refs:screenshots.map(item=>item.filename).concat(['test-results/s42-ch1-checkpoints.json'])});
   checkpoints.errors={pageErrors,consoleErrors};
   checkpoints.assertions=assertions;
   checkpoints.screenshots=screenshots;
@@ -634,7 +758,7 @@ test('S42 Chapter 1 full end-to-end acceptance A01-A11 on private-original produ
   const readback=JSON.parse(readFileSync(checkpointPath,'utf8'));
   expect(readback.assertions).toHaveLength(11);
   expect(readback.assertions.every((item:AnyRecord)=>item.status==='PASS')).toBe(true);
-  expect(readback.screenshots).toHaveLength(6);
+  expect(readback.screenshots).toHaveLength(10);
   expect(readback.errors.pageErrors).toEqual([]);
   expect(existsSync(checkpointPath)).toBe(true);
   expect(statSync(checkpointPath).size).toBeGreaterThan(0);

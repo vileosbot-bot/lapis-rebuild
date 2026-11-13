@@ -325,3 +325,99 @@ S17 的 B4524/B4525/B4526/B4544 仍不能替代这三条映射，也没有按数
 3. 如需完成真实视觉文件验收，再提供 Char/B1001、B1003、B1010 对应 ANI/SPR 文件或完整客户端资源目录。
 
 在这些证据补齐前，继续保持 BLOCKED，不改代码、不创建 PR。
+
+## 9. 第三阶段执行记录（2026-11-13 / ch1-monster-fix-20261113-03）
+
+### 9.1 用户裁定覆盖第二阶段 BLOCKED 条件
+
+2026-11-13 08:09 用户明确批准按已核实的静态属性与视觉映射先换怪，并明确两条长期口径：
+- 所有怪物统一无技能（OWNER_DECISION；不再追逐怪技能语义）。
+- 怪物 AI 采用现有默认战斗行为，binding 必须标记 RECONSTRUCTION_POLICY；不得声称是 6A69 历史绑定。
+
+因此第二阶段原先“必须先恢复逐怪技能与 6A69 AI 才能改代码”的门槛由用户本次决定覆盖。没有将任何 ybcs/offline 数据升级为 VERIFIED，也没有声称恢复了历史 6A69 绑定。
+
+### 9.2 首战阵容 binding
+
+新增 `manifests/ch1-story-one-battle-binding.json` 与运行时 builder `web/src/world/ch1-story-one-battle-roster.ts`。
+
+| 单位 | 占位阵容（第二阶段） | 第三阶段 |
+|---|---:|---:|
+| dummy-melee / B4524 | 1 | 0 |
+| dummy-ranged / B4544 | 1 | 0 |
+| 1010 十步长 / B1010 | 0 | 1 |
+| 1001 步兵 / B1001 | 0 | 16 |
+| 1003 枪兵 / B1003 | 0 | 3 |
+| 合计 | 2 | 20 |
+
+属性严格来自 ability.atr，等级来自 levelabl.atr：
+- 1001 步兵：等级 1；HP/MP 100/100；物攻/物防 50/25；魔攻/魔防 0/20；移动/攻击范围 5/1；金币/EXP 20/50。
+- 1003 枪兵：等级 1；HP/MP 100/100；物攻/物防 50/25；魔攻/魔防 0/20；移动/攻击范围 5/2；金币/EXP 20/50。
+- 1010 十步长：等级 5；HP/MP 150/100；物攻/物防 86/33；魔攻/魔防 0/20；移动/攻击范围 5/1；金币/EXP 60/150。
+
+玩家部署格为 (16,62)。20 个怪物位置依序采用 DEO handoff 前 19 格，最后一只 fallback 为 (44,36)。战斗区碰撞网格静态检查：21 个部署格（含玩家格）全部可走、无重复。
+
+HP 仅采用 ability.atr：1001=100、1003=100、1010=150。ybcs 离线战斗策略的 13/13/19 未被使用。
+
+视觉映射使用 ability.atr portrait_id 显式映射 B1001/B1003/B1010。已从 ybcs-offline.zip 静态提取并验证三种怪物 00/01/02/03 四动作 ANI/SPR 共 24 个文件；新生成 private-original Web pack 为 4,148 文件、170,918,158 字节，asset-index 输入 158 项。原始包 SHA-256：`d79c012177c8b1701188a90825539466d28cc18dc87b3c62361b4960b315724d`。资源包输出在本地 private Web 资源目录，不代表原客户端运行验证。
+
+技能策略：`monster_skill_policy.mode=NONE`，没有给任何怪物记录添加 skills/abilities。运行时实例的 abilities 为空数组。
+
+AI 策略：`trainingAiBinding`，当前默认程序说明 `ODNORMAL REST(20),ATTACK(80)`，provenance=`RECONSTRUCTION_POLICY`，`historical_6a69_binding=NOT_ASSERTED`。
+
+原始阵容奖励字段合计：金币 440、EXP 1,100（从 20 只怪物数量与 ability.atr 的 VERIFIED gold/EXP 字段求和）。这是来源字段合计，不是本次战斗实际发放奖励；Story source 1 的 rewardSettlement 仍为 not-applied。
+
+### 9.3 代码提交
+
+- 仓库：`vileosbot-bot/lapis-rebuild`
+- 分支：`fix/ch1-battle-monster-20261113`
+- 第三阶段代码提交：`3d952f44348fc999bdb95a2adcd2dfceb25c2e75`
+- 父提交：`88065e3e`
+- 只修改 bot 仓库；未修改主号仓库、未创建 PR、未合并、未部署。
+
+主要改动：
+- `web/src/battle.ts`：支持显式 player/enemy deployment position。
+- `web/src/world/ch1-story-one-battle-roster.ts`：20 单位 roster builder。
+- `web/src/m4-runtime-integration.ts`：只在第一章 Story source 1 首战接入 roster。
+- `web/src/scene.ts`：战斗切换前立即隐藏 world NPC/marker/guide label；战斗使用显式部署格与怪物视觉 ID。
+- `tools/prepare_web.py`：将三种怪物的原始 ANI/SPR 文件纳入 private pack 输入哈希及视觉导出。
+- `web/e2e/s42-ch1-end-to-end-acceptance.spec.ts`、`web/e2e/s42-ch1-story-gate-entry.spec.ts`：增加新阵容、属性、技能、AI、视觉和截图断言。
+- 新增 roster 与 NPC visibility 单元测试。
+
+### 9.4 自测结果
+
+| 检查 | 结果 | 实测 |
+|---|---|---|
+| typecheck | PASS | `npm run typecheck`，exit 0 |
+| 单元测试 | PASS | 166 tests，0 fail，exit 0 |
+| production build | PASS | `npm run build`，exit 0；存在原有 JSON import-attributes 与 chunk-size warning |
+| S42 单链 | FAIL | 本轮仅运行一次；未通过真实战斗胜利断言 |
+
+S42 真实浏览器结果：
+- 进入 battleZone 1，确认玩家部署 (16,62)，怪物 20 只，视觉 ID 顺序与 binding 一致；NPC 21003 不在战斗视图。
+- 战斗终局为 lost，不是 won。
+- 玩家 HP：入战 125/125，终局 0/125，净变化 -125。
+- 玩家行动数：9；击杀：0/20。
+- 奖励：未获得战斗胜利奖励；Story reward settlement 仍未应用。
+- 终局截图实测敌方仍有存活单位；没有把 20 只怪物的 ability.atr HP 改小，也没有改成 13/13/19。
+- 该结果表明按当前重建 AI/战斗规则，20 只怪物对当前玩家角色造成明显失衡。按用户要求，未私自调低怪物 HP、攻击、防御或改动 HP 口径，等待总管裁定。
+
+### 9.5 S42 截图
+
+| 文件 | SHA-256 | 状态 |
+|---|---|---|
+| `s42x-07-battle-entry.png` | `245d436fd3093684cdf5d8c2541f3a4817e99729c4b019186dffc04bcf954207` | 已生成 |
+| `s42x-08-battle-in-progress.png` | `0134ec4e372b35ef7caf5c42b3fda171fd2c2f401150c1d9ee5c938d1afdf01d` | 已生成 |
+| `s42x-09-not-victory.png` | `90f0f910f03fda31ee064e1c265b14b5e80c117d48c2cd1beb5dbd7aa5bf91ba` | 已生成，明确标记 lost |
+| `s42x-10` | — | 未生成：本轮没有胜利，不能声称返回 map1060 |
+
+因此，本轮没有伪造 s42x-10，也没有把失败后的返回场景冒充为胜利返回。旧疑点“胜利时 13/125、回 map1060 时 125/125”未能通过真实胜利链复测。代码路径上，`LabScene.leaveBattle()` 会重新初始化战斗状态（`initialState()`，HP 125/125），这可以解释为何离开战斗后生命值回满；但不能替代胜利链实测，也不能确认此前 13/125 的具体来源。
+
+### 9.6 吉奥老师 visibility bug
+
+已修改 `web/src/scene.ts`：
+- 在设置战斗地图纹理前，先隐藏所有 world visual actors、NPC 标签、world markers 与 guide label，避免过渡帧残留。
+- 统一 visibility helper 在 battle view 中返回 false。
+- 新增 `web/tests/ch1-battle-visual-visibility.test.ts`，覆盖 NPC 21003 在战斗视图隐藏、返回原地图后可见及非本地图隐藏。
+- 单元测试已通过。S42 战斗入口快照与截图也未显示 NPC 21003。
+
+**结论：吉奥老师 visibility bug 已修复并通过回归测试；首战 20 怪物阵容已接入，但 S42 因战斗失衡未通过。当前阶段不应标记为 S42 验收通过或实机长期稳定版。**

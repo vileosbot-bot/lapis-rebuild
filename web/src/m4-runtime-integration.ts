@@ -54,6 +54,7 @@ import type {M4RuntimeMode} from './m4-mode.ts';
 import {createCh1WorldPolicy} from './world/ch1-world-policy.ts';
 import type {Ch1WorldPolicy} from './world/ch1-world-policy.ts';
 import {CH1_GIO_TEACHER_VISUAL_PLACEMENT,Ch1WorldAuthority} from './world/ch1-world-authority.ts';
+import {CH1_STORY_ONE_BATTLE_BINDING,CH1_STORY_ONE_BATTLE_CELLS,buildChapter1StoryOneBattleSetup} from './world/ch1-story-one-battle-roster.ts';
 import type {Ch1NpcDialogueSession,Ch1Quest1SelectionState} from './world/ch1-world-authority.ts';
 import {DEFAULT_RECONSTRUCTION_COMBAT_BALANCE} from './combat/reconstruction-combat-balance.ts';
 import {applyInfiniteTrainingRecovery,InfiniteTrainingRecoveryPolicy} from './training/m7-recovery.ts';
@@ -97,8 +98,9 @@ const CH1_STORY_ONE_SOURCE=Object.freeze({
   sourceSha256:'94ee9a6ba8cee80d76e44c01e5e41fbb7b894f7ef118c50732d77992d99b691a',
   gateCellsLocator:'ybcs_offline_field_encounters.py:L277-L289',
   battleZoneLocator:'ybcs_offline_field_encounters.py:L240',
-  deploymentLocalCell:[34,44] as const,
-  deploymentHostileCell:[52,24] as const,
+  deploymentLocalCell:Object.freeze([...CH1_STORY_ONE_BATTLE_BINDING.player_position]) as Cell,
+  deploymentHostileCell:Object.freeze([...CH1_STORY_ONE_BATTLE_BINDING.formation[0].position]) as Cell,
+  rosterBindingId:CH1_STORY_ONE_BATTLE_BINDING.binding_id,
   replayable:true as const,
   bossVictory:true as const,
   evidenceLevel:'RECOVERED_SECONDARY' as const,
@@ -112,6 +114,10 @@ type Chapter1StoryBattleContext=Readonly<{
   battleZoneId:typeof CH1_STORY_ONE_SOURCE.battleZoneId;
   entryProvenance:'RECOVERED_SECONDARY';
   authority:'offline-reconstruction';
+  rosterBindingId:typeof CH1_STORY_ONE_BATTLE_BINDING.binding_id;
+  rosterUnitCount:typeof CH1_STORY_ONE_BATTLE_BINDING.summary.unit_count;
+  monsterSkillPolicy:'NONE';
+  aiProvenance:'RECONSTRUCTION_POLICY';
   runtimeVerified:false;
 }>;
 type Chapter1StoryBattleOutcome='won'|'lost'|'retreated';
@@ -124,6 +130,10 @@ type Chapter1StoryBattleResolution=Readonly<{
   returnMapId:number;
   returnCell:Cell;
   rewardSettlement:'not-applied';
+  rosterBindingId:typeof CH1_STORY_ONE_BATTLE_BINDING.binding_id;
+  rosterUnitCount:typeof CH1_STORY_ONE_BATTLE_BINDING.summary.unit_count;
+  monsterSkillPolicy:'NONE';
+  aiProvenance:'RECONSTRUCTION_POLICY';
   victoryCondition:'m4-battle-phase-won';
   bossVictorySourceFlag:true;
   bossVictoryRuntimeEnforced:false;
@@ -255,7 +265,12 @@ export class M4RuntimeIntegration{
     if(this.chapter1World){
       const fieldMap=scene.pack.maps[String(CH1_STORY_ONE_SOURCE.fieldMapId)];
       if(!fieldMap)throw new Error('Chapter 1 Story source 1 requires field map 1030');
-      if(!scene.pack.maps[String(CH1_STORY_ONE_SOURCE.battleZoneId)])throw new Error('Chapter 1 Story source 1 requires battleZone 1 resource');
+      const battleMap=scene.pack.maps[String(CH1_STORY_ONE_SOURCE.battleZoneId)];
+      if(!battleMap)throw new Error('Chapter 1 Story source 1 requires battleZone 1 resource');
+      const duplicateBattleCells=CH1_STORY_ONE_BATTLE_CELLS.length-new Set(CH1_STORY_ONE_BATTLE_CELLS.map(cell=>cell.join(','))).size;
+      if(duplicateBattleCells)throw new Error('Chapter 1 Story source 1 deployment cells must be unique');
+      const blockedBattleCells=CH1_STORY_ONE_BATTLE_CELLS.filter(cell=>!walkable(battleMap.collision,cell));
+      if(blockedBattleCells.length)throw new Error('Chapter 1 Story source 1 battle handoff cells are not walkable in battleZone 1: '+blockedBattleCells.map(cell=>cell.join(',')).join(';'));
       this.chapter1StoryOneApproachCells=Object.freeze(CH1_STORY_ONE_APPROACH_CELLS.map(cell=>Object.freeze([cell[0],cell[1]]) as Cell));
       const blockedApproaches=this.chapter1StoryOneApproachCells.filter(cell=>!walkable(fieldMap.collision,cell));
       if(blockedApproaches.length)throw new Error('Chapter 1 Story source 1 approach cells are not walkable in the loaded map pack: '+blockedApproaches.map(cell=>cell.join(',')).join(';'));
@@ -368,7 +383,11 @@ export class M4RuntimeIntegration{
         archCellRuntimeCollisionWalkable:this.chapter1StoryOneArchRuntimeCollisionWalkable,
         deploymentLocalCell:[...CH1_STORY_ONE_SOURCE.deploymentLocalCell],
         deploymentHostileCell:[...CH1_STORY_ONE_SOURCE.deploymentHostileCell],
-        deploymentApplied:false,
+        deploymentApplied:this.activeChapter1StoryBattle!==null,
+        rosterBindingId:CH1_STORY_ONE_SOURCE.rosterBindingId,
+        rosterUnitCount:CH1_STORY_ONE_BATTLE_BINDING.summary.unit_count,
+        monsterSkillPolicy:CH1_STORY_ONE_BATTLE_BINDING.monster_skill_policy.mode,
+        aiProvenance:CH1_STORY_ONE_BATTLE_BINDING.ai_policy.provenance,
         replayable:CH1_STORY_ONE_SOURCE.replayable,
         replayPolicy:'after-leave-all-nine-gate-cells',
         bossVictory:CH1_STORY_ONE_SOURCE.bossVictory,
@@ -390,6 +409,10 @@ export class M4RuntimeIntegration{
         battleZoneId:this.activeChapter1StoryBattle.battleZoneId,
         entryProvenance:this.activeChapter1StoryBattle.entryProvenance,
         authority:this.activeChapter1StoryBattle.authority,
+        rosterBindingId:this.activeChapter1StoryBattle.rosterBindingId,
+        rosterUnitCount:this.activeChapter1StoryBattle.rosterUnitCount,
+        monsterSkillPolicy:this.activeChapter1StoryBattle.monsterSkillPolicy,
+        aiProvenance:this.activeChapter1StoryBattle.aiProvenance,
         runtimeVerified:this.activeChapter1StoryBattle.runtimeVerified,
       }:null,
       chapter1StorySuppressedUntilLeaveGate:this.chapter1StorySuppressedUntilLeaveGate,
@@ -402,6 +425,10 @@ export class M4RuntimeIntegration{
         returnMapId:this.chapter1StoryLastResolution.returnMapId,
         returnCell:[...this.chapter1StoryLastResolution.returnCell],
         rewardSettlement:this.chapter1StoryLastResolution.rewardSettlement,
+        rosterBindingId:this.chapter1StoryLastResolution.rosterBindingId,
+        rosterUnitCount:this.chapter1StoryLastResolution.rosterUnitCount,
+        monsterSkillPolicy:this.chapter1StoryLastResolution.monsterSkillPolicy,
+        aiProvenance:this.chapter1StoryLastResolution.aiProvenance,
         victoryCondition:this.chapter1StoryLastResolution.victoryCondition,
         bossVictorySourceFlag:this.chapter1StoryLastResolution.bossVictorySourceFlag,
         bossVictoryRuntimeEnforced:this.chapter1StoryLastResolution.bossVictoryRuntimeEnforced,
@@ -1211,6 +1238,10 @@ export class M4RuntimeIntegration{
         returnMapId:storyBattle.fieldMapId,
         returnCell:Object.freeze([returnCell[0],returnCell[1]]) as Cell,
         rewardSettlement:'not-applied',
+        rosterBindingId:storyBattle.rosterBindingId,
+        rosterUnitCount:storyBattle.rosterUnitCount,
+        monsterSkillPolicy:storyBattle.monsterSkillPolicy,
+        aiProvenance:storyBattle.aiProvenance,
         victoryCondition:'m4-battle-phase-won',
         bossVictorySourceFlag:true,
         bossVictoryRuntimeEnforced:false,
@@ -1414,6 +1445,10 @@ export class M4RuntimeIntegration{
         returnMapId,
         returnCell:Object.freeze([returnCell[0],returnCell[1]]) as Cell,
         rewardSettlement:'not-applied',
+        rosterBindingId:storyBattle.rosterBindingId,
+        rosterUnitCount:storyBattle.rosterUnitCount,
+        monsterSkillPolicy:storyBattle.monsterSkillPolicy,
+        aiProvenance:storyBattle.aiProvenance,
         victoryCondition:'m4-battle-phase-won',
         bossVictorySourceFlag:true,
         bossVictoryRuntimeEnforced:false,
@@ -1577,6 +1612,12 @@ export class M4RuntimeIntegration{
         ...reconstructionSetupForTrainingBattle(preset,this.scene.character,level,this.combatEquipment()),
         enemies:reconstructionEnemiesForTrainingBattle(trainingBattleId),
       });
+      return;
+    }
+    if(this.activeChapter1StoryBattle){
+      // Owner-approved 2026-11-13: use the explicit 20-unit Chapter 1 binding,
+      // no per-monster skills, and the existing reconstructed default AI.
+      this.scene.setReconstructionBattleSetup(buildChapter1StoryOneBattleSetup(this.scene.character,level,this.combatEquipment()));
       return;
     }
     if(!this.m5World){this.scene.setReconstructionBattleSetup(undefined);return;}
@@ -1837,9 +1878,13 @@ export class M4RuntimeIntegration{
       battleZoneId:CH1_STORY_ONE_SOURCE.battleZoneId,
       entryProvenance:'RECOVERED_SECONDARY',
       authority:'offline-reconstruction',
+      rosterBindingId:CH1_STORY_ONE_BATTLE_BINDING.binding_id,
+      rosterUnitCount:CH1_STORY_ONE_BATTLE_BINDING.summary.unit_count,
+      monsterSkillPolicy:'NONE',
+      aiProvenance:'RECONSTRUCTION_POLICY',
       runtimeVerified:false,
     });
-    this.setNotice('Story source 1 gate：movement-complete 命中 '+actor.x+','+actor.y+'，进入 battleZone 1 / RECOVERED_SECONDARY / runtimeVerified=false');
+    this.setNotice('Story source 1 gate：movement-complete 命中 '+actor.x+','+actor.y+'，进入 battleZone 1 / 20-unit roster / skills NONE / AI RECONSTRUCTION_POLICY');
     this.scene.enterBattle(entry);
     if(!this.scene.inBattleView||this.scene.state.battleZoneId!==CH1_STORY_ONE_SOURCE.battleZoneId){
       this.activeChapter1StoryBattle=null;

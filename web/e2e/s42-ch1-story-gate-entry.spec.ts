@@ -10,10 +10,20 @@ const REQUIRED_MAP_FILES=[1000,1020,1030,1060].flatMap(id=>[
   'maps/map-'+id+'.png',
   'maps/map-'+id+'-collision.json',
 ]);
+const CH1_MONSTER_VISUAL_RESOURCE_IDS=[1001,1003,1010] as const;
+const CH1_MONSTER_VISUALS_AVAILABLE=!!ASSET_INDEX
+  &&CH1_MONSTER_VISUAL_RESOURCE_IDS.every(id=>
+    ['00','01','02','03'].every(slot=>
+      typeof ASSET_INDEX.inputs?.['Char/B'+id+'_'+slot+'.ani']==='string'
+      &&typeof ASSET_INDEX.inputs?.['Char/B'+id+'_'+slot+'.spr']==='string'
+      &&existsSync(fileURLToPath(new URL('../public/game-data/visuals/B'+id+'/'+slot+'/animation.json',import.meta.url)))
+    )
+  );
 const PRIVATE_ORIGINAL_PACK_AVAILABLE=!!ASSET_INDEX
   &&!ASSET_INDEX_TEXT.includes('SYNTHETIC')
   &&!!ASSET_INDEX.inputs?.['Char/B4524_00.ani']
   &&!!ASSET_INDEX.inputs?.['Char/B4524_00.spr']
+  &&CH1_MONSTER_VISUALS_AVAILABLE
   &&REQUIRED_MAP_FILES.every(path=>existsSync(fileURLToPath(new URL('../public/game-data/'+path,import.meta.url))));
 
 
@@ -64,9 +74,13 @@ test('B4-1 Story source 1 movement-complete gate enters explicit battleZone 1 in
       [74,28],[71,29],[73,29],[72,30],
     ],
     sourceBlockedArchCell:[72,26],
-    deploymentLocalCell:[34,44],
-    deploymentHostileCell:[52,24],
+    deploymentLocalCell:[16,62],
+    deploymentHostileCell:[55,21],
     deploymentApplied:false,
+    rosterBindingId:'ch1-story-one-battle-20261113',
+    rosterUnitCount:20,
+    monsterSkillPolicy:'NONE',
+    aiProvenance:'RECONSTRUCTION_POLICY',
     replayable:true,
     replayPolicy:'after-leave-all-nine-gate-cells',
     bossVictory:true,
@@ -128,8 +142,20 @@ test('B4-1 Story source 1 movement-complete gate enters explicit battleZone 1 in
     battleZoneId:1,
     entryProvenance:'RECOVERED_SECONDARY',
     authority:'offline-reconstruction',
+    rosterBindingId:'ch1-story-one-battle-20261113',
+    rosterUnitCount:20,
+    monsterSkillPolicy:'NONE',
+    aiProvenance:'RECONSTRUCTION_POLICY',
     runtimeVerified:false,
   });
+  expect(battleScene.battleCell).toEqual([16,62]);
+  expect(battleScene.enemies).toHaveLength(20);
+  expect(battleScene.enemies.map((enemy:any)=>enemy.visualResourceId)).toEqual([
+    1010,1001,1001,1001,1001,1003,1001,1001,1001,1001,
+    1003,1001,1001,1001,1001,1003,1001,1001,1001,1001,
+  ]);
+  expect(battleScene.enemies.every((enemy:any)=>enemy.abilities.length===0&&enemy.aiBinding.provenance==='RECONSTRUCTION_POLICY')).toBe(true);
+  expect(battleScene.worldVisuals.find((row:any)=>row.id==='ch1-npc-21003')?.visible??false).toBe(false);
 
   // Story source 1 is the sole entry cause: no Quest1 SCRIPT/CANCEL,
   // SELECT acceptance, S9 pending encounter, or quest battle resolution.
@@ -271,7 +297,7 @@ test('B4-2 actual Story source 1 battle victory returns to story-victory-return-
     api.acceptanceSetBattlePaused(true);
     let attacks=0;
     let moves=0;
-    for(let turn=0;turn<40;turn++){
+    for(let turn=0;turn<160;turn++){
       let state=diagnostics.snapshot();
       if(state.phase!=='active')break;
       if(!api.acceptanceActionReady()){
@@ -314,6 +340,7 @@ test('B4-2 actual Story source 1 battle victory returns to story-victory-return-
 
   expect(result.snapshot.phase,'Story source 1 must be defeated by actual M4 combat, not a forced terminal fixture').toBe('won');
   expect(result.attacks).toBeGreaterThan(0);
+  expect(result.snapshot.enemies).toHaveLength(20);
   await returnFromTerminalBattle(page);
 
   const state=await runtime(page);

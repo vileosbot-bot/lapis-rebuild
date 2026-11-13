@@ -96,6 +96,7 @@ export type ReconstructionEnemySetup=Readonly<{
   movementRangeCells:number;
   attackRangeCells:number;
   visualResourceId?:number;
+  position?:Cell;
   traits?:readonly string[];
   abilities?:readonly ReconstructionEnemyAbility[];
 }>;
@@ -107,6 +108,7 @@ export type ReconstructionBattleSetup={
   enemyLevel?:number;
   enemyRank?:EnemyRank;
   enemies?:readonly ReconstructionEnemySetup[];
+  playerPosition?:Cell;
 };
 
 export type BattleState = {
@@ -221,8 +223,9 @@ export function beginBattle(x:number,y:number,entry?:BattleEntry,setup?:Reconstr
           magicAttack:row.magicAttack,
           magicDefense:row.magicDefense,
         });
+        const position=row.position?referenceCellToScreen(row.position):[x+groupX+localX,y+groupY+localY] as const;
         return {
-          id:row.id,hp:row.maxHp,maxHp:row.maxHp,mp:row.maxMp,maxMp:row.maxMp,x:x+groupX+localX,y:y+groupY+localY,encounterGroup,role:row.role,
+          id:row.id,hp:row.maxHp,maxHp:row.maxHp,mp:row.maxMp,maxMp:row.maxMp,x:position[0],y:position[1],encounterGroup,role:row.role,
           visualResourceId:row.visualResourceId,movementRangeCells:row.movementRangeCells,attackRangeCells:row.attackRangeCells,
           traits:Object.freeze([...(row.traits??[])]),abilities:Object.freeze([...(row.abilities??[])]),abilityCooldownMs:{},
           m7Status:Object.freeze({swordsman:Object.freeze([]),wizard:createM7WizardStatusState()}),

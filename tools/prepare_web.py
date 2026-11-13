@@ -26,7 +26,10 @@ WEB_MAPS={
 }
 CH1_RECOVERED_MAP_IDS={1000,1020,1030,1060}
 DEFERRED_BASELINE_FILES={'NRes/NPC350.Tip':'212d00901464a31b9835dbeff844686e302aa0984dbefa842e534bd791696b38'}
-WEB_VISUALS={1001:'training-guide-reconstruction',4023:'training-manager-reconstruction',4524:'green-sword-humanoid-reconstruction',4525:'blue-polearm-humanoid-reconstruction',4526:'green-armored-humanoid-reconstruction',4544:'cyan-spectral-humanoid-reconstruction'}
+CH1_MONSTER_VISUAL_IDS=(1001,1003,1010)
+CH1_MONSTER_VISUAL_ACTIONS=('00','01','02','03')
+CH1_MONSTER_ARCHIVE_SHA256='d79c012177c8b1701188a90825539466d28cc18dc87b3c62361b4960b315724d'
+WEB_VISUALS={1001:'training-guide-reconstruction',1003:'chapter1-spear-infantry-explicit-portrait',1010:'chapter1-ten-step-leader-explicit-portrait',4023:'training-manager-reconstruction',4524:'green-sword-humanoid-reconstruction',4525:'blue-polearm-humanoid-reconstruction',4526:'green-armored-humanoid-reconstruction',4544:'cyan-spectral-humanoid-reconstruction'}
 VISUAL_ACTIONS=('00','01','02','03')
 WEB_EFFECTS=(1,2,3,35,36,37,38)
 def digest(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -125,11 +128,23 @@ def generate(client:Path,out:Path):
         resolved=resolve_rel_ci(client,rel)
         if digest(resolved)!=expected:raise ValueError(f'Input differs from verified 2.2 baseline: {rel}')
         sources[rel]=expected
+    additional_visual_sources={}
+    for rid in CH1_MONSTER_VISUAL_IDS:
+        for action in CH1_MONSTER_VISUAL_ACTIONS:
+            for ext in ('ani','spr'):
+                rel=f'Char/B{rid}_{action}.{ext}'
+                resolved=resolve_rel_ci(client,rel)
+                actual=digest(resolved)
+                if rel in sources and sources[rel]!=actual:
+                    raise ValueError(f'Chapter 1 monster visual differs from pinned source: {rel}')
+                sources[rel]=actual
+                additional_visual_sources[rel]={'sha256':actual,'size':resolved.stat().st_size}
     with tempfile.TemporaryDirectory(prefix='lapis-web-',dir=out.parent) as tmp_name:
         tmp=Path(tmp_name);stage=tmp/'pack'
         subprocess.run([sys.executable,str(ROOT/'tools/prepare_prototype.py'),'--char-dir',str(client/'Char'),'--sgres-dir',str(client/'SGRes'),'--out',str(stage)],check=True,capture_output=True,text=True)
         manifest=json.loads((stage/'prototype.json').read_text())
-        manifest['provenance']={'kind':'private-original','evidence':'VERIFIED','installer_sha256':INSTALLER_SHA,'scope':'134 pinned baseline inputs validated; NPC350.Tip is explicitly deferred because this generator does not consume it. Four Chapter 1 maps are RECOVERED_SECONDARY with runtimeVerified=false; all new world/NPC/quest/route/story bindings remain RECONSTRUCTION_POLICY.','deferred_inputs':deferred_inputs}
+        manifest['provenance']={'kind':'private-original','evidence':'VERIFIED','installer_sha256':INSTALLER_SHA,'scope':'Pinned 2.2 baseline inputs plus explicit Chapter 1 monster portrait ANI/SPR files validated; NPC350.Tip remains deferred. Chapter 1 world/map/encounter placement remains RECOVERED_SECONDARY or owner-approved reconstruction policy as recorded in its binding.','deferred_inputs':deferred_inputs}
+        manifest['provenance']['additional_visual_sources']={'evidence':'VERIFIED_STATIC_RESOURCE','archive':'ybcs-offline.zip','archive_sha256':CH1_MONSTER_ARCHIVE_SHA256,'resource_ids':list(CH1_MONSTER_VISUAL_IDS),'actions':list(CH1_MONSTER_VISUAL_ACTIONS),'files':additional_visual_sources}
         manifest['map']['render'].pop('output',None)
         maps={}
         for mid,name in WEB_MAPS.items():
@@ -141,7 +156,7 @@ def generate(client:Path,out:Path):
         manifest['visuals']={str(rid):visual_payload(client/'Char',stage,rid,label) for rid,label in WEB_VISUALS.items()}
         manifest['effects']={str(rid):effect_payload(client/'MagicRes',stage,rid) for rid in WEB_EFFECTS}
         manifest['content']=build_content(client,stage,tmp)
-        manifest['provenance']['pack_sha256']=hashlib.sha256(json.dumps({'schema':6,'inputs':sources,'deferred_inputs':deferred_inputs,'additional_map_sources':additional_map_sources,'m6_characters':[100,110,120,130,140,150,160,170,180,190,109,119,129,139,149,159,169,179,189,199],'maps':sorted(WEB_MAPS),'visuals':sorted(WEB_VISUALS),'effects':list(WEB_EFFECTS),'content':'quest-lib-v2'},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        manifest['provenance']['pack_sha256']=hashlib.sha256(json.dumps({'schema':7,'inputs':sources,'deferred_inputs':deferred_inputs,'additional_map_sources':additional_map_sources,'additional_visual_archive_sha256':CH1_MONSTER_ARCHIVE_SHA256,'additional_visual_sources':additional_visual_sources,'m6_characters':[100,110,120,130,140,150,160,170,180,190,109,119,129,139,149,159,169,179,189,199],'maps':sorted(WEB_MAPS),'visuals':sorted(WEB_VISUALS),'effects':list(WEB_EFFECTS),'content':'quest-lib-v2'},sort_keys=True,separators=(',',':')).encode()).hexdigest()
         for p in stage.rglob('index.json'):
             obj=json.loads(p.read_text());obj['source']=Path(obj['source']).name;p.write_text(json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
         (stage/'prototype.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
