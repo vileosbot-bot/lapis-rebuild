@@ -480,6 +480,8 @@ export class M4RuntimeIntegration{
       const m6Context={characterId:this.scene.character,family:definition.family,stageId:Number(this.scene.character),level:this.rewards.progression.level,attributes:this.currentEquipmentAttributes()};
       const m6Reconciled=reconcileM6EquipmentLoadout(this.m6Equipment,this.rewards.inventory,M6_RUNTIME_EQUIPMENT_RULES,m6Context);
       this.m6Equipment=m6Reconciled.loadout;
+      const m6Inventory=validateInventory({...this.rewards.inventory,equipped:{weapon:m6Reconciled.loadout.weapon,armor:m6Reconciled.loadout.armor}});
+      this.rewards={...this.rewards,inventory:m6Inventory};
       this.syncSceneInventory();
       this.applyClassProfile(false);
       if(reconciled.unequipped.length)this.setNotice(`职业切换：自动卸下 ${reconciled.unequipped.length} 件不兼容装备。`);
