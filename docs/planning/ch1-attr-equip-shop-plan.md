@@ -412,7 +412,7 @@ M7.2 不得改写：
 推荐：**按角色/怪物 ID 保留 ability.atr 原始 HP 锚点；不要用 YBCS 离线 13/13/19 替换原始 HP。**
 
 证据与边界：
-- 当前仓库的 class JSON 中，剑士 100 阶段 HP=125，巫师 109 阶段 HP=100；这些 class JSON 字段与 ability.atr authored HP/MP 字段有固定哈希静态匹配记录。
+- 当前仓库 authored class JSON 中，剑士 class_id=100 的 hp=125，巫师 class_id=109 的 hp=100（这是当前仓库数据值）；S3 simulation report 的 YBCS secondary actor 表另记录 player Ability 100 HP=125、enemy Ability 500 HP=100、Ability 502 HP=150。现有 s3-source-inventory.md 明确指出，OldAbility HP/MP 的读取依赖 YBCS old battle-growth policy，相关实现未随该批材料提供，因此不能仅凭 class JSON 与模拟值宣称已建立原始 Ability 行的一对一映射。
 - S3 模拟报告的 YBCS secondary actor 表中，玩家 Ability 100 HP=125、敌方 Ability 500 HP=100、Ability 502 HP=150；S19 玩家 class 100 仍使用 HP=125，但 S19 两个 generic caster 敌人使用 reconstruction HP=71/71。不同角色/敌人行不能拼成一个“玩家 HP”。
 - 用户提出的 100/100/150 与 13/13/19 两组值，在本次仓库材料中没有完整的逐 ID 对照表；13/13/19 是 YBCS 派生值时只能标 RECOVERED_SECONDARY，单位映射仍 UNKNOWN。
 - 原始 Ability HP 字段可作为 base anchor；CON 等属性对 MaxHP 的增量、是否叠加现有 M7 6% level HP growth，必须是单独 RECONSTRUCTION_POLICY 并由用户裁定。不得把 13/13/19 直接当成原始 MaxHP。
