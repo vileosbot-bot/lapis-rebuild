@@ -8,7 +8,7 @@ import {playableClassById,isEquipmentCompatibleWithClass} from './content/classe
 import rawSkills from '../../data/skills/mvp.json' with {type:'json'};
 import {BattlePresentation} from './presentation/battle-presentation.ts';
 import type {BattlePresentationBatch} from './presentation/battle-presentation.ts';
-import {createInventory} from './progression/inventory.ts';
+import {createInventory,validateInventory} from './progression/inventory.ts';
 import type {InventoryState} from './progression/inventory.ts';
 import {equipItem as equipProgression,reconcileEquipmentForCharacter} from './progression/equipment.ts';
 import type {EquipmentCompatibilityResolver} from './progression/equipment.ts';
@@ -1573,6 +1573,10 @@ export class M4RuntimeIntegration{
     try{
       this.m6Equipment=equipM6Item(this.m6Equipment,this.rewards.inventory,M6_RUNTIME_EQUIPMENT_RULES,
         {characterId:this.scene.character,family:definition.family,stageId:Number(this.scene.character),level:this.rewards.progression.level,attributes:this.currentEquipmentAttributes()},slot,itemId);
+      if(slot!=='accessory'){
+        const inventory=validateInventory({...this.rewards.inventory,equipped:{...this.rewards.inventory.equipped,[slot]:itemId}});
+        this.rewards={...this.rewards,inventory};
+      }
       this.syncSceneInventory();
       this.applyClassProfile(false);
       this.setNotice(itemId===null?'装备已卸下；旧装备仍保留在背包':'装备已更新；旧装备仍保留在背包 / RECONSTRUCTION_POLICY');
