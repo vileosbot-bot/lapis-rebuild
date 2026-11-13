@@ -879,7 +879,7 @@ rank 1 的 500 是达到 Lv2 的门槛；rank 2 的 1,000 是达到 Lv3 的门�
 升级授予：
 - `levelabl.atr` 自动属性列：每级 con/wis/str/dex/int/reg 均 +1。
 - point_grant：rank 1–5 每级 +1；rank 6–100 每级 +2；累计 Lv5=5、Lv15=25、Lv100=195。
-- magic point grant 独立于属性点：奇数级 1、偶数级 0。
+- `levelabl.atr` 字段索引 8（magic_point_grant）：奇数级 1、偶数级 0；字段索引 9（point_grant）：rank 1–5 每级 +1、rank 6–100 每级 +2。魔法点与属性点分开。
 - 十个 starter Ability 100–109 的授予序列相同；职业晋升 100→110→…→190，巫师 109→119→…→199。
 
 派生（`ybcs_character_stats.py` 的 V1 单机政策）：
