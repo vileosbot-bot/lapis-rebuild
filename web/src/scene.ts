@@ -151,7 +151,12 @@ export class LabScene extends Phaser.Scene {
   }
 
   setLoadingNoticeHandler(handler:((message:string)=>void)|undefined):void{this.loadingNoticeHandler=handler;}
-  private reportLoadingProgress(message:string):void{this.notice(message);this.loadingNoticeHandler?.(message);}
+  private reportLoadingProgress(message:string):void{
+    this.notice(message);
+    const loading=document.getElementById('loading');
+    if(loading&&!loading.hidden)loading.textContent=message;
+    this.loadingNoticeHandler?.(message);
+  }
 
   private recordMissingTexture(key:string){
     if(this.missingTextures.has(key))return;
