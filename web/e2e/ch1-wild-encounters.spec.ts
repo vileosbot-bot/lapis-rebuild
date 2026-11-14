@@ -11,9 +11,11 @@ const REQUIRED_MAP_FILES=[1000,1020,1030,1060].flatMap(id=>[
   'maps/map-'+id+'.png',
   'maps/map-'+id+'-collision.json',
 ]);
-const PRIVATE_ORIGINAL_PACK_AVAILABLE=!!ASSET_INDEX
-  &&!ASSET_INDEX_TEXT.includes('SYNTHETIC')
-  &&REQUIRED_MAP_FILES.every(path=>existsSync(fileURLToPath(new URL('../public/game-data/'+path,import.meta.url))));
+const SYNTHETIC_ACCEPTANCE=process.env.M73_WILD_SYNTHETIC_ACCEPTANCE==='1';
+const SYNTHETIC_PACK=ASSET_INDEX_TEXT.includes('SYNTHETIC');
+const WILD_TEST_PACK_AVAILABLE=!!ASSET_INDEX
+  &&REQUIRED_MAP_FILES.every(path=>existsSync(fileURLToPath(new URL('../public/game-data/'+path,import.meta.url))))
+  &&(!SYNTHETIC_PACK||SYNTHETIC_ACCEPTANCE);
 
 type AnyRecord=Record<string,any>;
 type ScreenshotRecord={
@@ -21,7 +23,7 @@ type ScreenshotRecord={
   filename:string;
   feature_id:string;
   capture_point:string;
-  image_kind:'real_browser';
+  image_kind:'real_browser'|'synthetic_browser';
   sha256:string;
   byte_count:number;
   artifact_location:string;
@@ -107,7 +109,7 @@ async function capture(
     filename,
     feature_id:featureId,
     capture_point:capturePoint,
-    image_kind:'real_browser',
+    image_kind:SYNTHETIC_ACCEPTANCE?'synthetic_browser':'real_browser',
     sha256:createHash('sha256').update(bytes).digest('hex'),
     byte_count:bytes.length,
     artifact_location:path,
@@ -154,7 +156,7 @@ async function loseWildBattle(page:Page,enemyId:string):Promise<void>{
 
 test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   test.setTimeout(720000);
-  test.skip(!PRIVATE_ORIGINAL_PACK_AVAILABLE,'M7.3 browser acceptance requires the private-original derived pack and four map PNG/collision pairs; synthetic resources cannot prove field behavior.');
+  test.skip(!WILD_TEST_PACK_AVAILABLE,'M7.3 browser acceptance requires the four Chapter 1 map PNG/collision pairs; synthetic maps run only with M73_WILD_SYNTHETIC_ACCEPTANCE=1.');
 
   const pageErrors:string[]=[];
   const consoleErrors:string[]=[];
@@ -163,11 +165,12 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   mkdirSync('test-results',{recursive:true});
   const assertions:Array<{id:string;status:'PASS';description:string;evidence_refs:string[]}>= [];
   const screenshots:ScreenshotRecord[]=[];
-  const checkpoints:AnyRecord={schema_version:1,request_id:'ch1-m73-wild-20261114-01',assertions,screenshots,checkpoints:{},errors:{pageErrors,consoleErrors}};
+  const checkpoints:AnyRecord={schema_version:1,request_id:'ch1-m73-wild-20261114-01',environment_kind:SYNTHETIC_ACCEPTANCE?'synthetic_browser':'private_original',map_evidence:SYNTHETIC_ACCEPTANCE?'SYNTHETIC':'RECOVERED_SECONDARY',assertions,screenshots,checkpoints:{},errors:{pageErrors,consoleErrors}};
   const checkpoint=checkpoints.checkpoints as AnyRecord;
 
   await ready(page);
   const initial=await runtime(page);
+  if(SYNTHETIC_ACCEPTANCE)expect(initial.chapter1.mapEvidence).toBe('SYNTHETIC');
   expect(initial.runtimeMode).toBe('chapter1');
   expect(initial.world).toEqual({mapId:1000,x:93,y:5});
   expect(initial.chapter1Wild.state).toMatchObject({
