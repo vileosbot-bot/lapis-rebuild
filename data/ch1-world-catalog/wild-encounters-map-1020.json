@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "mapId": 1020,
+  "provenance": "RECOVERED_SECONDARY",
+  "runtimeVerified": false,
+  "records": [
+    {
+      "entityId": 22020,
+      "name": "普罗首领B",
+      "modelId": 4006,
+      "entityType": 1,
+      "cell": [4, 144],
+      "approachCell": [3, 143],
+      "minimumLevel": 1,
+      "maxHp": 150,
+      "maxMp": 100,
+      "reward": { "gold": 40, "exp": 150, "dropItemId": 4002 },
+      "provenance": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "entityId": 22720,
+      "name": "雷德普罗",
+      "modelId": 4001,
+      "entityType": 1,
+      "cell": [12, 142],
+      "approachCell": [11, 141],
+      "minimumLevel": 1,
+      "maxHp": 100,
+      "maxMp": 100,
+      "reward": { "gold": 40, "exp": 100, "dropItemId": 4002 },
+      "provenance": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "entityId": 22721,
+      "name": "普罗首领B",
+      "modelId": 4006,
+      "entityType": 1,
+      "cell": [37, 153],
+      "approachCell": [36, 152],
+      "minimumLevel": 1,
+      "maxHp": 150,
+      "maxMp": 100,
+      "reward": { "gold": 40, "exp": 150, "dropItemId": 4002 },
+      "provenance": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "entityId": 22022,
+      "name": "雷德普罗",
+      "modelId": 4001,
+      "entityType": 1,
+      "cell": [37, 139],
+      "approachCell": [36, 138],
+      "minimumLevel": 1,
+      "maxHp": 100,
+      "maxMp": 100,
+      "reward": { "gold": 40, "exp": 100, "dropItemId": 4002 },
+      "provenance": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "entityId": 22023,
+      "name": "普罗首领B",
+      "modelId": 4006,
+      "entityType": 1,
+      "cell": [54, 130],
+      "approachCell": [53, 129],
+      "minimumLevel": 1,
+      "maxHp": 150,
+      "maxMp": 100,
+      "reward": { "gold": 40, "exp": 150, "dropItemId": 4002 },
+      "provenance": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    },
+    {
+      "entityId": 22024,
+      "name": "雷德普罗",
+      "modelId": 4001,
+      "entityType": 1,
+      "cell": [49, 121],
+      "approachCell": [48, 120],
+      "minimumLevel": 1,
+      "maxHp": 100,
+      "maxMp": 100,
+      "reward": { "gold": 40, "exp": 100, "dropItemId": 4002 },
+      "provenance": "RECOVERED_SECONDARY",
+      "runtimeVerified": false
+    }
+  ]
+}
