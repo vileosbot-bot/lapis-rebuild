@@ -58,7 +58,7 @@ map 1020 六条放置数据逐项读回：
 - evidenceLevel：`RECOVERED_SECONDARY`
 - runtimeVerified：false
 
-因此本次奖励可以引用既有 item 4002 物品身份；药草掉落 100%/每次 1 个仍是 D1 的 `RECONSTRUCTION_POLICY)，不属于 itemtbl 证据。
+itemtbl 原始静态行证明物品 ID 4002 的名称与描述；S45 目录记录自身标记为 `RECOVERED_SECONDARY`。野怪放置表将其列为掉落物也是 `RECOVERED_SECONDARY`；D1 的 100%/每次 1 个则是 `RECONSTRUCTION_POLICY`，不属于 itemtbl 证据。
 
 ## 5. 地图资源与碰撞核验阻塞
 
@@ -86,7 +86,8 @@ P0 要求核对 map 1020 资源、地图边界和六个 approach 坐标是否可
 | 事项 | 标签 |
 |---|---|
 | 六条 map 1020 放置字段 | `RECOVERED_SECONDARY` |
-| item 4002 静态物品身份 | `RECOVERED_SECONDARY` |
+| itemtbl 静态行中的 item 4002 名称/描述 | `VERIFIED_STATIC_ORIGINAL` |
+| YBCS 野怪放置行指向 item 4002 | `RECOVERED_SECONDARY` |
 | Manhattan <4、唯一候选触发 | `RECONSTRUCTION_POLICY` |
 | route 040/048 行走互斥 | `RECONSTRUCTION_POLICY` |
 | 无技能、默认 AI | `RECONSTRUCTION_POLICY` |
