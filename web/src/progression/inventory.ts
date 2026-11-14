@@ -1,5 +1,6 @@
 import catalogData from '../../../data/items/training-catalog.json' with { type: 'json' };
 import ch1EquipmentData from '../../../data/items/ch1-equipment-catalog.json' with {type:'json'};
+import ch1ShopData from '../../../data/shops/ch1-shop-catalog.json' with {type:'json'};
 
 export type EquipmentSlot = 'weapon' | 'armor';
 export type AcquisitionKind = 'starter' | 'battle' | 'quest' | 'migration' | 'system';
@@ -24,8 +25,8 @@ export type ItemMetadata = {
   name: string;
   description: string;
   metadataRef: string;
-  slot: EquipmentSlot;
-  classRestriction: ClassFamily;
+  slot: EquipmentSlot|null;
+  classRestriction: ClassFamily|null;
   textEvidence: 'VERIFIED' | string;
   compatibilityEvidence: 'UNVERIFIED' | string;
 };
@@ -57,6 +58,21 @@ const ch1Rows=(ch1EquipmentData as unknown as {rows:Array<{itemResourceId:number
 for(const row of ch1Rows){
   if(metadata.has(row.itemResourceId))continue;
   metadata.set(row.itemResourceId,{itemId:row.itemResourceId,name:row.name,description:row.description,metadataRef:'itemtbl:'+row.itemResourceId,slot:row.slot==='weapon'?'weapon':'armor',classRestriction:'swordsman',textEvidence:'RECOVERED_SECONDARY',compatibilityEvidence:'UNVERIFIED'});
+}
+for(const shop of ch1ShopData.shops){
+  for(const item of shop.items){
+    if(metadata.has(item.itemResourceId))continue;
+    metadata.set(item.itemResourceId,{
+      itemId:item.itemResourceId,
+      name:item.name,
+      description:item.description,
+      metadataRef:'itemtbl:'+item.itemResourceId,
+      slot:null,
+      classRestriction:null,
+      textEvidence:'RECOVERED_SECONDARY',
+      compatibilityEvidence:'UNVERIFIED',
+    });
+  }
 }
 
 const integerIn = (value: unknown, min: number, max: number): value is number =>
@@ -157,6 +173,15 @@ export function consumeItem(inventory: InventoryState, itemId: number, quantity:
   const next = {items: base.items.map(entry => ({...entry, acquisitionSources: entry.acquisitionSources.map(source => ({...source}))})), equipped: {...base.equipped}};
   const target = next.items.find(entry => entry.itemId === itemId)!;
   if (remaining === 0) next.items = next.items.filter(entry => entry.itemId !== itemId);
-  else target.quantity = remaining;
+  else {
+    let sourceQuantityToConsume=quantity;
+    target.acquisitionSources=target.acquisitionSources.flatMap(source=>{
+      const consumed=Math.min(source.quantity,sourceQuantityToConsume);
+      sourceQuantityToConsume-=consumed;
+      const left=source.quantity-consumed;
+      return left>0?[{...source,quantity:left}]:[];
+    });
+    target.quantity=remaining;
+  }
   return validateInventory(next);
 }
