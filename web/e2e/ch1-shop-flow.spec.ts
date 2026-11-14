@@ -32,12 +32,21 @@ test('S45 isolated shop acceptance: catalog, potion purchase, UNKNOWN use protec
  await page.evaluate((id)=>{(window.lapisM4 as any).acceptanceUsePotion(id);},itemId);
  const afterUse=await snap(page);
  expect(afterUse.inventory.items.find((x:any)=>x.itemId===itemId)?.quantity).toBe(1);
+ expect(afterUse.vitals).toEqual(beforeUse.vitals);
  expect(afterUse.world).toEqual(beforeUse.world);
  expect(await page.locator('#m4-runtime-notice').textContent()).toContain('UNKNOWN');
  await capture(page,'shop-inventory-after-purchase.png',shots);
  await page.evaluate(async()=>{await (window.lapisM4 as any).save();});
  await expect.poll(async()=>page.locator('#m4-runtime-notice').textContent()).toContain('存档已写入');
- const checkpoint={requestId:'ch1-attr-s45-20261113-01',routeEvidence:'NOT_VERIFIED',shopId:'caosia-potion',npcId:21230,mapId:'map:old:2300',itemId,quantityAfterPurchase:1,quantityAfterUnknownUse:1,goldBefore:before.gold,goldAfter:afterBuy.gold,potionEffectAmount:'UNKNOWN',shots};
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.lapisDiagnostics?.snapshot().ready&&!!window.lapisM4);
+ await page.evaluate(async()=>{await (window.lapisM4 as any).load();});
+ await expect.poll(async()=>(await snap(page)).gold).toBe(afterBuy.gold);
+ const restored=await snap(page);
+ expect(restored.inventory.items.find((x:any)=>x.itemId===itemId)?.quantity).toBe(1);
+ expect(restored.vitals).toEqual(afterUse.vitals);
+ expect(restored.shopState.availableItemIdsByShop['caosia-potion']).not.toContain(itemId);
+ const checkpoint={requestId:'ch1-attr-s45-20261113-01',routeEvidence:'NOT_VERIFIED',shopId:'caosia-potion',npcId:21230,mapId:'map:old:2300',itemId,quantityAfterPurchase:1,quantityAfterUnknownUse:1,goldBefore:before.gold,goldAfter:afterBuy.gold,vitalsBeforeUse:beforeUse.vitals,vitalsAfterUse:afterUse.vitals,vitalsAfterLoad:restored.vitals,shopStateAfterLoad:restored.shopState,potionEffectAmount:'UNKNOWN',shots};
  mkdirSync('test-results',{recursive:true});writeFileSync('test-results/ch1-shop-flow-checkpoint.json',JSON.stringify(checkpoint,null,2)+'\n');
 });
 test('S45 route reachability remains explicitly unverified',async({page})=>{

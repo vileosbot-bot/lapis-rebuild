@@ -33,3 +33,7 @@ NPC 21200 的 Quest2 与 shop intent 必须是独立选择；NPC 21230 的 Quest
 - `cd web && npm run test:e2e -- e2e/ch1-shop-flow.spec.ts` (240 seconds per test)
 
 本沙箱 npm registry / github.com DNS 不可用时，命令状态必须记为 NOT_RUN，不得报告 PASS。
+
+## Dialogue and validation limits
+
+Shop candidates remain disabled in `Ch1ShopAuthority` because route evidence is UNKNOWN. No live NPC shop intent is wired into the Chapter 1 world graph. The automation-only acceptance bridge is deliberately separate from real NPC/map reachability. NPC 21200/Quest2 and NPC 21230/Quest9 dialogue-stage coexistence is covered by isolated dialogue-state tests; Quest9's actual merchant trigger and single-use reward receipt remain outside the shop runtime and are not represented as verified by those tests.

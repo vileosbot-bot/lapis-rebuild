@@ -36,13 +36,13 @@ itemtbl 实际 shopNumber=3 原始记录为 103，不是 105。探索报告的 1
 |---|---|
 | 三店目录加载、过滤顺序、唯一 ID、每店 <=120 | TEST_DEFINED |
 | 购买扣价、背包增加、有限库存、幂等 | TEST_DEFINED |
-| SaveV2 保存/恢复 shop state | TEST_DEFINED |
+| SaveV2 保存/恢复 shop state、金币、背包与 M7 HP/MP vitals | TEST_DEFINED（E2E 保存后重新加载断言） |
 | 药品恢复量 UNKNOWN 拒绝使用、不扣药、不改 HP/MP | TEST_DEFINED |
 | 空背包药品不可使用 | TEST_DEFINED |
 | 战斗中药品不可使用 | TEST_DEFINED |
 | 从真实第一章路线到达三店 NPC | NOT_VERIFIED（路线未确认） |
 | 红药使用后 HP 上升 | NOT_VERIFIED（恢复量 UNKNOWN） |
-| Quest2 / Quest9 真实 NPC 双 intent E2E | NOT_VERIFIED（NPC/路线未接入；纯对话状态机测试另行覆盖） |
+| Quest2 / Quest9 真实 NPC 双 intent E2E | NOT_VERIFIED（NPC/路线未接入；纯对话状态机单测覆盖阶段状态；Quest9 实际任务触发/单次奖励回执仍需任务系统级验收） |
 | typecheck / unit / build / browser E2E | NOT_RUN，需有网络的授权 runner 执行 |
 
 ## Screenshots and checkpoints
@@ -63,3 +63,11 @@ itemtbl 实际 shopNumber=3 原始记录为 103，不是 105。探索报告的 1
 - `cd web && npm run test:e2e -- e2e/ch1-shop-flow.spec.ts` (240 seconds per test)
 
 No S42 run is authorized in S45.
+
+## S45 implementation and evidence ownership
+
+The current branch contains prior S45 implementation commits. In particular, commit `2a0a4c92124494088a2061b52594945275dce480` added potion inventory rendering to the equipment panel; it is not part of the changes authored in the present follow-up. GitHub records its author/committer as `vileosbot-bot` at `2026-11-14T06:21:06Z` (UTC; 14:21:06 +08:00). Git metadata identifies the authenticated bot account, not the human or agent operating it.
+
+The M4 runtime integration, automation-only shop acceptance bridge, purchase state persistence under `SaveV2.quest.ch1ShopState`, visible UNKNOWN refusal, and potion use guard are present in the branch before this follow-up. This follow-up adds explicit vitals to the runtime snapshot for observable assertions, extends tests for stock exhaustion, quantity limits, the 28-row inventory cap, quest-stage coexistence, and verifies SaveV2 reload of gold, inventory, stock, and vitals.
+
+Quest9's actual merchant eligibility predicate and one-time reward receipt are not implemented by the NPC dialogue intent module. The intent test verifies that shop selection leaves Quest9 state untouched across quest stages; it does not claim to execute the merchant's one-time reward flow. That remains a task-system integration verification item.

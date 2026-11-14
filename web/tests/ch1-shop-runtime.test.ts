@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createInventory,quantityOf} from '../src/progression/inventory.ts';
+import {SHOP_INVENTORY_ROW_LIMIT} from '../src/shops/shop-runtime.ts';
 import {createShopRuntimeState,purchaseShopItem,useShopPotion,validateShopRuntimeState} from '../src/shops/shop-runtime.ts';
 import {CH1_SHOP_CATALOG} from '../src/shops/shop-catalog.ts';
 
@@ -45,4 +46,22 @@ test('S45 potion use rejects battle use and empty inventory',()=>{
 test('S45 runtime stock snapshot validates after SaveV2 JSON round-trip',()=>{
  const state=createShopRuntimeState();const restored=validateShopRuntimeState(JSON.parse(JSON.stringify(state)));
  assert.deepEqual(restored,state);
+});
+
+test('S45 quantity is bounded to one listing token and exhausted stock cannot be repurchased',()=>{
+ const invalid=purchaseShopItem({shopId:'caosia-potion',itemId:red.itemResourceId,quantity:2,transactionId:'quantity-two',gold:10000,inventory:empty,shopState:createShopRuntimeState()});
+ assert.equal(invalid.ok,false);if(!invalid.ok)assert.equal(invalid.reason,'invalid-quantity');
+ const first=bought(red.itemResourceId);assert.equal(first.ok,true);if(!first.ok)return;
+ const repeat=purchaseShopItem({shopId:'caosia-potion',itemId:red.itemResourceId,quantity:1,transactionId:'different-receipt',gold:first.gold,inventory:first.inventory,shopState:first.shopState});
+ assert.equal(repeat.ok,false);if(!repeat.ok)assert.equal(repeat.reason,'stock-exhausted');
+});
+test('S45 purchase refuses a 29th distinct inventory row but permits an existing stack',()=>{
+ const rows=CH1_SHOP_CATALOG.shops.flatMap(shop=>shop.items).slice(0,SHOP_INVENTORY_ROW_LIMIT);
+ const full=createInventory(rows.map((item,index)=>({itemId:item.itemResourceId,quantity:1,source:{kind:'starter' as const,ref:'s45-capacity-'+index}})));
+ assert.equal(full.items.length,SHOP_INVENTORY_ROW_LIMIT);
+ const denied=purchaseShopItem({shopId:'caosia-potion',itemId:red.itemResourceId,quantity:1,transactionId:'full-bag-new-row',gold:10000,inventory:full,shopState:createShopRuntimeState()});
+ assert.equal(denied.ok,false);if(!denied.ok)assert.equal(denied.reason,'inventory-full');
+ const stackShop=rows[0].shopNumber===1?'caosia-weapon':rows[0].shopNumber===2?'caosia-armor':'caosia-potion';
+ const stacked=purchaseShopItem({shopId:stackShop,itemId:rows[0].itemResourceId,quantity:1,transactionId:'full-bag-stack',gold:10000,inventory:full,shopState:createShopRuntimeState()});
+ assert.equal(stacked.ok,true);if(stacked.ok)assert.equal(stacked.inventory.items.length,SHOP_INVENTORY_ROW_LIMIT);
 });

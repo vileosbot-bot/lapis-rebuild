@@ -42,3 +42,34 @@ test('S45 Quest9 remains a one-time merchant offer semantic, never a shop stock 
  assert.equal(begun.accepted,true);
  if(begun.accepted){const result=applyNpcDialogueChoice(begun.session,quest,'open-shop',1);assert.equal(result.accepted,true);if(result.accepted)assert.deepEqual(result.quest,quest);}
 });
+
+for(const spec of [
+ {npcId:21200,questId:'quest2-davis-actor101-companion-recruitment',shopId:'caosia-weapon'},
+ {npcId:21230,questId:'quest9-merchant5018-single-holy-medicine-offer',shopId:'caosia-potion'},
+]){
+ for(const stage of ['accepted','objective','ready_to_turn_in','complete'] as const){
+  test('S45 '+spec.questId+' keeps shop separate at quest stage '+stage+' for NPC '+spec.npcId,()=>{
+   const definition=npc(spec.npcId,spec.questId);
+   const quest:QuestRuntimeState={questId:spec.questId,stage};
+   const begun=beginNpcDialogue(definition,quest,{mapId:2300,x:10,y:10},intent(definition,spec.shopId));
+   assert.equal(begun.accepted,true);if(!begun.accepted)return;
+   assert.ok(begun.session.view.choices.some(choice=>choice.id==='open-shop'));
+   const result=applyNpcDialogueChoice(begun.session,quest,'open-shop',1);
+   assert.equal(result.accepted,true);
+   if(result.accepted){assert.equal(result.quest.stage,stage);assert.equal(result.questAdvanced,false);assert.deepEqual(result.quest,quest);}
+  });
+ }
+}
+test('S45 Quest9 trigger/one-time boundary: shop selection cannot satisfy or repeat the merchant reward',()=>{
+ const questId='quest9-merchant5018-single-holy-medicine-offer';
+ const definition=npc(21230,questId);
+ const quest:QuestRuntimeState={questId,stage:'not_started'};
+ const begun=beginNpcDialogue(definition,quest,{mapId:2300,x:10,y:10},intent(definition,'caosia-potion'));
+ assert.equal(begun.accepted,true);if(!begun.accepted)return;
+ const result=applyNpcDialogueChoice(begun.session,quest,'open-shop',1);
+ assert.equal(result.accepted,true);if(!result.accepted)return;
+ assert.equal(result.quest.questId,questId);
+ assert.equal(result.quest.stage,'not_started');
+ assert.deepEqual(result.quest,quest);
+ // Quest9's actual merchant eligibility predicate and one-time reward receipt belong to its quest/reward runtime, not this dialogue service.
+});
