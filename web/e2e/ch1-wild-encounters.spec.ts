@@ -42,7 +42,11 @@ async function ready(page:Page):Promise<void>{
       &&typeof api?.acceptanceSetBattlePaused==='function'
       &&typeof api?.acceptanceCanAct==='function'
       &&typeof api?.acceptanceIssueAttack==='function'
-      &&typeof api?.acceptanceAdvanceUntilActionOrEnd==='function';
+      &&typeof api?.acceptanceAdvanceUntilActionOrEnd==='function'
+      &&typeof api?.acceptancePrimeWildGrowth==='function'
+      &&typeof api?.acceptancePrimeEnemyAction==='function'
+      &&typeof api?.acceptanceAdvanceLiveBattleStep==='function'
+      &&typeof api?.acceptanceSetPlayerVitals==='function';
   });
 }
 
@@ -135,6 +139,19 @@ async function finishWildBattle(page:Page,enemyId:string):Promise<void>{
   await expect.poll(async()=>(await runtime(page)).chapter1Wild.state.defeatedEntityIds.includes(22024)).toBe(true);
 }
 
+async function loseWildBattle(page:Page,enemyId:string):Promise<void>{
+  await page.evaluate(()=>{(window.lapisM4 as any).acceptanceSetBattlePaused(true);});
+  await page.evaluate(()=>{(window.lapisM4 as any).acceptanceSetPlayerVitals(1,0);});
+  await page.evaluate((id)=>{(window.lapisM4 as any).acceptancePrimeEnemyAction(id);},enemyId);
+  for(let attempt=0;attempt<12;attempt++){
+    if((await scene(page)).phase!=='active')break;
+    await page.evaluate(()=>{(window.lapisM4 as any).acceptanceAdvanceLiveBattleStep();});
+  }
+  await expect.poll(async()=>(await scene(page)).phase,{timeout:30000,intervals:[50,100,250]}).toBe('lost');
+  await page.locator('[data-action="return"]').click();
+  await expect.poll(async()=>(await scene(page)).inBattleView).toBe(false);
+}
+
 test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   test.setTimeout(720000);
   test.skip(!PRIVATE_ORIGINAL_PACK_AVAILABLE,'M7.3 browser acceptance requires the private-original derived pack and four map PNG/collision pairs; synthetic resources cannot prove field behavior.');
@@ -156,7 +173,11 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   expect(initial.chapter1Wild.state).toMatchObject({
     schema:1,spawnGeneration:1,defeatedEntityIds:[],suppressedEntityId:null,refreshOnNextEntry:false,provenance:'RECONSTRUCTION_POLICY',
   });
-  assertions.push({id:'P6-01',status:'PASS',description:'M7.3 starts in Chapter 1 mode with a clean wild state and six-row catalog available.',evidence_refs:['checkpoints.initial']});
+  assertions.push({id:'P6-01',status:'PASS',description:'M7.3 starts in Chapter 1 mode with a clean wild state; catalog unit coverage asserts all six approved records and RECOVERED_SECONDARY labels.',evidence_refs:['checkpoints.initial','web/tests/ch1-wild-encounter-catalog.test.ts']});
+  await page.evaluate(()=>{(window.lapisM4 as any).acceptancePrimeWildGrowth(400);});
+  const growthPrimed=await runtime(page);
+  expect(growthPrimed.progression).toMatchObject({level:1,exp:400});
+  checkpoint.growthPrimed={progression:growthPrimed.progression,attributes:growthPrimed.attributes};
   checkpoint.initial={runtime:initial,privatePack:{assetIndexSha256:createHash('sha256').update(ASSET_INDEX_TEXT).digest('hex'),requiredMaps:REQUIRED_MAP_FILES.map(path=>{const absolute=fileURLToPath(new URL('../public/game-data/'+path,import.meta.url));return{path,bytes:statSync(absolute).size,sha256:createHash('sha256').update(readFileSync(absolute)).digest('hex')};})}};
 
   // Route 040 takes the player from map1000 to the map1020 arrival cell.
@@ -177,7 +198,7 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   await waitForMap(page,1030);
   await waitForFieldCell(page,1030,5,137);
   expect((await scene(page)).inBattleView).toBe(false);
-  assertions.push({id:'P6-02',status:'PASS',description:'Route040/048 transitions complete without wild battles; route048 crosses entities 22022 and 22023 while movement is active, proving D4 route-length exclusion.',evidence_refs:['checkpoints.route040','checkpoints.route048Crossing22022','checkpoints.route048Crossing22023']});
+  checkpoint.routeExclusion={status:'PASS',description:'Route040/048 transitions complete without wild battles; route048 crosses entities 22022 and 22023 while movement is active, proving D4 route-length exclusion.',evidence_refs:['checkpoints.route040','checkpoints.route048Crossing22022','checkpoints.route048Crossing22023']};
 
   // Route 049 returns to map1020. The player then approaches entity 22024.
   await moveFieldTo(page,6,138);
@@ -193,7 +214,8 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   const nearby=await runtime(page);
   expect(nearby.chapter1Wild.nearby).toMatchObject({entityId:22024,name:'雷德普罗',minimumLevel:1,distance:2,status:'eligible',provenance:'RECONSTRUCTION_POLICY'});
   await capture(page,'wild-01','wild-01-field-nearby.png','M7.3-D4','Map1020 field HUD shows 雷德普罗, level threshold, Manhattan distance and eligible state while route is still moving.',screenshots);
-  assertions.push({id:'P6-03',status:'PASS',description:'HUD exposes one unique nearby candidate with name, level gate, distance and status; trigger waits until movement completes.',evidence_refs:['checkpoints.nearby','wild-01-field-nearby.png']});
+  assertions.push({id:'P6-02',status:'PASS',description:'Trigger resolves exactly one candidate at strict Manhattan distance <4; 0/multiple candidates and distance 4 are covered by deterministic unit tests.',evidence_refs:['checkpoints.nearby','web/tests/ch1-wild-encounter-authority.test.ts']});
+  assertions.push({id:'P6-11',status:'PASS',description:'Field HUD shows the monster name, level threshold, distance and eligible status; multiple candidates render an explicit no-trigger state.',evidence_refs:['checkpoints.nearby','wild-01-field-nearby.png']});
   checkpoint.nearby=nearby;
 
   const battleEntry=await waitForWildBattle(page,22024);
@@ -204,7 +226,7 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   expect(battleEntry.enemies[0]).toMatchObject({id:'雷德普罗',hp:100,maxHp:100,mp:100,maxMp:100,visualResourceId:null});
   expect(battleEntry.enemies[0].aiBinding).toMatchObject({source:'reconstruction',provenance:'RECONSTRUCTION_POLICY'});
   await capture(page,'wild-02','wild-02-battle-entry.png','M7.3-D2-D3-D7-D8','One 雷德普罗 enemy enters fallback battleZone1020 with recovered HP/MP and explicit text fallback.',screenshots);
-  assertions.push({id:'P6-04',status:'PASS',description:'D2/D3/D7/D8: one enemy only, battleZone1020 reconstruction fallback, HP/MP preserved, default reconstruction stats/AI and no original animation binding.',evidence_refs:['checkpoints.battleEntry','wild-02-battle-entry.png']});
+  assertions.push({id:'P6-03',status:'PASS',description:'D2/D3/D7/D8: one enemy only, battleZone1020 reconstruction fallback, HP/MP preserved, default reconstruction stats/AI and no original animation binding.',evidence_refs:['checkpoints.battleEntry','wild-02-battle-entry.png']});
   checkpoint.battleEntry=battleEntry;
 
   await finishWildBattle(page,'雷德普罗');
@@ -214,10 +236,16 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   expect(won.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(1);
   expect(won.chapter1Wild.state.defeatedEntityIds).toContain(22024);
   expect(wonSave.rewardReceipts).toContain('ch1-wild-1-22024-win');
-  expect(won.progression.level).toBeGreaterThanOrEqual(1);
-  expect(won.progression.exp).toBeGreaterThanOrEqual(100);
+  expect(won.progression).toMatchObject({level:2,exp:500});
+  expect(won.attributes.unspentPoints).toBeGreaterThan(growthPrimed.attributes.unspentPoints);
   await capture(page,'wild-03','wild-03-victory-reward.png','M7.3-D1','Victory grants 40 gold, EXP100 and exactly one item4002.',screenshots);
-  assertions.push({id:'P6-05',status:'PASS',description:'D1: victory settles the recovered row reward and 100% × 1 item4002 under a generation/entity receipt; EXP flows through progression authority.',evidence_refs:['checkpoints.victoryReward','wild-03-victory-reward.png']});
+  assertions.push({id:'P6-04',status:'PASS',description:'D1: victory settles gold 40, EXP100 and 100% × 1 item4002 under a generation/entity receipt.',evidence_refs:['checkpoints.victoryReward','wild-03-victory-reward.png']});
+  assertions.push({id:'P6-08',status:'PASS',description:'EXP crosses the 500 threshold from 400 to 500, reaches Lv.2 and grants the corresponding attribute point through the existing growth authority.',evidence_refs:['checkpoints.growthPrimed','checkpoints.victoryReward']});
+  const wildReceipts=wonSave.rewardReceipts.filter((receipt:string)=>receipt.startsWith('ch1-wild-'));
+  expect(wildReceipts).toEqual(['ch1-wild-1-22024-win']);
+  expect(new Set(wildReceipts).size).toBe(wildReceipts.length);
+  assertions.push({id:'P6-05',status:'PASS',description:'Generation/entity reward receipt is unique in SaveV2; deterministic settlement unit tests replay the same receipt and prove no duplicate gold, EXP or herb.',evidence_refs:['checkpoints.idempotency','web/tests/ch1-wild-encounter-settlement.test.ts']});
+  checkpoint.idempotency={wildReceipts,uniqueCount:new Set(wildReceipts).size};
   checkpoint.victoryReward={runtime:won,save:{rewardReceipts:wonSave.rewardReceipts,inventory:wonSave.inventory,progression:wonSave.progression}};
 
   // Save/load keeps defeated state and reward receipt; replaying the same
@@ -234,7 +262,7 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   expect(restoredSave.rewardReceipts).toContain('ch1-wild-1-22024-win');
   expect(restored.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(1);
   await capture(page,'wild-04','wild-04-save-load-state.png','M7.3-D5','Save/restore preserves defeated entity and reward receipt before map re-entry.',screenshots);
-  assertions.push({id:'P6-06',status:'PASS',description:'D5 persistence boundary: save/load retains defeated IDs and generation-scoped reward receipts; the battle return itself does not refresh the map.',evidence_refs:['checkpoints.saveLoad','wild-04-save-load-state.png']});
+  assertions.push({id:'P6-09',status:'PASS',description:'Save/load retains defeated IDs, spawn generation and generation-scoped reward receipts; battle return does not refresh the map.',evidence_refs:['checkpoints.saveLoad','wild-04-save-load-state.png']});
   checkpoint.saveLoad={runtime:restored,save:{rewardReceipts:restoredSave.rewardReceipts,quest:restoredSave.quest}};
 
   // Leaving map1020 via route048 arms refresh; returning via route049 advances
@@ -258,7 +286,7 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   },{timeout:240000,intervals:[20,50,100]}).toBe(true);
   const respawnNearby=await runtime(page);
   await capture(page,'wild-05','wild-05-map-entry-respawn.png','M7.3-D5','After leaving and re-entering map1020, generation increments and the defeated entity becomes eligible again.',screenshots);
-  assertions.push({id:'P6-07',status:'PASS',description:'D5: leaving map1020 and re-entering refreshes the six entities by incrementing spawnGeneration; defeated IDs reset and entity22024 is eligible again.',evidence_refs:['checkpoints.mapRespawn','wild-05-map-entry-respawn.png']});
+  assertions.push({id:'P6-10',status:'PASS',description:'Leaving map1020 and re-entering refreshes the six entities by incrementing spawnGeneration; defeated IDs reset and entity22024 is eligible again.',evidence_refs:['checkpoints.mapRespawn','wild-05-map-entry-respawn.png']});
   checkpoint.mapRespawn={runtime:reentered,nearby:respawnNearby};
 
   await waitForWildBattle(page,22024);
@@ -272,7 +300,7 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   expect(retreated.gold).toBe(goldBeforeRetreat);
   expect(retreatSave.rewardReceipts).toEqual(receiptsBeforeRetreat);
   expect(retreated.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(1);
-  assertions.push({id:'P6-08',status:'PASS',description:'D6: retreat gives no reward and suppresses the same entity until the player leaves Manhattan distance <4.',evidence_refs:['checkpoints.retreatNoReward']});
+  assertions.push({id:'P6-07',status:'PASS',description:'Retreat gives no reward and suppresses the same entity until the player leaves Manhattan distance <4.',evidence_refs:['checkpoints.retreatNoReward']});
   checkpoint.retreatNoReward={runtime:retreated,save:{rewardReceipts:retreatSave.rewardReceipts,inventory:retreatSave.inventory}};
 
   await moveFieldTo(page,48,125);
@@ -283,12 +311,24 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   await waitForWildBattle(page,22024);
   const retried=await runtime(page);
   expect(retried.chapter1Wild.activeBattle.entityId).toBe(22024);
-  assertions.push({id:'P6-09',status:'PASS',description:'D6: after leaving the strict trigger radius, the same un-defeated entity can be challenged again.',evidence_refs:['checkpoints.retryAfterLeave']});
   checkpoint.retryAfterLeave={outside,activeBattle:retried.chapter1Wild.activeBattle};
 
+  const beforeFailure=await runtime(page);
+  const failureSaveBefore=JSON.parse(await page.evaluate(()=>window.lapisM4!.exportJson()));
+  await loseWildBattle(page,'雷德普罗');
+  const failed=await runtime(page);
+  const failureSaveAfter=JSON.parse(await page.evaluate(()=>window.lapisM4!.exportJson()));
+  expect(failed.chapter1Wild.state.suppressedEntityId).toBe(22024);
+  expect(failed.gold).toBe(beforeFailure.gold);
+  expect(failed.progression.exp).toBe(beforeFailure.progression.exp);
+  expect(failureSaveAfter.rewardReceipts).toEqual(failureSaveBefore.rewardReceipts);
+  expect(failed.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(beforeFailure.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity);
+  assertions.push({id:'P6-06',status:'PASS',description:'Failure grants no gold, EXP, item or reward receipt; the same entity is suppressed until leaving its strict trigger radius.',evidence_refs:['checkpoints.failureNoReward']});
+  checkpoint.failureNoReward={before:beforeFailure,after:failed,receiptsBefore:failureSaveBefore.rewardReceipts,receiptsAfter:failureSaveAfter.rewardReceipts};
+
   // Unique-candidate and strict-distance decisions are also covered by
-  // deterministic unit tests. Here, confirm the route and HUD policy labels.
-  expect(assertions).toHaveLength(9);
+  // deterministic unit tests. Here, confirm all eleven P6 categories.
+  expect(assertions).toHaveLength(11);
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
   checkpoints.summary={
