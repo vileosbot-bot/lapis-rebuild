@@ -804,7 +804,8 @@ export class M4RuntimeIntegration{
     this.attributeState=createAttributeAllocationState(1);
     this.attributePanelOpen=false;
     this.attributeDraft=null;
-    await this.scene.setCharacter(id);
+    try{await this.scene.setCharacter(id);}
+    catch(error){this.setNotice('职业切换资源未就绪：'+String(error));return;}
     this.m6Stage=createM6StageState(id);
     this.syncSceneInventory();
     await this.applyWorldState(this.m5World?.content.start??START_STATE).catch(error=>this.setNotice('职业档地图资源未就绪：'+String(error)));
