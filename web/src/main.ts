@@ -91,8 +91,8 @@ async function start(){
   el('play').onclick=()=>{scene.playing=!scene.playing;};
   el('step').onclick=()=>scene.step();
   el<HTMLInputElement>('frame').oninput=e=>scene.setFrame(Number((e.target as HTMLInputElement).value));
-  el('effect-play').onclick=()=>scene.playEffect();
-  el('effect-step').onclick=()=>scene.stepEffect();
+  el('effect-play').onclick=()=>void scene.playEffect().catch(error=>notice('特效资源未就绪：'+String(error)));
+  el('effect-step').onclick=()=>void scene.stepEffect().catch(error=>notice('特效资源未就绪：'+String(error)));
   el<HTMLInputElement>('duration').onchange=e=>{
     const n=Number((e.target as HTMLInputElement).value);
     if(Number.isFinite(n)&&n>=1&&n<=2000)scene.duration=n;
