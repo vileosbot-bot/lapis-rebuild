@@ -365,6 +365,7 @@ export class M4RuntimeIntegration{
         acceptanceIssueAttack:()=>this.acceptanceIssueAttack(),
         acceptanceAdvanceLiveBattleStep:()=>this.acceptanceAdvanceLiveBattleStep(),
         acceptanceAdvanceUntilActionOrEnd:(maxSteps:number)=>this.acceptanceAdvanceUntilActionOrEnd(maxSteps),
+        acceptanceSetGold:(amount:number)=>this.acceptanceSetGold(amount),
         acceptanceOpenShop:(shopId:string)=>this.acceptanceOpenShop(shopId),
         acceptanceBuyShopItem:(shopId:string,itemId:number,transactionId:string)=>this.buyShopItem(shopId,itemId,transactionId),
         acceptanceUsePotion:(itemId:number)=>this.usePotion(itemId),
@@ -1575,6 +1576,16 @@ export class M4RuntimeIntegration{
     this.scene.gold=this.rewards.gold;
     this.applyClassProfile(false);
     this.setNotice(`任务完成：金币 +${reward.gold}，EXP +${reward.exp}，当前 Lv.${this.rewards.progression.level} / RECONSTRUCTION_POLICY`);
+  }
+
+  private acceptanceSetGold(amount:number):void{
+    if(!navigator.webdriver)throw new Error('S45 acceptance gold fixture is automation-only');
+    if(this.scene.inBattleView)throw new Error('S45 acceptance gold fixture requires field mode');
+    if(!Number.isSafeInteger(amount)||amount<0)throw new Error('Invalid S45 acceptance gold amount');
+    this.rewards={...this.rewards,gold:amount};
+    this.scene.gold=amount;
+    this.setNotice('S45 acceptance fixture：测试金币已设置为 '+amount+' G');
+    this.render(this.scene.snapshot());
   }
 
   private acceptanceOpenShop(shopId:string):boolean{

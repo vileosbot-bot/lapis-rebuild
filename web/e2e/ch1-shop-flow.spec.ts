@@ -17,10 +17,11 @@ async function capture(page:Page,name:string,shots:Shot[]){
 }
 test('S45 isolated shop acceptance: catalog, potion purchase, UNKNOWN use protection and SaveV2',async({page})=>{
  test.setTimeout(240000);await ready(page);
+ await page.evaluate(()=>{const bridge=window.lapisM4 as any;if(typeof bridge.acceptanceSetGold!=='function')throw new Error('Missing S45 acceptance gold fixture');bridge.acceptanceSetGold(10000);});
  await page.evaluate(()=>{const bridge=window.lapisM4 as any;if(typeof bridge.acceptanceOpenShop!=='function')throw new Error('Missing S45 acceptance bridge');bridge.acceptanceOpenShop('caosia-potion');});
- await expect(page.locator('[data-shop-id="caosia-potion"]')).toBeVisible();
+ await expect(page.locator('section.shop-panel[data-shop-id="caosia-potion"]')).toBeVisible();
  const shots:Shot[]=[];await capture(page,'shop-potion-use.png',shots);
- const before=await snap(page);const itemId=4001;
+ const before=await snap(page);expect(before.gold).toBe(10000);const itemId=4001;
  await page.evaluate((id)=>{(window.lapisM4 as any).acceptanceBuyShopItem('caosia-potion',id,'s45-e2e-red-potion');},itemId);
  const afterBuy=await snap(page);
  expect(afterBuy.gold).toBeLessThan(before.gold);
@@ -59,8 +60,9 @@ test('S45 route reachability remains explicitly unverified',async({page})=>{
 
 test('S45 isolated weapon catalog and purchase are separate from route evidence',async({page})=>{
  test.setTimeout(240000);await ready(page);
+ await page.evaluate(()=>{const bridge=window.lapisM4 as any;if(typeof bridge.acceptanceSetGold!=='function')throw new Error('Missing S45 acceptance gold fixture');bridge.acceptanceSetGold(10000);});
  await page.evaluate(()=>{(window.lapisM4 as any).acceptanceOpenShop('caosia-weapon');});
- await expect(page.locator('[data-shop-id="caosia-weapon"]')).toBeVisible();
+ await expect(page.locator('section.shop-panel[data-shop-id="caosia-weapon"]')).toBeVisible();
  const shots:Shot[]=[];
  await capture(page,'shop-weapon-catalog.png',shots);
  const before=await snap(page);const itemId=1;
