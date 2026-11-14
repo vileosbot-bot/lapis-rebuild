@@ -25,9 +25,11 @@ function fixture(){
   return {manifest:{characters:{'100':{}}},animations,effects:{'500':{resource_id:500,sequence:[0]}},images} as any;
 }
 
-test('M5 first paint is capped at 300 images and contains only visible start-map NPC constructors',()=>{
+test('M5 first paint is 36 core images plus 32 walk frames, below the 300-image cap',()=>{
   const keys=buildInitialImageKeys(fixture(),1,'m5');
-  assert.equal(keys.length,68,'map + player idle/walk + two visible NPC first frames + first effect');
+  const core=keys.filter(key=>!key.startsWith('B100_01_'));
+  assert.equal(core.length,36,'map + player idle + two visible NPC first frames + first effect');
+  assert.equal(keys.length,68,'add all 32 player walk frames');
   assert.ok(keys.length<=300);
   assert.ok(keys.includes(textureKey('1001','00',0)));
   assert.ok(keys.includes(textureKey('4023','00',0)));
@@ -36,9 +38,11 @@ test('M5 first paint is capped at 300 images and contains only visible start-map
   assert.ok(!keys.includes(textureKey('100','02',0)),'unused player action slots are deferred');
 });
 
-test('Chapter 1 first paint uses the map-1000 teacher visual and remains under the image cap',()=>{
+test('Chapter 1 first paint is 35 core images plus 32 walk frames',()=>{
   const keys=buildInitialImageKeys(fixture(),1000,'chapter1');
-  assert.equal(keys.length,67,'map + player idle/walk + teacher first frame + first effect');
+  const core=keys.filter(key=>!key.startsWith('B100_01_'));
+  assert.equal(core.length,35,'map + player idle + teacher first frame + first effect');
+  assert.equal(keys.length,67,'add all 32 player walk frames');
   assert.ok(keys.length<=300);
   assert.ok(keys.includes(mapTextureKey(1000)));
   assert.ok(keys.includes(textureKey('4524','00',0)));
@@ -46,15 +50,32 @@ test('Chapter 1 first paint uses the map-1000 teacher visual and remains under t
   assert.ok(!keys.includes(textureKey('4023','00',0)));
 });
 
-test('a missing non-critical image cannot stop LabScene.create initialization',()=>{
+test('missing non-critical textures do not abort create and all use sites wait for resources',()=>{
   const source=readFileSync(new URL('../src/scene.ts',import.meta.url),'utf8');
+  const main=readFileSync(new URL('../src/main.ts',import.meta.url),'utf8');
   const create=source.slice(source.indexOf('  create(){'),source.indexOf('  animation():Animation'));
   assert.match(create,/const missingInitial=initialKeys\.filter/);
   assert.doesNotMatch(create,/if\s*\(missingInitial\.length\)\s*\{[^}]*return/);
   assert.match(create,/ASSET_PLACEHOLDER_TEXTURE_KEY/);
   assert.doesNotMatch(create,/Object\.keys\(this\.pack\.images\)\.filter\(k=>!this\.textures\.exists\(k\)\)/);
+
   assert.match(source,/async ensureTextures\(/);
-  assert.match(source,/while\(attempt<3\)/,'first attempt plus at most two retries');
+  assert.match(source,/while\(attempt<3\)/,'first attempt plus at most 2 retries');
   assert.match(source,/15000\)/,'per-image timeout is 15 seconds');
-  assert.match(source,/await this\.ensureTextures\(\[mapTextureKey\(entry\.battleZoneId\)/,'battle waits for its map/player/enemy assets');
+  assert.match(source,/await this\.ensureTextures\(\[mapTextureKey\(entry\.battleZoneId\)/,'battle waits for map/player/enemy assets');
+  assert.match(source,/async prepareMapTextures\(id:number\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(\[mapTextureKey\(id\),\.\.\.this\.characterTextureKeys\(this\.character,\['00'\]\),\.\.\.worldKeys\]/,'map transition waits for map, player idle and visible NPC assets');
+  assert.match(source,/async setCharacter\(id:string\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(this\.characterTextureKeys\(id,\['00','01'\]\)/,'character switch waits for idle and walk frames');
+  assert.match(source,/async setAction\(slot:string\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(keys/,'action switch waits for every frame in the selected slot');
+  assert.match(source,/async setMap\(id:number\):Promise<void>\{[\s\S]*?await this\.prepareMapTextures\(id\)/,'map switch waits before changing map state');
+  assert.match(source,/async setEffect\(id:number\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(keys/,'effect selection waits for all effect frames');
+
+  assert.match(source,/private syncWorldVisualActors\(\)\{[\s\S]*?if\(!this\.textures\.exists\(key\)\)\{this\.recordMissingTexture\(key\);continue;\}/,'NPC visuals skip absent first frames');
+  assert.match(source,/private ensureEnemyVisualActors\(\)\{[\s\S]*?if\(resource&&idle&&!this\.textures\.exists\(idleKey\)\)this\.recordMissingTexture\(idleKey\);/,'enemy visuals skip absent first frames');
+  assert.match(source,/private async loadRemainingTextures\(\)[\s\S]*?this\.syncWorldVisualActors\(\);[\s\S]*?this\.ensureEnemyVisualActors\(\);/,'background completion retries actor construction');
+  assert.match(source,/finally\(\(\)=>\{[\s\S]*?this\.refreshBootstrapTextures\(\);[\s\S]*?this\.syncWorldVisualActors\(\);[\s\S]*?this\.ensureEnemyVisualActors\(\);/,'successful first-screen retries refresh map/player/NPC even if another key failed');
+
+  assert.match(source,/async playEffect\(\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(/,'diagnostic playback waits for all frames');
+  assert.match(source,/async stepEffect\(\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(/,'diagnostic frame stepping waits for its frame');
+  assert.match(main,/scene\.playEffect\(\)\.catch/);
+  assert.match(main,/scene\.stepEffect\(\)\.catch/);
 });
