@@ -143,7 +143,7 @@ export class LabScene extends Phaser.Scene {
 
   private createAssetPlaceholder(){
     if(this.textures.exists(ASSET_PLACEHOLDER_TEXTURE_KEY))return;
-    const graphics=this.make.graphics({x:0,y:0,add:false});
+    const graphics=this.make.graphics({x:0,y:0});
     graphics.fillStyle(0x261b2b,1).fillRect(0,0,64,64);
     graphics.fillStyle(0xe45b91,1).fillRect(0,0,32,32).fillRect(32,32,32,32);
     graphics.generateTexture(ASSET_PLACEHOLDER_TEXTURE_KEY,64,64);
@@ -308,7 +308,7 @@ export class LabScene extends Phaser.Scene {
       if(!url||this.textures.exists(key))continue;
       // Phaser preload is attempt 1; ensureTextures below performs at most 2 retries.
       this.textureAttempts.set(key,1);
-      this.load.image(key,url,{timeout:15000});
+      this.load.image({key,url,xhrSettings:{responseType:'blob',timeout:15000}});
     }
   }
 
