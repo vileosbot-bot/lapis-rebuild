@@ -27,8 +27,10 @@ P0 最后四项受缺少派生地图资源阻塞。不得用 synthetic fixture �
 - 触发时机：移动路线完成后；不在 routeLength 大于 0 时触发。
 - route 040/048：路线移动期间野怪触发必须被抑制；路线转换处理优先于野怪检查；抵达路线目标后由路线控制器完成地图转换，不得插入野怪战斗。
 - 只有玩家在 map 1020 完成普通移动、routeLength 归零且路线转换未提交时，才检查野怪候选。
-- 野怪战斗使用 BattleEntry / ReconstructionBattleSetup；battleZone 1020 是重建 fallback。
-- 怪物无技能，AI 使用现有重建默认 AI。
+- 一条野外目录记录对应一名战斗敌人（D2，`RECONSTRUCTION_POLICY`）。
+- 野怪战斗使用 BattleEntry / ReconstructionBattleSetup；battleZone 1020 是重建 fallback（D3，`RECONSTRUCTION_POLICY`）。
+- 怪物无技能，AI 使用现有重建默认 AI（`RECONSTRUCTION_POLICY`）。
+- 除目录明确给出的 HP/MP 外，其他战斗属性使用现有默认重建战斗模型；不把 YBCS basic/enemy=10/8 解释为攻击/防御数值（D8，`RECONSTRUCTION_POLICY`）。
 - 胜利独立结算金币、EXP、100% 掉落 1 个 item 4002，并使用 generation/entity 唯一 receipt。
 - 失败/撤退不结算奖励；离开触发范围后可再挑战。
 - 离开 map 1020 再进入时刷新；战斗返回与读档不刷新。
