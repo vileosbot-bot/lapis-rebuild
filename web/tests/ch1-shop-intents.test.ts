@@ -76,7 +76,6 @@ test('S45 Quest9 trigger/one-time boundary: shop selection cannot satisfy or rep
 });
 
 import {renderPotionInventory} from '../src/ui/shop-panel.ts';
-import {grantItem} from '../src/progression/inventory.ts';
 test('S45 potion inventory UI exposes the UNKNOWN refusal reason instead of silently disabling use',()=>{
  const inventory=createInventory([{itemId:4001,source:{kind:'starter',ref:'s45-ui-test'}}]);
  const html=renderPotionInventory(inventory);
