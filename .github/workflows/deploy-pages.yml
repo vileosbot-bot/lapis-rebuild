@@ -65,6 +65,7 @@ jobs:
           assert (dist / "game-data/asset-index.json").is_file(), "Synthetic game-data asset index is missing"
           assert manifest.get("provenance", {}).get("kind") == "synthetic", "Published game-data is not the synthetic fixture"
           print("Verified GitHub Pages subpath assets and synthetic game-data.")
+          PY
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
