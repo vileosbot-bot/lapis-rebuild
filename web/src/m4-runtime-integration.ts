@@ -279,7 +279,7 @@ export class M4RuntimeIntegration{
   constructor(scene:LabScene,options:M4RuntimeOptions={}){
     this.scene=scene;
     this.runtimeMode=options.mode??'default';
-    this.chapter1World=this.runtimeMode==='chapter1'?createCh1WorldPolicy(scene.pack):null;
+    this.chapter1World=this.runtimeMode==='chapter1'?createCh1WorldPolicy(scene.pack,{allowSyntheticMapsForTests:typeof navigator!=='undefined'&&navigator.webdriver}):null;
     this.chapter1Authority=this.chapter1World?new Ch1WorldAuthority():null;
     this.chapter1Quest1Selection=this.chapter1Authority?.initialQuest1State()??null;
     if(this.chapter1World){
@@ -394,6 +394,7 @@ export class M4RuntimeIntegration{
         routes:this.chapter1World.routes.map(route=>({routeId:route.routeId,sourceMapId:route.sourceMapId,targetMapId:route.targetMapId,activationCellCount:route.activationCells.length})),
         initial:{mapId:this.chapter1World.initial.mapId,requestedCell:this.chapter1World.initial.requestedCell,effectiveCell:this.chapter1World.initial.effectiveCell,snapDistanceSquared:this.chapter1World.initial.snapDistanceSquared},
         victoryReturn:{mapId:this.chapter1World.victoryReturn.mapId,cell:this.chapter1World.victoryReturn.effectiveCell},
+        mapEvidence:this.chapter1World.mapEvidence,
         provenance:'RECOVERED_SECONDARY',runtimeVerified:false,
       }:null,
       chapter1StorySource1:this.chapter1World?{
