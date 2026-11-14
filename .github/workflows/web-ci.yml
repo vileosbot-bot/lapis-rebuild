@@ -59,6 +59,19 @@ jobs:
           LAPIS_OFFLINE_PREVIEW: ${{ runner.temp }}/offline.html
           S41_M7_1_FINAL: '1'
         run: npm run test:e2e -- e2e/s41-m7-1-acceptance.spec.ts
+      - name: Build M7.3 synthetic Chapter 1 test pack (no original assets)
+        run: |
+          rm -rf web/public/game-data
+          python3 tools/testing/make_ch1_wild_fixture.py --out web/public/game-data
+      - name: Build M7.3 synthetic Chapter 1 preview
+        working-directory: web
+        run: npm run build
+      - name: M7.3 map 1020 wild encounter browser acceptance (synthetic maps; S42 not run)
+        working-directory: web
+        env:
+          M73_WILD_SYNTHETIC_ACCEPTANCE: '1'
+          LAPIS_OFFLINE_PREVIEW: ${{ runner.temp }}/offline.html
+        run: npm run test:e2e -- e2e/ch1-wild-encounters.spec.ts
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
