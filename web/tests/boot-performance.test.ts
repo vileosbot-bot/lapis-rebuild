@@ -60,7 +60,7 @@ test('missing non-critical textures do not abort create and all use sites wait f
   assert.match(create,/ASSET_PLACEHOLDER_TEXTURE_KEY/);
   assert.doesNotMatch(create,/Object\.keys\(this\.pack\.images\)\.filter\(k=>!this\.textures\.exists\(k\)\)/);
 
-  assert.match(source,/private reportLoadingProgress\(message:string\):void\{this\.notice\(message\);this\.loadingNoticeHandler\?\.\(message\);\}/,'loading progress reaches the normal notice and optional M4 HUD sink');
+  assert.match(source,/private reportLoadingProgress\(message:string\):void\{[\s\S]*?this\.notice\(message\);[\s\S]*?loading\.textContent=message;[\s\S]*?this\.loadingNoticeHandler\?\.\(message\);/,'loading progress reaches the visible loading overlay and optional M4 HUD sink');
   assert.match(m4,/this\.scene\.setLoadingNoticeHandler\(message=>this\.setNotice\(message\)\)/,'M4 mode routes progress into the visible runtime notice');
   assert.match(source,/async ensureTextures\(/);
   assert.match(source,/while\(attempt<3\)/,'first attempt plus at most 2 retries');
