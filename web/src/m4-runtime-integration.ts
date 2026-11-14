@@ -1853,7 +1853,7 @@ export class M4RuntimeIntegration{
     return{
       kind:SAVE_KIND,version:CURRENT_SAVE_VERSION,pack:this.scene.pack.digest,character:this.scene.character,mapId:this.scene.mapId,
       x:this.scene.anchor.x,y:this.scene.anchor.y,gold:this.rewards.gold,inventory:this.rewards.inventory,
-      quest:{questId:this.world.quest.questId,stage:this.world.quest.stage,ch1ShopState:this.shopState,ch1WildState:this.ch1WildState as unknown as JsonValue} as JsonValue,
+      quest:{questId:this.world.quest.questId,stage:this.world.quest.stage,ch1ShopState:this.shopState,...(this.chapter1World?{ch1WildState:this.ch1WildState as unknown as JsonValue}:{})} as JsonValue,
       questFlags:{...this.rewards.questFlags},progression:{...this.rewards.progression},rewardReceipts:[...this.rewards.rewardReceipts],m6,
       m7:createM7SaveExtension(this.scene.character,this.m7Level(),this.m7Skills,{hp:this.scene.state.hp,mp:this.scene.state.mp},this.attributeState),savedAt:new Date().toISOString(),
     };
