@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type {LoadedPack,Animation} from './model.ts';
-import {advanceClock,frameIndex,textureKey} from './model.ts';
+import {advanceClock,frameIndex,textureKey,ASSET_PLACEHOLDER_TEXTURE_KEY} from './model.ts';
 import {frameIntervalMs,sequenceDurationMs} from './animation-policy.ts';
 
 export class VisualActor{
@@ -24,7 +24,9 @@ export class VisualActor{
     this.duration=frameIntervalMs(animation.raw_timing);
     const index=frameIndex(animation,this.direction,0),bounds=animation.frame_bounds[index];
     this.anchor={x,y};
-    this.image=scene.add.image(x+bounds.left,y+bounds.top,textureKey(resourceId,'00',index)).setOrigin(0);
+    const key=textureKey(resourceId,'00',index);
+    if(!scene.textures.exists(key))scene.events.emit('asset-missing',key);
+    this.image=scene.add.image(x+bounds.left,y+bounds.top,scene.textures.exists(key)?key:ASSET_PLACEHOLDER_TEXTURE_KEY).setOrigin(0);
   }
 
   has(slot:string):boolean{return !!this.pack.animations[this.resourceId]?.[slot]}
@@ -69,7 +71,9 @@ export class VisualActor{
     const next=advanceClock(this.cursor,this.elapsed,dt,this.duration,animation.frames_per_direction);
     this.cursor=next.cursor;this.elapsed=next.elapsed;
     const index=frameIndex(animation,this.direction,this.cursor),bounds=animation.frame_bounds[index];
-    this.image.setTexture(textureKey(this.resourceId,this.slot,index)).setPosition(this.anchor.x+bounds.left,this.anchor.y+bounds.top);
+    const key=textureKey(this.resourceId,this.slot,index);
+    if(!this.scene.textures.exists(key))this.scene.events.emit('asset-missing',key);
+    this.image.setTexture(this.scene.textures.exists(key)?key:ASSET_PLACEHOLDER_TEXTURE_KEY).setPosition(this.anchor.x+bounds.left,this.anchor.y+bounds.top);
   }
 
   destroy():void{this.image.destroy()}
