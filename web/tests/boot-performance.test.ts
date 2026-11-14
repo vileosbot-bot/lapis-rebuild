@@ -53,12 +53,15 @@ test('Chapter 1 first paint is 35 core images plus 32 walk frames',()=>{
 test('missing non-critical textures do not abort create and all use sites wait for resources',()=>{
   const source=readFileSync(new URL('../src/scene.ts',import.meta.url),'utf8');
   const main=readFileSync(new URL('../src/main.ts',import.meta.url),'utf8');
+  const m4=readFileSync(new URL('../src/m4-runtime-integration.ts',import.meta.url),'utf8');
   const create=source.slice(source.indexOf('  create(){'),source.indexOf('  animation():Animation'));
   assert.match(create,/const missingInitial=initialKeys\.filter/);
   assert.doesNotMatch(create,/if\s*\(missingInitial\.length\)\s*\{[^}]*return/);
   assert.match(create,/ASSET_PLACEHOLDER_TEXTURE_KEY/);
   assert.doesNotMatch(create,/Object\.keys\(this\.pack\.images\)\.filter\(k=>!this\.textures\.exists\(k\)\)/);
 
+  assert.match(source,/private reportLoadingProgress\(message:string\):void\{this\.notice\(message\);this\.loadingNoticeHandler\?\.\(message\);\}/,'loading progress reaches the normal notice and optional M4 HUD sink');
+  assert.match(m4,/this\.scene\.setLoadingNoticeHandler\(message=>this\.setNotice\(message\)\)/,'M4 mode routes progress into the visible runtime notice');
   assert.match(source,/async ensureTextures\(/);
   assert.match(source,/while\(attempt<3\)/,'first attempt plus at most 2 retries');
   assert.match(source,/15000\)/,'per-image timeout is 15 seconds');
