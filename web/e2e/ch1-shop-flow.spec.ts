@@ -68,16 +68,15 @@ test('S45 isolated weapon catalog and purchase are separate from route evidence'
  const purchased=await snap(page);
  expect(purchased.gold).toBeLessThan(before.gold);
  expect(purchased.inventory.items.some((x:any)=>x.itemId===itemId&&x.quantity>=1)).toBe(true);
- await expect(page.locator('#m4-runtime-notice').textContent()).resolves.toContain('购买成功');
+ await expect(page.locator('#m4-runtime-notice')).toContainText('购买成功');
  await capture(page,'shop-purchase-confirmed.png',shots);
  await page.locator('[data-action="shop-close"]').click();
  await page.locator('[data-action="menu"]:visible').click();
  await page.locator('[data-action="inventory"]:visible').click();
  const equip=page.locator('[data-action="equipment-equip"][data-item-id="1"]');
- if(await equip.count()){
-  await equip.first().click();
-  await expect.poll(async()=>(await snap(page)).equipment.weapon).toBe(1);
- }
+ await expect(equip).toHaveCount(1);
+ await equip.click();
+ await expect.poll(async()=>(await snap(page)).equipment.weapon).toBe(1);
  const checkpoint={requestId:'ch1-attr-s45-20261113-01',routeEvidence:'NOT_VERIFIED',shopId:'caosia-weapon',npcId:21200,mapId:'map:old:2000',itemId,quantityAfterPurchase:purchased.inventory.items.find((x:any)=>x.itemId===itemId)?.quantity??0,goldBefore:before.gold,goldAfter:purchased.gold,equipmentAfter:(await snap(page)).equipment,screenshots:shots};
  mkdirSync('test-results',{recursive:true});writeFileSync('test-results/ch1-shop-weapon-checkpoint.json',JSON.stringify(checkpoint,null,2)+'\n');
 });
