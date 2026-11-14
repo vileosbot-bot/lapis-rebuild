@@ -311,6 +311,7 @@ export class M4RuntimeIntegration{
     this.installed=true;
     document.body.classList.add('m4-active');
     this.mountRoots();
+    this.scene.setLoadingNoticeHandler(message=>this.setNotice(message));
     this.installSceneAdapters();
     this.installInput();
     this.installBattleTargetingAdapter();
