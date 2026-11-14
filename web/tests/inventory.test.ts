@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {initialInventory,equip,equipmentBonus,validateInventory,changeRole} from '../src/inventory.ts';
 import {validateSave} from '../src/save.ts';
+import {CH1_SHOP_CATALOG} from '../src/shops/shop-catalog.ts';
 test('starter items are unequipped and give no implicit bonus',()=>assert.deepEqual(equipmentBonus(initialInventory(),'100'),{attack:0,defense:0}));
 test('equip replace and unequip preserve ownership',()=>{const inv=initialInventory(),a=equip(inv,1,'weapon','100'),b=equip(a,3,'weapon','100'),c=equip(b,null,'weapon','100');assert.equal(b.weapon,3);assert.deepEqual(c,inv);assert.equal(inv.weapon,null);});
 test('cross-role, unknown, wrong slot and unowned items rejected',()=>{const inv=initialInventory();for(const [id,slot] of [[12,'weapon'],[999,'weapon'],[25,'weapon']] as const)assert.throws(()=>equip(inv,id,slot,'100'));assert.throws(()=>equip({...inv,owned:[]},1,'weapon','100'));});
@@ -9,3 +10,15 @@ test('duplicates and overlong inventory rejected',()=>{assert.throws(()=>validat
 test('changing class unequips incompatible gear',()=>{const a=equip(initialInventory(),1,'weapon','100');const b=changeRole(a,'109');assert.equal(b.weapon,null);assert.deepEqual(b.owned,a.owned);});
 test('old save migrates optional inventory without modifying input',()=>{const raw={version:1,pack:'p',character:'100',x:32,y:32,gold:0,savedAt:'2026-09-15T00:00:00Z'};const s=validateSave(raw,'p',['100'],100,100);assert.deepEqual(s.inventory,initialInventory());assert.equal('inventory' in raw,false);});
 test('save inventory is validated and cloned',()=>{const raw={version:1,pack:'p',character:'100',x:32,y:32,gold:0,savedAt:'2026-09-15T00:00:00Z',inventory:equip(initialInventory(),3,'weapon','100')};const s=validateSave(raw,'p',['100'],100,100);assert.equal(s.inventory?.weapon,3);s.inventory!.owned.pop();assert.equal(raw.inventory.owned.length,6);});
+
+test('all nine S45 potion IDs are accepted by legacy snapshot inventory validation',()=>{
+ const potionItems=CH1_SHOP_CATALOG.shops.find(shop=>shop.id==='caosia-potion')?.items.filter(item=>item.itemKind==='potion')??[];
+ assert.equal(potionItems.length,9);
+ for(const item of potionItems){
+  const inventory=validateInventory({owned:[item.itemResourceId],weapon:null,armor:null},'100');
+  assert.deepEqual(equipmentBonus(inventory,'100'),{attack:0,defense:0});
+ }
+});
+test('legacy snapshot inventory validation still rejects IDs outside registered catalogs',()=>{
+ assert.throws(()=>validateInventory({owned:[999999],weapon:null,armor:null},'100'),/Invalid owned items/);
+});
