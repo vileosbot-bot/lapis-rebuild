@@ -1,5 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {createInventory,quantityOf} from '../src/progression/inventory.ts';
+import {applyBattleReward} from '../src/progression/rewards.ts';
+import {initialM71Progression} from '../src/progression/progression.ts';
 import {CH1_WILD_ENCOUNTERS} from '../src/world/ch1-wild-encounter-catalog.ts';
 import {
   clearCh1WildSuppressionAfterLeavingRange,
@@ -80,4 +83,44 @@ test('save state validator rejects unknown IDs and promoted evidence',()=>{
   assert.throws(()=>validateCh1WildEncounterState(raw),/Unknown or duplicate/);
   const promoted={...createCh1WildEncounterState(),provenance:'VERIFIED'};
   assert.throws(()=>validateCh1WildEncounterState(promoted),/policy/);
+});
+
+test('wild victory reward grants gold, EXP and exactly one herb with a generation receipt',()=>{
+  const initial={
+    gold:0,
+    inventory:createInventory(),
+    progression:initialM71Progression(),
+    questFlags:{},
+    rewardReceipts:[],
+  };
+  const first=applyBattleReward(initial,'ch1-wild:22020','ch1-wild-1-22020-win',{
+    gold:40,
+    exp:150,
+    items:[{itemId:4002,quantity:1}],
+  });
+  assert.equal(first.applied,true);
+  assert.equal(first.state.gold,40);
+  assert.equal(first.state.progression.exp,150);
+  assert.equal(quantityOf(first.state.inventory,4002),1);
+  assert.deepEqual(first.state.rewardReceipts,['ch1-wild-1-22020-win']);
+
+  const duplicate=applyBattleReward(first.state,'ch1-wild:22020','ch1-wild-1-22020-win',{
+    gold:40,
+    exp:150,
+    items:[{itemId:4002,quantity:1}],
+  });
+  assert.equal(duplicate.applied,false);
+  assert.equal(duplicate.state.gold,40);
+  assert.equal(quantityOf(duplicate.state.inventory,4002),1);
+  assert.equal(duplicate.state.progression.exp,150);
+
+  const refreshed=applyBattleReward(duplicate.state,'ch1-wild:22020','ch1-wild-2-22020-win',{
+    gold:40,
+    exp:150,
+    items:[{itemId:4002,quantity:1}],
+  });
+  assert.equal(refreshed.applied,true);
+  assert.equal(refreshed.state.gold,80);
+  assert.equal(quantityOf(refreshed.state.inventory,4002),2);
+  assert.equal(refreshed.state.progression.exp,300);
 });
