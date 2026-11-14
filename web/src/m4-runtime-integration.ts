@@ -999,8 +999,8 @@ export class M4RuntimeIntegration{
     if(!Number.isInteger(exp)||exp<0||exp>499)throw new Error('M7.3 wild growth fixture EXP must be an integer from 0 to 499');
     if(this.rewards.progression.level!==1||this.rewards.progression.exp!==0)throw new Error('M7.3 wild growth fixture requires a fresh level-1 progression state');
     const oldLevel=this.rewards.progression.level;
-    const receiptId='ch1-wild-e2e-growth-fixture';
-    const applied=applyBattleReward(this.rewards,'ch1-wild-e2e-growth-fixture',receiptId,{gold:0,exp});
+    const receiptId='m7-3-e2e-growth-fixture';
+    const applied=applyBattleReward(this.rewards,'m7-3-e2e-growth-fixture',receiptId,{gold:0,exp});
     this.rewards=applied.state;
     if(applied.applied){
       this.reconcileM7Attributes(receiptId);
