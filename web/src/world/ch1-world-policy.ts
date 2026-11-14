@@ -22,7 +22,7 @@ export type Ch1RoutePolicy=Readonly<{
 export type Ch1WorldPolicy=Readonly<{
   graph:WorldGraph;triggers:readonly SpatialTrigger[];mapIds:readonly Ch1MapId[];
   spawns:readonly Ch1SpawnAudit[];initial:Ch1SpawnAudit;victoryReturn:Ch1SpawnAudit;
-  routes:readonly Ch1RoutePolicy[];provenance:'RECOVERED_SECONDARY';runtimeVerified:false;
+  routes:readonly Ch1RoutePolicy[];mapEvidence:'RECOVERED_SECONDARY'|'SYNTHETIC';provenance:'RECOVERED_SECONDARY';runtimeVerified:false;
 }>;
 
 export const CH1_MAPS:readonly Readonly<{id:Ch1MapId;name:string}>[]=Object.freeze([
@@ -110,16 +110,19 @@ function resolveSpawn(collision:Collision,spec:SpawnSpec):Ch1SpawnAudit{
   });
 }
 
-export function createCh1WorldPolicy(pack:Pick<LoadedPack,'maps'>):Ch1WorldPolicy{
+export function createCh1WorldPolicy(pack:Pick<LoadedPack,'maps'>,options:Readonly<{allowSyntheticMapsForTests?:boolean}>={}):Ch1WorldPolicy{
   const loaded=new Map<Ch1MapId,LoadedPack['maps'][string]>();
+  let mapEvidence:'RECOVERED_SECONDARY'|'SYNTHETIC'='RECOVERED_SECONDARY';
   for(const map of CH1_MAPS){
     const asset=pack.maps[String(map.id)];
     if(!asset)throw new Error('Chapter 1 mode requires map '+map.id+' in scene.pack.maps');
     if(asset.manifest.id!==map.id)throw new Error('Chapter 1 map key/id mismatch for '+map.id);
     const metadata=asset.manifest as typeof asset.manifest&{runtimeVerified?:boolean};
-    if(metadata.evidence!=='RECOVERED_SECONDARY'||metadata.runtimeVerified!==false){
+    const syntheticTestMap=options.allowSyntheticMapsForTests===true&&metadata.evidence==='SYNTHETIC'&&metadata.runtimeVerified===false;
+    if(!syntheticTestMap&&(metadata.evidence!=='RECOVERED_SECONDARY'||metadata.runtimeVerified!==false)){
       throw new Error('Chapter 1 map evidence boundary mismatch for '+map.id);
     }
+    if(syntheticTestMap)mapEvidence='SYNTHETIC';
     loaded.set(map.id,asset);
   }
 
@@ -182,6 +185,6 @@ export function createCh1WorldPolicy(pack:Pick<LoadedPack,'maps'>):Ch1WorldPolic
   return Object.freeze({
     graph,triggers,mapIds:Object.freeze(CH1_MAPS.map(map=>map.id)),spawns:Object.freeze(spawns),
     initial:spawnById('chapter1-start'),victoryReturn:spawnById('story-victory-return-01'),
-    routes:Object.freeze(routes),provenance:'RECOVERED_SECONDARY',runtimeVerified:false,
+    routes:Object.freeze(routes),mapEvidence,provenance:'RECOVERED_SECONDARY',runtimeVerified:false,
   });
 }
