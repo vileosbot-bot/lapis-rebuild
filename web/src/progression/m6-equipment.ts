@@ -100,6 +100,7 @@ export function validateM6EquipmentRule(rule:M6EquipmentRule):M6EquipmentRule{
 export function legacyTrainingEquipmentRules():M6EquipmentRule[]{
   return knownItemIds().map(itemId=>{
     const item=itemMetadata(itemId);
+    if(item.slot===null||item.classRestriction===null)throw new Error('Legacy equipment metadata is missing an equipment slot or class restriction: '+itemId);
     return validateM6EquipmentRule({
       itemId,
       slot:item.slot,
