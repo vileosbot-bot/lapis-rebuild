@@ -311,7 +311,7 @@ export class M4RuntimeIntegration{
     this.installed=true;
     document.body.classList.add('m4-active');
     this.mountRoots();
-    this.scene.setLoadingNoticeHandler(message=>this.setNotice(message));
+    this.scene.setLoadingNoticeHandler(message=>this.setLoadingProgress(message));
     this.installSceneAdapters();
     this.installInput();
     this.installBattleTargetingAdapter();
@@ -488,9 +488,9 @@ export class M4RuntimeIntegration{
   private installSceneAdapters():void{
     const originalCharacter=this.scene.setCharacter.bind(this.scene);
     this.scene.setCharacter=async (id:string)=>{
-      await this.scene.ensureTextures(this.scene.characterTextureKeys(id,['00','01']),`职业切换 B${id}资源`);
-      await originalCharacter(id);
-      if(!M6_CHARACTER_IDS.includes(this.scene.character))return;
+      // The scene commits character/inventory presentation state synchronously before its texture wait.
+      const pending=originalCharacter(id);
+      if(!M6_CHARACTER_IDS.includes(this.scene.character)){await pending;return;}
       if(String(this.m6Stage.stageId)!==this.scene.character)this.m6Stage=createM6StageState(this.scene.character);
       const reconciled=reconcileEquipmentForCharacter(this.rewards.inventory,this.scene.character,CLASS_RESOLVER);
       this.rewards={...this.rewards,inventory:reconciled.inventory};
@@ -502,6 +502,7 @@ export class M4RuntimeIntegration{
       this.rewards={...this.rewards,inventory:m6Inventory};
       this.syncSceneInventory();
       this.applyClassProfile(false);
+      await pending;
       if(reconciled.unequipped.length)this.setNotice(`职业切换：自动卸下 ${reconciled.unequipped.length} 件不兼容装备。`);
     };
 
@@ -787,8 +788,6 @@ export class M4RuntimeIntegration{
 
   private async changeClass(id:'100'|'109'):Promise<void>{
     if(this.scene.inBattleView){this.setNotice('请先结束战斗再开始新职业档');return;}
-    try{await this.scene.ensureTextures(this.scene.characterTextureKeys(id,['00','01']),`新职业档 B${id}资源`);}
-    catch(error){this.setNotice('职业切换资源未就绪：'+String(error));return;}
     this.activeDialogue=null;
     this.trainingManagerOpen=false;
     this.pendingEncounter=null;
@@ -2247,6 +2246,12 @@ export class M4RuntimeIntegration{
         <small class="npc-dialogue-provenance">RECONSTRUCTION_POLICY</small>
       </div>
     </section>`;
+  }
+
+  private setLoadingProgress(message:string):void{
+    let node=document.getElementById('m4-runtime-loading-progress');
+    if(!node){node=document.createElement('div');node.id='m4-runtime-loading-progress';node.className='game-notice';document.querySelector('.world')?.append(node);}
+    node.textContent=message;
   }
 
   private setNotice(message:string):void{
