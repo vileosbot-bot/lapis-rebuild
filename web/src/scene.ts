@@ -173,7 +173,7 @@ export class LabScene extends Phaser.Scene {
       const firstFrame=animation?.directions[0]?.[0];
       return firstFrame===undefined?[]:[textureKey(String(spec.resourceId),'00',firstFrame)];
     });
-    await this.ensureTextures([mapTextureKey(id),...worldKeys],`地图 ${String(id).padStart(4,'0')}资源`);
+    await this.ensureTextures([mapTextureKey(id),...this.characterTextureKeys(this.character,['00']),...worldKeys],`地图 ${String(id).padStart(4,'0')}资源`);
   }
 
   private async loadTextureOnce(key:string):Promise<void>{
@@ -386,9 +386,14 @@ export class LabScene extends Phaser.Scene {
     window.dispatchEvent(new CustomEvent('lapis-ready'));
     requestAnimationFrame(()=>{
       void this.ensureTextures(initialKeys,'首屏资源补载')
-        .then(()=>this.refreshBootstrapTextures())
         .catch(error=>this.notice('首屏资源仍有缺失：'+String(error)))
-        .finally(()=>void this.loadRemainingTextures());
+        .finally(()=>{
+          // Refresh every recovered first-screen asset even if a different non-critical image failed.
+          this.refreshBootstrapTextures();
+          this.syncWorldVisualActors();
+          this.ensureEnemyVisualActors();
+          void this.loadRemainingTextures();
+        });
     });
   }
 
@@ -861,17 +866,23 @@ export class LabScene extends Phaser.Scene {
     if(this.effectSprite)this.effectSprite.setTexture(effectTextureKey(id,effect.sequence[0])).setVisible(true);
     this.notice(`MagicRes ${id}：ANI timing 使用已恢复 common consumer；FOCUS 放置/混合/阶段仍未验证。`);
   }
-  playEffect(){
+  async playEffect():Promise<void>{
     if(this.effectId===null)return;
+    const effect=this.effect();
+    await this.ensureTextures(effect.sequence.map(index=>effectTextureKey(effect.resource_id,index)),`MagicRes ${effect.resource_id}诊断播放`);
     this.effectCursor=0;
     this.effectElapsed=0;
     this.effectPlaying=true;
     this.effectSprite?.setVisible(true);
   }
-  stepEffect(){
+  async stepEffect():Promise<void>{
     if(this.effectId===null)return;
+    const effect=this.effect();
+    const nextCursor=(this.effectCursor+1)%effect.frame_count;
+    const nextFrame=effect.sequence[nextCursor];
+    await this.ensureTextures([effectTextureKey(effect.resource_id,nextFrame)],`MagicRes ${effect.resource_id}诊断单帧`);
     this.effectPlaying=false;
-    this.effectCursor=(this.effectCursor+1)%this.effect().frame_count;
+    this.effectCursor=nextCursor;
     this.effectElapsed=0;
     this.effectSprite?.setVisible(true);
   }
@@ -901,7 +912,7 @@ export class LabScene extends Phaser.Scene {
     }
     this.route=nextRoute;
     if(this.inBattleView){this.battleCameraMode='FOLLOW_PLAYER';this.battleCameraTarget=null;}
-    this.setAction('01');
+    void this.setAction('01').catch(error=>this.notice('移动动画资源未就绪：'+String(error)));
     this.playing=true;
     return true;
   }
@@ -1040,7 +1051,7 @@ export class LabScene extends Phaser.Scene {
     if(rid&&this.pack.effects[String(rid)]){
       void this.setEffect(rid).then(()=>{
         this.effectOrigin=!buff&&target?{x:target.x,y:target.y}:{...this.anchor};
-        this.playEffect();
+        void this.playEffect().catch(error=>this.notice('特效资源未就绪：'+String(error)));
       }).catch(error=>this.notice('特效资源未就绪：'+String(error)));
     }
     return true;
@@ -1060,7 +1071,7 @@ export class LabScene extends Phaser.Scene {
     if(magicResourceId!==undefined&&this.pack.effects[String(magicResourceId)]){
       void this.setEffect(magicResourceId).then(()=>{
         this.effectOrigin=explicitOrigin?{...explicitOrigin}:selfTarget||!primary?{...this.anchor}:{x:primary.x,y:primary.y};
-        this.playEffect();
+        void this.playEffect().catch(error=>this.notice('特效资源未就绪：'+String(error)));
       }).catch(error=>this.notice('特效资源未就绪：'+String(error)));
     }
   }
