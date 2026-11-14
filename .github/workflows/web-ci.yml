@@ -91,7 +91,6 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          M73_WILD_ONLY: ${{ contains(github.event.head_commit.message, '[m73-wild-only]') }}
         run: |
           set -euo pipefail
           CLIENT_URL="https://oss.figupaw.com/client-updates/YBCS-Online-Setup-2.2.exe"
@@ -100,16 +99,6 @@ jobs:
           VERIFIED_RUN="35545442305"
           VERIFIED_ARTIFACT="10616895482"
           VERIFIED_HTML_SHA="f509c71b69ae5b41419a1f9c397108200bad1a1ef449f386927378d7d0ae59b4"
-
-          if [ "$M73_WILD_ONLY" = "true" ]; then
-            # M7.3 acceptance must use the freshly hash-pinned private pack; do not reuse an older preview.
-            curl --fail --location --max-time 180 --retry 1 "$CLIENT_URL" -o "$RUNNER_TEMP/client.exe"
-            echo "$INSTALLER_SHA  $RUNNER_TEMP/client.exe" | sha256sum -c -
-            python3 tools/extract/extract_client.py "$RUNNER_TEMP/client.exe" --payload "$RUNNER_TEMP/payload.7z" --extract-dir "$RUNNER_TEMP/extracted" --expected-installer-sha256 "$INSTALLER_SHA"
-            python3 tools/prepare_web.py --client-root "$RUNNER_TEMP/extracted/client" --out web/public/game-data
-            echo "mode=installer" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
 
           if curl --fail --location --max-time 180 --retry 1 "$CLIENT_URL" -o "$RUNNER_TEMP/client.exe"; then
             echo "$INSTALLER_SHA  $RUNNER_TEMP/client.exe" | sha256sum -c -
@@ -227,7 +216,7 @@ jobs:
         if: steps.private_source.outputs.mode == 'installer'
         run: python3 tools/package_web_preview.py --dist web/dist --pack web/public/game-data --out "$RUNNER_TEMP/lapis-private.html"
       - name: Real-resource browser and offline tests
-        if: steps.private_source.outputs.mode == 'installer' && !contains(github.event.head_commit.message, '[m73-wild-only]')
+        if: steps.private_source.outputs.mode == 'installer'
         working-directory: web
         env:
           LAPIS_OFFLINE_PREVIEW: ${{ runner.temp }}/lapis-private.html
@@ -235,14 +224,8 @@ jobs:
         # One CI retry absorbs transient Chromium screenshot/protocol failures;
         # deterministic assertion failures still fail both attempts.
         run: npm run test:e2e -- --retries=1
-      - name: M7.3 map 1020 wild encounter acceptance only (S42 intentionally not run)
-        if: steps.private_source.outputs.mode == 'installer' && contains(github.event.head_commit.message, '[m73-wild-only]')
-        working-directory: web
-        env:
-          LAPIS_OFFLINE_PREVIEW: ${{ runner.temp }}/lapis-private.html
-        run: npm run test:e2e -- e2e/ch1-wild-encounters.spec.ts
       - name: Record inherited private-browser acceptance
-        if: steps.private_source.outputs.mode == 'retained-preview' && !contains(github.event.head_commit.message, '[m73-wild-only]')
+        if: steps.private_source.outputs.mode == 'retained-preview'
         run: |
           echo "Fixed-hash private browser acceptance is inherited from run 35545442305 / head 0a51f242a6357031f7f5b83c743fae7724c7e2f9."
           echo "Current lineage guard permits only web/soak.mjs and this workflow to differ."
