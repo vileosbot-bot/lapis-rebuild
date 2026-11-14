@@ -76,6 +76,7 @@ test('missing non-critical textures do not abort create and all use sites wait f
   assert.match(source,/private ensureEnemyVisualActors\(\)\{[\s\S]*?if\(resource&&idle&&!this\.textures\.exists\(idleKey\)\)this\.recordMissingTexture\(idleKey\);/,'enemy visuals skip absent first frames');
   assert.match(source,/private async loadRemainingTextures\(\)[\s\S]*?this\.syncWorldVisualActors\(\);[\s\S]*?this\.ensureEnemyVisualActors\(\);/,'background completion retries actor construction');
   assert.match(source,/finally\(\(\)=>\{[\s\S]*?this\.refreshBootstrapTextures\(\);[\s\S]*?this\.syncWorldVisualActors\(\);[\s\S]*?this\.ensureEnemyVisualActors\(\);/,'successful first-screen retries refresh map/player/NPC even if another key failed');
+  assert.match(create,/requestAnimationFrame\(\(\)=>requestAnimationFrame\(\(\)=>\{/,'background requests begin after one paint opportunity');
 
   assert.match(source,/async playEffect\(\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(/,'diagnostic playback waits for all frames');
   assert.match(source,/async stepEffect\(\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(/,'diagnostic frame stepping waits for its frame');
