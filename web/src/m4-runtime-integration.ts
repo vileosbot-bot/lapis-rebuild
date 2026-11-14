@@ -379,6 +379,7 @@ export class M4RuntimeIntegration{
         acceptanceOpenShop:(shopId:string)=>this.acceptanceOpenShop(shopId),
         acceptanceBuyShopItem:(shopId:string,itemId:number,transactionId:string)=>this.buyShopItem(shopId,itemId,transactionId),
         acceptanceUsePotion:(itemId:number)=>this.usePotion(itemId),
+        acceptancePrimeWildGrowth:(exp:number)=>this.acceptancePrimeWildGrowth(exp),
       });
     });
   }
@@ -988,6 +989,25 @@ export class M4RuntimeIntegration{
     if(!Number.isFinite(hp)||!Number.isFinite(mp)||hp<=0||mp<0)throw new Error('Invalid S34 acceptance vitals');
     this.scene.state.hp=Math.min(this.scene.state.maxHp,Math.floor(hp));
     this.scene.state.mp=Math.min(this.scene.state.maxMp,Math.floor(mp));
+    this.render(this.scene.snapshot());
+  }
+
+  acceptancePrimeWildGrowth(exp:number):void{
+    if(!navigator.webdriver)throw new Error('M7.3 wild growth fixture is automation-only');
+    if(!this.chapter1World||this.scene.inBattleView||this.scene.route.length)throw new Error('M7.3 wild growth fixture requires a stationary Chapter 1 field');
+    if(!Number.isInteger(exp)||exp<0||exp>499)throw new Error('M7.3 wild growth fixture EXP must be an integer from 0 to 499');
+    if(this.rewards.progression.level!==1||this.rewards.progression.exp!==0)throw new Error('M7.3 wild growth fixture requires a fresh level-1 progression state');
+    const oldLevel=this.rewards.progression.level;
+    const receiptId='ch1-wild-e2e-growth-fixture';
+    const applied=applyBattleReward(this.rewards,'ch1-wild-e2e-growth-fixture',receiptId,{gold:0,exp});
+    this.rewards=applied.state;
+    if(applied.applied){
+      this.reconcileM7Attributes(receiptId);
+      this.reconcileM7Skills(oldLevel);
+    }
+    this.syncSceneInventory();
+    this.applyClassProfile(false);
+    this.setNotice('M7.3 acceptance fixture primed EXP '+exp+' below next level threshold through production reward authority.');
     this.render(this.scene.snapshot());
   }
 
