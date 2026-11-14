@@ -28,6 +28,7 @@ test('all placement and catalog evidence stays RECOVERED_SECONDARY and never run
   assert.equal(CH1_WILD_ENCOUNTER_CATALOG.runtimeVerified,false);
   for(const row of CH1_WILD_ENCOUNTERS){
     assert.equal(row.provenance,'RECOVERED_SECONDARY');
+    assert.equal(row.minimumLevelProvenance,'RECONSTRUCTION_POLICY');
     assert.equal(row.runtimeVerified,false);
     assert.equal(row.entityType,1);
   }
