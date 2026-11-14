@@ -6,7 +6,7 @@ export interface PlayerHudState {
   hp:number; hpMax:number; mp:number; mpMax:number;
   exp?:number; expMax?:number; atk?:number; def?:number; attributePoints?:number; gold:number;
 }
-export interface FieldHudState { mapId:number; mapName:string; questTitle?:string; questDetail?:string; interactionPrompt?:string; }
+export interface FieldHudState { mapId:number; mapName:string; questTitle?:string; questDetail?:string; interactionPrompt?:string; wildEncounter?:string; }
 export interface BattleSkillView { id:string|number; name:string; mpCost:number; disabled?:boolean; hotkey?:string; }
 export interface BattleStatusView { id:string; label:string; durationText?:string; tone?:'buff'|'debuff'|'control'|'poison'|'system'; }
 export interface BattleHudState {
