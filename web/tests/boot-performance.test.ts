@@ -65,6 +65,8 @@ test('missing non-critical textures do not abort create and all use sites wait f
   assert.match(source,/async ensureTextures\(/);
   assert.match(source,/while\(attempt<3\)/,'first attempt plus at most 2 retries');
   assert.match(source,/15000\)/,'per-image timeout is 15 seconds');
+  assert.match(source,/this\.load\.maxRetries=0/,'Phaser performs only the initial attempt before our controlled retries');
+  assert.match(source,/this\.textureAttempts\.set\(key,1\);[\s\S]*?this\.load\.image\(key,url,\{timeout:15000\}\)/,'initial Phaser request has a 15-second timeout and counts as attempt one');
   assert.match(source,/await this\.ensureTextures\(\[mapTextureKey\(entry\.battleZoneId\)/,'battle waits for map/player/enemy assets');
   assert.match(source,/async prepareMapTextures\(id:number\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(\[mapTextureKey\(id\),\.\.\.this\.characterTextureKeys\(this\.character,\['00'\]\),\.\.\.worldKeys\]/,'map transition waits for map, player idle and visible NPC assets');
   assert.match(source,/const worldKeys=this\.worldVisualSpecs\.filter\(spec=>spec\.mapId===id\)\.flatMap\(spec=>\s*this\.animationTextureKeys\(String\(spec\.resourceId\),'00'\)\s*\)/,'map transition waits for all visible NPC/preview slot-00 frames');
