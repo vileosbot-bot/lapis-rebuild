@@ -83,11 +83,11 @@ async function start(){
   }
   skills();
 
-  char.onchange=()=>{scene.setCharacter(char.value);char.value=scene.character;actions();skills();};
-  action.onchange=()=>{scene.route=[];scene.setAction(action.value);};
+  char.onchange=()=>{const requested=char.value;void scene.setCharacter(requested).then(()=>{char.value=scene.character;actions();skills();}).catch(error=>notice('主角资源未就绪：'+String(error)));};
+  action.onchange=()=>{scene.route=[];void scene.setAction(action.value).catch(error=>notice('动作资源未就绪：'+String(error)));};
   direction.onchange=()=>scene.setDirection(Number(direction.value));
-  map.onchange=()=>{scene.setMap(Number(map.value));map.value=String(scene.mapId);};
-  effect.onchange=()=>scene.setEffect(Number(effect.value));
+  map.onchange=()=>{const requested=Number(map.value);void scene.setMap(requested).then(()=>{map.value=String(scene.mapId);}).catch(error=>notice('地图资源未就绪，未切换：'+String(error)));};
+  effect.onchange=()=>void scene.setEffect(Number(effect.value)).catch(error=>notice('特效资源未就绪：'+String(error)));
   el('play').onclick=()=>{scene.playing=!scene.playing;};
   el('step').onclick=()=>scene.step();
   el<HTMLInputElement>('frame').oninput=e=>scene.setFrame(Number((e.target as HTMLInputElement).value));
@@ -104,7 +104,7 @@ async function start(){
   el('zoom-out').onclick=()=>scene.zoom(.8);
   el('zoom-in').onclick=()=>scene.zoom(1.25);
   el('fit').onclick=()=>scene.fit();
-  el('battle').onclick=()=>scene.enterBattle();
+  el('battle').onclick=()=>void scene.enterBattle();
   el('return').onclick=()=>scene.leaveBattle();
   el('battle-pause').onclick=()=>scene.toggleBattlePause();
   el('attack').onclick=()=>scene.attack(null);
@@ -127,7 +127,7 @@ async function start(){
       const f=(e.target as HTMLInputElement).files?.[0];
       if(!f)return;
       if(f.size>65536)throw new Error('Save exceeds 64 KiB');
-      scene.restore(JSON.parse(await f.text()));
+      await scene.restore(JSON.parse(await f.text()));
       char.value=scene.character;
       actions();
       skills();
