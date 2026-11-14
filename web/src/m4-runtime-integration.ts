@@ -152,7 +152,9 @@ function starterInventory():InventoryState{
   return createInventory([1,3,10,12,25,31].map(itemId=>({itemId,source:{kind:'starter' as const,ref:'m4-starter'}})));
 }
 
-export function createM4RewardState(gold=0):RewardState{
+const M4_STARTING_GOLD=20_000;
+
+export function createM4RewardState(gold=M4_STARTING_GOLD):RewardState{
   return {gold,inventory:starterInventory(),progression:initialM71Progression(),questFlags:{},rewardReceipts:[]};
 }
 
@@ -297,7 +299,7 @@ export class M4RuntimeIntegration{
       ?{mapId:this.chapter1World.initial.mapId,x:this.chapter1World.initial.effectiveCell[0],y:this.chapter1World.initial.effectiveCell[1]}
       :m5?.content.start??START_STATE;
     this.world=this.worldAuthority.initial(initial);
-    this.rewards=createM4RewardState(scene.gold);
+    this.rewards=createM4RewardState();
     this.m6Equipment={weapon:this.rewards.inventory.equipped.weapon,armor:this.rewards.inventory.equipped.armor,accessory:null};
     this.m6Stage=createM6StageState(scene.character);
     this.m7Skills=createM7IntegratedSkillState(scene.character,1);
@@ -791,7 +793,7 @@ export class M4RuntimeIntegration{
     this.developerPresetActive=false;
     this.developerUnlockAllSkills=false;
     this.developerSkillPoints=0;
-    this.rewards=createM4RewardState(0);
+    this.rewards=createM4RewardState();
     this.m6Equipment={weapon:this.rewards.inventory.equipped.weapon,armor:this.rewards.inventory.equipped.armor,accessory:null};
     this.world=this.worldAuthority.initial(this.m5World?.content.start??START_STATE);
     this.m6Stage=createM6StageState(id);

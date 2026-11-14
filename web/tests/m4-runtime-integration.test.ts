@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createM4RewardState,parseM4Quest,questHud} from '../src/m4-runtime-integration.ts';
+import {createM4RewardState,M4RuntimeIntegration,parseM4Quest,questHud} from '../src/m4-runtime-integration.ts';
 import {applyBattleReward,applyQuestReward} from '../src/progression/rewards.ts';
 import {TRAINING_QUEST_ID} from '../src/world/world-content.ts';
 import {M71_EXPERIENCE_POLICY} from '../src/progression/m7-1-experience-policy.ts';
@@ -12,6 +12,31 @@ test('M4 starter state uses versioned progression and quantity inventory',()=>{
   assert.equal(state.progression.policyId,M71_EXPERIENCE_POLICY.id);
   assert.ok(state.inventory.items.length>0);
   assert.ok(state.inventory.items.every(item=>item.quantity===1));
+});
+
+test('M4 new-game default seeds exactly 20,000 gold instead of inheriting the legacy scene balance',()=>{
+  const state=createM4RewardState();
+  assert.equal(state.gold,20_000);
+  assert.deepEqual(state.rewardReceipts,[]);
+  const scene={
+    pack:{maps:{},animations:{},digest:'starting-gold-test'},
+    character:'100',
+    gold:0,
+  } as unknown as ConstructorParameters<typeof M4RuntimeIntegration>[0];
+  const runtime=new M4RuntimeIntegration(scene);
+  assert.equal(runtime.rewards.gold,20_000);
+  assert.notEqual(runtime.rewards.gold,22_000);
+});
+
+test('M4 20,000 starting balance stays separate from the existing idempotent training turn-in reward',()=>{
+  const starter=createM4RewardState();
+  assert.equal(starter.gold,20_000);
+  const receipt='quest:starting-gold-test:turn-in';
+  const first=applyQuestReward(starter,TRAINING_QUEST_ID,receipt,{gold:5,exp:200,questFlags:['m4.training.complete']});
+  assert.equal(first.state.gold,20_005);
+  const duplicate=applyQuestReward(first.state,TRAINING_QUEST_ID,receipt,{gold:5,exp:200,questFlags:['m4.training.complete']});
+  assert.equal(duplicate.applied,false);
+  assert.equal(duplicate.state.gold,20_005);
 });
 
 test('M4 quest save parsing accepts current state and safely handles legacy guide',()=>{
@@ -28,7 +53,7 @@ test('M4 HUD wording follows the world quest state machine',()=>{
 });
 
 test('M4 battle and quest settlement share S12 idempotent rewards',()=>{
-  const starter=createM4RewardState();
+  const starter=createM4RewardState(0);
   const battle=applyBattleReward(starter,'s9-training-battle','battle:s9-training-run:win',{gold:10,exp:100});
   assert.equal(battle.state.gold,10);
   assert.equal(battle.state.progression.level,1);
