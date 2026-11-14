@@ -393,7 +393,8 @@ export class LabScene extends Phaser.Scene {
       :'真实地图、角色和诊断特效已加载。当前为非战斗地图；战斗入口通过显式 authority/battle-entry 边界。');
     installInventoryPanel(this);
     window.dispatchEvent(new CustomEvent('lapis-ready'));
-    requestAnimationFrame(()=>{
+    // Two animation frames leave one paint opportunity for the map/player before background requests begin.
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
       void this.ensureTextures(initialKeys,'首屏资源补载')
         .catch(error=>this.notice('首屏资源仍有缺失：'+String(error)))
         .finally(()=>{
@@ -403,7 +404,7 @@ export class LabScene extends Phaser.Scene {
           this.ensureEnemyVisualActors();
           void this.loadRemainingTextures();
         });
-    });
+    }));
   }
 
   animation():Animation{return this.pack.animations[this.character][this.slot];}
