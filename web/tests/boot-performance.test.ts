@@ -67,6 +67,7 @@ test('missing non-critical textures do not abort create and all use sites wait f
   assert.match(source,/15000\)/,'per-image timeout is 15 seconds');
   assert.match(source,/await this\.ensureTextures\(\[mapTextureKey\(entry\.battleZoneId\)/,'battle waits for map/player/enemy assets');
   assert.match(source,/async prepareMapTextures\(id:number\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(\[mapTextureKey\(id\),\.\.\.this\.characterTextureKeys\(this\.character,\['00'\]\),\.\.\.worldKeys\]/,'map transition waits for map, player idle and visible NPC assets');
+  assert.match(source,/const worldKeys=this\.worldVisualSpecs\.filter\(spec=>spec\.mapId===id\)\.flatMap\(spec=>\s*this\.animationTextureKeys\(String\(spec\.resourceId\),'00'\)\s*\)/,'map transition waits for all visible NPC/preview slot-00 frames');
   assert.match(source,/async setCharacter\(id:string\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(this\.characterTextureKeys\(id,\['00','01'\]\)/,'character switch waits for idle and walk frames');
   assert.match(source,/async setAction\(slot:string\):Promise<void>\{[\s\S]*?await this\.ensureTextures\(keys/,'action switch waits for every frame in the selected slot');
   assert.match(source,/async setMap\(id:number\):Promise<void>\{[\s\S]*?await this\.prepareMapTextures\(id\)/,'map switch waits before changing map state');
