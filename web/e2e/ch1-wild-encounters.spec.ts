@@ -33,6 +33,21 @@ type ScreenshotRecord={
 const runtime=(page:Page)=>page.evaluate(()=>window.lapisM4!.snapshot() as AnyRecord);
 const scene=(page:Page)=>page.evaluate(()=>window.lapisDiagnostics!.snapshot() as AnyRecord);
 
+// One atomic snapshot for transient route/trigger states: reading runtime and
+// scene in two separate evaluates can straddle a cell transition on a slow
+// VM (9 FPS) and miss a single-cell window entirely.
+const fieldState=(page:Page)=>page.evaluate(()=>{
+  const state=window.lapisM4!.snapshot() as AnyRecord;
+  const visual=window.lapisDiagnostics!.snapshot() as AnyRecord;
+  return {
+    mapId:state.world.mapId,x:state.world.x,y:state.world.y,
+    routeLength:visual.routeLength,inBattleView:visual.inBattleView,
+    nearbyEntityId:state.chapter1Wild?.nearby?.entityId??null,
+    nearbyStatus:state.chapter1Wild?.nearby?.status??null,
+    activeBattleEntityId:state.chapter1Wild?.activeBattle?.entityId??null,
+  };
+});
+
 async function ready(page:Page):Promise<void>{
   await page.goto('/?m4=1&ch1=1',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.lapisDiagnostics?.snapshot().ready&&!!window.lapisM4);
@@ -61,35 +76,48 @@ async function moveFieldTo(page:Page,x:number,y:number):Promise<void>{
 
 async function waitForFieldCell(page:Page,mapId:number,x:number,y:number):Promise<void>{
   await expect.poll(async()=>{
-    const state=await runtime(page);
-    const visual=await scene(page);
-    return state.world.mapId===mapId&&state.world.x===x&&state.world.y===y&&visual.routeLength===0&&!visual.inBattleView;
+    const s=await fieldState(page);
+    return s.mapId===mapId&&s.x===x&&s.y===y&&s.routeLength===0&&!s.inBattleView;
   },{timeout:240000,intervals:[50,100,250,500]}).toBe(true);
 }
 
 async function waitForRouteCell(page:Page,mapId:number,x:number,y:number):Promise<void>{
   await expect.poll(async()=>{
-    const state=await runtime(page);
-    const visual=await scene(page);
-    return state.world.mapId===mapId&&state.world.x===x&&state.world.y===y&&visual.routeLength>0&&!visual.inBattleView;
+    const s=await fieldState(page);
+    return s.mapId===mapId&&s.x===x&&s.y===y&&s.routeLength>0&&!s.inBattleView;
   },{timeout:240000,intervals:[20,50,100]}).toBe(true);
 }
 
 async function waitForMap(page:Page,mapId:number):Promise<void>{
   await expect.poll(async()=>{
-    const state=await runtime(page);
-    const visual=await scene(page);
-    return state.world.mapId===mapId&&!visual.inBattleView;
+    const s=await fieldState(page);
+    return s.mapId===mapId&&!s.inBattleView;
   },{timeout:240000,intervals:[50,100,250,500]}).toBe(true);
 }
 
 async function waitForWildBattle(page:Page,entityId:number):Promise<AnyRecord>{
   await expect.poll(async()=>{
-    const state=await runtime(page);
-    const visual=await scene(page);
-    return visual.inBattleView&&state.chapter1Wild?.activeBattle?.entityId===entityId;
+    const s=await fieldState(page);
+    return s.inBattleView&&s.activeBattleEntityId===entityId;
   },{timeout:240000,intervals:[50,100,250]}).toBe(true);
   return scene(page);
+}
+
+// Two-leg approach to entity 22024. From the route-049 arrival (66,4), 8-way
+// BFS to (48,120) prefers the 131-step shortcut through the route-048
+// activation cluster over the 133-step return corridor; those activation
+// cells must stay walkable (createCh1WorldPolicy rejects a pack whose
+// activation cells are blocked), and stepping on one fires the route-048
+// scene transition back to map 1030 before the wild trigger can fire.
+// Hopping to (64,4) first makes the second leg take the return corridor.
+async function approachWild22024(page:Page):Promise<void>{
+  await moveFieldTo(page,64,4);
+  await waitForFieldCell(page,1020,64,4);
+  await moveFieldTo(page,48,120);
+  await expect.poll(async()=>{
+    const s=await fieldState(page);
+    return s.nearbyEntityId===22024&&s.nearbyStatus==='eligible'&&s.routeLength>0;
+  },{timeout:240000,intervals:[20,50,100]}).toBe(true);
 }
 
 async function capture(
@@ -208,14 +236,13 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   await waitForMap(page,1020);
   await waitForFieldCell(page,1020,66,4);
   const generationBefore= (await runtime(page)).chapter1Wild.state.spawnGeneration;
-  await moveFieldTo(page,48,120);
-  await expect.poll(async()=>{
-    const state=await runtime(page);
-    const visual=await scene(page);
-    return state.chapter1Wild.nearby?.entityId===22024&&state.chapter1Wild.nearby?.status==='eligible'&&visual.routeLength>0;
-  },{timeout:240000,intervals:[20,50,100]}).toBe(true);
+  await approachWild22024(page);
   const nearby=await runtime(page);
-  expect(nearby.chapter1Wild.nearby).toMatchObject({entityId:22024,name:'雷德普罗',minimumLevel:1,distance:2,status:'eligible',provenance:'RECONSTRUCTION_POLICY'});
+  // Distance is transient while the route is still moving (the poll fires at
+  // the first eligible cell, distance 3, and the player advances a cell
+  // before this read); the rule is strict Manhattan < 4, not an exact value.
+  expect(nearby.chapter1Wild.nearby).toMatchObject({entityId:22024,name:'雷德普罗',minimumLevel:1,status:'eligible',provenance:'RECONSTRUCTION_POLICY'});
+  expect(nearby.chapter1Wild.nearby.distance).toBeLessThan(4);
   await capture(page,'wild-01','wild-01-field-nearby.png','M7.3-D4','Map1020 field HUD shows 雷德普罗, level threshold, Manhattan distance and eligible state while route is still moving.',screenshots);
   assertions.push({id:'P6-02',status:'PASS',description:'Trigger resolves exactly one candidate at strict Manhattan distance <4; 0/multiple candidates and distance 4 are covered by deterministic unit tests.',evidence_refs:['checkpoints.nearby','web/tests/ch1-wild-encounter-authority.test.ts']});
   assertions.push({id:'P6-11',status:'PASS',description:'Field HUD shows the monster name, level threshold, distance and eligible status; multiple candidates render an explicit no-trigger state.',evidence_refs:['checkpoints.nearby','wild-01-field-nearby.png']});
@@ -238,14 +265,14 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   expect(won.gold).toBe(40);
   expect(won.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(1);
   expect(won.chapter1Wild.state.defeatedEntityIds).toContain(22024);
-  expect(wonSave.rewardReceipts).toContain('ch1-wild-1-22024-win');
+  expect(wonSave.rewardReceipts).toContain(`ch1-wild-${generationBefore}-22024-win`);
   expect(won.progression).toMatchObject({level:2,exp:500});
   expect(won.attributes.unspentPoints).toBeGreaterThan(growthPrimed.attributes.unspentPoints);
   await capture(page,'wild-03','wild-03-victory-reward.png','M7.3-D1','Victory grants 40 gold, EXP100 and exactly one item4002.',screenshots);
   assertions.push({id:'P6-04',status:'PASS',description:'D1: victory settles gold 40, EXP100 and 100% × 1 item4002 under a generation/entity receipt.',evidence_refs:['checkpoints.victoryReward','wild-03-victory-reward.png']});
   assertions.push({id:'P6-08',status:'PASS',description:'EXP crosses the 500 threshold from 400 to 500, reaches Lv.2 and grants the corresponding attribute point through the existing growth authority.',evidence_refs:['checkpoints.growthPrimed','checkpoints.victoryReward']});
   const wildReceipts=wonSave.rewardReceipts.filter((receipt:string)=>receipt.startsWith('ch1-wild-'));
-  expect(wildReceipts).toEqual(['ch1-wild-1-22024-win']);
+  expect(wildReceipts).toEqual([`ch1-wild-${generationBefore}-22024-win`]);
   expect(new Set(wildReceipts).size).toBe(wildReceipts.length);
   assertions.push({id:'P6-05',status:'PASS',description:'Generation/entity reward receipt is unique in SaveV2; deterministic settlement unit tests replay the same receipt and prove no duplicate gold, EXP or herb.',evidence_refs:['checkpoints.idempotency','web/tests/ch1-wild-encounter-settlement.test.ts']});
   checkpoint.idempotency={wildReceipts,uniqueCount:new Set(wildReceipts).size};
@@ -262,7 +289,7 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   const restoredSave=JSON.parse(await page.evaluate(()=>window.lapisM4!.exportJson()));
   expect(restored.chapter1Wild.state.defeatedEntityIds).toContain(22024);
   expect(restored.chapter1Wild.state.spawnGeneration).toBe(generationBefore);
-  expect(restoredSave.rewardReceipts).toContain('ch1-wild-1-22024-win');
+  expect(restoredSave.rewardReceipts).toContain(`ch1-wild-${generationBefore}-22024-win`);
   expect(restored.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(1);
   await capture(page,'wild-04','wild-04-save-load-state.png','M7.3-D5','Save/restore preserves defeated entity and reward receipt before map re-entry.',screenshots);
   assertions.push({id:'P6-09',status:'PASS',description:'Save/load retains defeated IDs, spawn generation and generation-scoped reward receipts; battle return does not refresh the map.',evidence_refs:['checkpoints.saveLoad','wild-04-save-load-state.png']});
@@ -281,12 +308,7 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   expect(reentered.chapter1Wild.state.spawnGeneration).toBe(generationBefore+1);
   expect(reentered.chapter1Wild.state.defeatedEntityIds).toEqual([]);
   expect(reentered.chapter1Wild.state.refreshOnNextEntry).toBe(false);
-  await moveFieldTo(page,48,120);
-  await expect.poll(async()=>{
-    const state=await runtime(page);
-    const visual=await scene(page);
-    return state.chapter1Wild.nearby?.entityId===22024&&state.chapter1Wild.nearby?.status==='eligible'&&visual.routeLength>0;
-  },{timeout:240000,intervals:[20,50,100]}).toBe(true);
+  await approachWild22024(page);
   const respawnNearby=await runtime(page);
   await capture(page,'wild-05','wild-05-map-entry-respawn.png','M7.3-D5','After leaving and re-entering map1020, generation increments and the defeated entity becomes eligible again.',screenshots);
   assertions.push({id:'P6-10',status:'PASS',description:'Leaving map1020 and re-entering refreshes the six entities by incrementing spawnGeneration; defeated IDs reset and entity22024 is eligible again.',evidence_refs:['checkpoints.mapRespawn','wild-05-map-entry-respawn.png']});
@@ -294,20 +316,30 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
 
   await waitForWildBattle(page,22024);
   const goldBeforeRetreat=(await runtime(page)).gold;
-  const receiptsBeforeRetreat=JSON.parse(await page.evaluate(()=>window.lapisM4!.exportJson())).rewardReceipts;
+  // No exportJson here: the product refuses to save mid-battle (per the
+  // web runtime rule), so compare against the post-victory receipt list
+  // captured at line 260 instead of snapshotting inside the battle.
   await page.locator('[data-action="battle-exit-request"]').click();
   await page.locator('[data-action="battle-exit-confirm"]').click();
   const retreated=await runtime(page);
   const retreatSave=JSON.parse(await page.evaluate(()=>window.lapisM4!.exportJson()));
   expect(retreated.chapter1Wild.state.suppressedEntityId).toBe(22024);
   expect(retreated.gold).toBe(goldBeforeRetreat);
-  expect(retreatSave.rewardReceipts).toEqual(receiptsBeforeRetreat);
+  expect(retreatSave.rewardReceipts).toEqual(wonSave.rewardReceipts);
   expect(retreated.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(1);
   assertions.push({id:'P6-07',status:'PASS',description:'Retreat gives no reward and suppresses the same entity until the player leaves Manhattan distance <4.',evidence_refs:['checkpoints.retreatNoReward']});
   checkpoint.retreatNoReward={runtime:retreated,save:{rewardReceipts:retreatSave.rewardReceipts,inventory:retreatSave.inventory}};
 
-  await moveFieldTo(page,48,125);
-  await waitForFieldCell(page,1020,48,125);
+  // (48,125) is not walkable in the synthetic fixture (only the corridors and
+  // placement/approach cells are). (53,120) IS walkable but still rejected:
+  // the acceptance bridge converts the cell to a screen point and back
+  // through the isometric diamond inverse, which only round-trips exactly
+  // for even-parity cells (x+y even); (53,120) (odd) comes back as (53,121),
+  // which is unwalkable. (52,120) is even-parity, on the return corridor,
+  // and Manhattan distance 4 from entity 22024's cell (49,121), so it
+  // clears the suppression, which requires distance >= 4.
+  await moveFieldTo(page,52,120);
+  await waitForFieldCell(page,1020,52,120);
   const outside=await runtime(page);
   expect(outside.chapter1Wild.state.suppressedEntityId).toBeNull();
   await moveFieldTo(page,48,120);
@@ -317,17 +349,18 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   checkpoint.retryAfterLeave={outside,activeBattle:retried.chapter1Wild.activeBattle};
 
   const beforeFailure=await runtime(page);
-  const failureSaveBefore=JSON.parse(await page.evaluate(()=>window.lapisM4!.exportJson()));
+  // Same as the retreat section: no exportJson mid-battle; the failure must
+  // leave the post-victory receipt list untouched.
   await loseWildBattle(page,'雷德普罗');
   const failed=await runtime(page);
   const failureSaveAfter=JSON.parse(await page.evaluate(()=>window.lapisM4!.exportJson()));
   expect(failed.chapter1Wild.state.suppressedEntityId).toBe(22024);
   expect(failed.gold).toBe(beforeFailure.gold);
   expect(failed.progression.exp).toBe(beforeFailure.progression.exp);
-  expect(failureSaveAfter.rewardReceipts).toEqual(failureSaveBefore.rewardReceipts);
+  expect(failureSaveAfter.rewardReceipts).toEqual(wonSave.rewardReceipts);
   expect(failed.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(beforeFailure.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity);
   assertions.push({id:'P6-06',status:'PASS',description:'Failure grants no gold, EXP, item or reward receipt; the same entity is suppressed until leaving its strict trigger radius.',evidence_refs:['checkpoints.failureNoReward']});
-  checkpoint.failureNoReward={before:beforeFailure,after:failed,receiptsBefore:failureSaveBefore.rewardReceipts,receiptsAfter:failureSaveAfter.rewardReceipts};
+  checkpoint.failureNoReward={before:beforeFailure,after:failed,receiptsBefore:wonSave.rewardReceipts,receiptsAfter:failureSaveAfter.rewardReceipts};
 
   // Unique-candidate and strict-distance decisions are also covered by
   // deterministic unit tests. Here, confirm all eleven P6 categories.
