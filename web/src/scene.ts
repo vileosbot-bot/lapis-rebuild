@@ -177,11 +177,10 @@ export class LabScene extends Phaser.Scene {
 
   async prepareMapTextures(id:number):Promise<void>{
     if(!this.pack.maps[String(id)])throw new Error(`未知地图 ${id}`);
-    const worldKeys=this.worldVisualSpecs.filter(spec=>spec.mapId===id).flatMap(spec=>{
-      const animation=this.pack.animations[String(spec.resourceId)]?.['00'];
-      const firstFrame=animation?.directions[0]?.[0];
-      return firstFrame===undefined?[]:[textureKey(String(spec.resourceId),'00',firstFrame)];
-    });
+    // A destination map must have every slot-00 frame for its visible NPC/preview actors before the map switch commits.
+    const worldKeys=this.worldVisualSpecs.filter(spec=>spec.mapId===id).flatMap(spec=>
+      this.animationTextureKeys(String(spec.resourceId),'00')
+    );
     await this.ensureTextures([mapTextureKey(id),...this.characterTextureKeys(this.character,['00']),...worldKeys],`地图 ${String(id).padStart(4,'0')}资源`);
   }
 
