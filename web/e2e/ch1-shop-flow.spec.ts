@@ -65,7 +65,7 @@ test('S45 isolated weapon catalog and purchase are separate from route evidence'
  await expect(page.locator('section.shop-panel[data-shop-id="caosia-weapon"]')).toBeVisible();
  const shots:Shot[]=[];
  await capture(page,'shop-weapon-catalog.png',shots);
- const before=await snap(page);const itemId=1;
+ const before=await snap(page);expect(before.gold).toBe(10000);const itemId=1;
  await page.evaluate((id)=>{(window.lapisM4 as any).acceptanceBuyShopItem('caosia-weapon',id,'s45-e2e-weapon-'+id);},itemId);
  const purchased=await snap(page);
  expect(purchased.gold).toBeLessThan(before.gold);
