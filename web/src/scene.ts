@@ -128,6 +128,8 @@ export class LabScene extends Phaser.Scene {
   private textureAttempts=new Map<string,number>();
   private missingTextures=new Set<string>();
   private backgroundTextureLoadStarted=false;
+  private foregroundTextureRequests=0;
+  private foregroundTextureWaiters:(()=>void)[]=[];
 
   constructor(pack:LoadedPack, notice:(message:string)=>void){
     super('lab');
@@ -152,7 +154,6 @@ export class LabScene extends Phaser.Scene {
 
   setLoadingNoticeHandler(handler:((message:string)=>void)|undefined):void{this.loadingNoticeHandler=handler;}
   private reportLoadingProgress(message:string):void{
-    this.notice(message);
     const loading=document.getElementById('loading');
     if(loading&&!loading.hidden)loading.textContent=message;
     this.loadingNoticeHandler?.(message);
@@ -161,7 +162,7 @@ export class LabScene extends Phaser.Scene {
   private recordMissingTexture(key:string){
     if(this.missingTextures.has(key))return;
     this.missingTextures.add(key);
-    this.reportLoadingProgress(`资源缺失 ${key}；已显示占位图，正在重试`);
+    this.notice(`资源缺失 ${key}；已显示占位图，正在重试`);
     this.events.emit('asset-missing-recorded',key);
   }
 
@@ -237,39 +238,63 @@ export class LabScene extends Phaser.Scene {
     return promise;
   }
 
-  async ensureTextures(keys:readonly string[],stage='资源'):Promise<void>{
+  private waitForForegroundTextures():Promise<void>{
+    if(this.foregroundTextureRequests===0)return Promise.resolve();
+    return new Promise(resolve=>this.foregroundTextureWaiters.push(resolve));
+  }
+
+  private finishForegroundTextureRequest():void{
+    this.foregroundTextureRequests=Math.max(0,this.foregroundTextureRequests-1);
+    if(this.foregroundTextureRequests===0){
+      const waiters=this.foregroundTextureWaiters.splice(0);
+      for(const resolve of waiters)resolve();
+    }
+  }
+
+  async ensureTextures(keys:readonly string[],stage='资源',priority:'foreground'|'background'='foreground'):Promise<void>{
     const requested=[...new Set(keys)];
     const unique=requested.filter(key=>!this.textures.exists(key));
     if(!unique.length)return;
-    let cursor=0,completed=requested.length-unique.length;
-    const failures:string[]=[];
-    this.reportLoadingProgress(`正在加载${stage} ${completed}/${requested.length}`);
-    const worker=async()=>{
-      while(cursor<unique.length){
-        const key=unique[cursor++]!;
-        try{await this.ensureTexture(key);}
-        catch(error){failures.push(key);this.recordMissingTexture(key);}
-        completed+=1;
-        this.reportLoadingProgress(`正在加载${stage} ${completed}/${requested.length}${failures.length?`，失败 ${failures.length}`:''}`);
-      }
-    };
-    await Promise.all(Array.from({length:Math.min(8,unique.length)},()=>worker()));
-    if(failures.length)throw new Error(`${stage}有 ${failures.length} 张图片未能加载：${failures.slice(0,8).join(', ')}`);
-    this.reportLoadingProgress(`${stage}已就绪：${requested.length}/${requested.length}`);
+    const foreground=priority==='foreground';
+    if(foreground)this.foregroundTextureRequests+=1;
+    try{
+      let cursor=0,completed=requested.length-unique.length;
+      const failures:string[]=[];
+      this.reportLoadingProgress(`正在加载${stage} ${completed}/${requested.length}`);
+      const worker=async()=>{
+        while(cursor<unique.length){
+          if(!foreground)await this.waitForForegroundTextures();
+          const key=unique[cursor++]!;
+          try{await this.ensureTexture(key);}
+          catch(error){failures.push(key);this.recordMissingTexture(key);}
+          completed+=1;
+          this.reportLoadingProgress(`正在加载${stage} ${completed}/${requested.length}${failures.length?`，失败 ${failures.length}`:''}`);
+        }
+      };
+      const concurrency=foreground?8:2;
+      await Promise.all(Array.from({length:Math.min(concurrency,unique.length)},()=>worker()));
+      this.refreshBootstrapTextures();
+      this.syncWorldVisualActors();
+      this.ensureEnemyVisualActors();
+      if(failures.length)throw new Error(`${stage}有 ${failures.length} 张图片未能加载：${failures.slice(0,8).join(', ')}`);
+      this.reportLoadingProgress(`${stage}已就绪：${requested.length}/${requested.length}`);
+    }finally{
+      if(foreground)this.finishForegroundTextureRequest();
+    }
   }
 
   private refreshBootstrapTextures(){
     const mapKey=mapTextureKey(this.mapId);
-    if(this.mapImage&&this.textures.exists(mapKey))this.mapImage.setTexture(mapKey);
+    if(this.mapImage)this.mapImage.setTexture(this.textures.exists(mapKey)?mapKey:ASSET_PLACEHOLDER_TEXTURE_KEY);
     if(this.sprite){
       const animation=this.animation();
       const index=frameIndex(animation,this.direction,this.cursor);
       const key=textureKey(this.character,this.slot,index);
-      if(this.textures.exists(key))this.sprite.setTexture(key);
+      this.sprite.setTexture(this.textures.exists(key)?key:ASSET_PLACEHOLDER_TEXTURE_KEY);
     }
     if(this.effectSprite&&this.effectId!==null){
       const effect=this.effect(),index=effect.sequence[this.effectCursor],key=effectTextureKey(effect.resource_id,index);
-      if(this.textures.exists(key))this.effectSprite.setTexture(key);
+      this.effectSprite.setTexture(this.textures.exists(key)?key:ASSET_PLACEHOLDER_TEXTURE_KEY);
     }
   }
 
@@ -279,8 +304,9 @@ export class LabScene extends Phaser.Scene {
     const initial=new Set(this.pack.initialImageKeys??[]);
     const remaining=Object.keys(this.pack.images).filter(key=>!initial.has(key));
     for(let offset=0;offset<remaining.length;offset+=24){
+      await this.waitForForegroundTextures();
       const batch=remaining.slice(offset,offset+24);
-      try{await this.ensureTextures(batch,`后台资源 ${Math.min(offset+batch.length,remaining.length)}/${remaining.length}`);}
+      try{await this.ensureTextures(batch,`后台资源 ${Math.min(offset+batch.length,remaining.length)}/${remaining.length}`,'background');}
       catch(error){this.reportLoadingProgress(`后台资源部分失败：${String(error)}；缺失贴图已记录`);}
       this.syncWorldVisualActors();
       this.ensureEnemyVisualActors();
@@ -802,42 +828,63 @@ export class LabScene extends Phaser.Scene {
     const next=this.pack.maps[String(id)];
     if(!next)throw new Error(`未知地图 ${id}`);
     if(this.inBattleView)throw new Error('战斗画面中不能切换非战斗地图');
-    await this.prepareMapTextures(id);
+    // Commit the requested map immediately; placeholder textures keep the scene drawable while assets load.
     this.mapId=id;
-    this.mapImage?.setTexture(mapTextureKey(id));
     this.state=initialState();
     this.resetPosition();
-    void this.setAction('00');
+    this.applyActionState('00');
+    this.mapImage?.setTexture(this.textures.exists(mapTextureKey(id))?mapTextureKey(id):ASSET_PLACEHOLDER_TEXTURE_KEY)
+      .setDisplaySize(next.manifest.render.width,next.manifest.render.height);
     this.effectSprite?.setVisible(false);
     this.effectPlaying=false;
     this.updateGuideLabel();
     this.syncWorldVisualActors();
     this.refreshRecoveredVisualVisibility();
     this.fit();
-    this.notice(`已切换非战斗地图 ${String(id).padStart(4,'0')} / ${next.manifest.name}`);
+    try{
+      await this.prepareMapTextures(id);
+      if(this.mapId!==id)return;
+      this.refreshBootstrapTextures();
+      this.syncWorldVisualActors();
+      this.refreshRecoveredVisualVisibility();
+      this.notice(`已切换非战斗地图 ${String(id).padStart(4,'0')} / ${next.manifest.name}`);
+    }catch(error){
+      this.refreshBootstrapTextures();
+      this.syncWorldVisualActors();
+      throw error;
+    }
   }
 
   async setCharacter(id:string):Promise<void>{
     if(!this.pack.animations[id])return;
     if(this.inBattleView){this.notice('请先退出战斗画面再切换主角');return;}
-    await this.ensureTextures(this.characterTextureKeys(id,['00','01']),`主角 B${id}资源`);
     this.character=id;
     this.inventory=changeRole(this.inventory,id);
-    void this.setAction('00');
     this.route=[];
     this.state=initialState();
+    this.applyActionState('00');
     this.updateGuideLabel();
+    this.refreshBootstrapTextures();
+    await this.ensureTextures(this.characterTextureKeys(id,['00','01']),`主角 B${id}资源`);
+    this.refreshBootstrapTextures();
   }
-  async setAction(slot:string):Promise<void>{
+  private applyActionState(slot:string):Animation|null{
     const animation=this.pack.animations[this.character]?.[slot];
-    if(!animation)return;
-    const keys=this.animationTextureKeys(this.character,slot);
-    if(keys.some(key=>!this.textures.exists(key)))await this.ensureTextures(keys,`主角动作 _${slot}`);
+    if(!animation)return null;
     this.timedAction=0;
     this.slot=slot;
     this.cursor=0;
     this.elapsed=0;
     this.duration=frameIntervalMs(animation.raw_timing);
+    this.refreshBootstrapTextures();
+    return animation;
+  }
+  async setAction(slot:string):Promise<void>{
+    const animation=this.applyActionState(slot);
+    if(!animation)return;
+    const keys=this.animationTextureKeys(this.character,slot);
+    if(keys.some(key=>!this.textures.exists(key)))await this.ensureTextures(keys,`主角动作 _${slot}`);
+    this.refreshBootstrapTextures();
   }
   private setTransientAction(slot:'02'|'03'){
     if(!this.pack.animations[this.character][slot])return;
@@ -864,16 +911,18 @@ export class LabScene extends Phaser.Scene {
 
   async setEffect(id:number):Promise<void>{
     const effect=this.pack.effects[String(id)];if(!effect)return;
-    const keys=effect.sequence.map(index=>effectTextureKey(id,index));
-    await this.ensureTextures(keys,`MagicRes ${id}特效`);
     this.effectId=id;
     this.effectOrigin=null;
     this.effectCursor=0;
     this.effectElapsed=0;
     this.effectPlaying=false;
     this.effectDuration=frameIntervalMs(effect.raw_timing);
-    if(this.effectSprite)this.effectSprite.setTexture(effectTextureKey(id,effect.sequence[0])).setVisible(true);
-    this.notice(`MagicRes ${id}：ANI timing 使用已恢复 common consumer；FOCUS 放置/混合/阶段仍未验证。`);
+    if(this.effectSprite)this.effectSprite.setTexture(this.textures.exists(effectTextureKey(id,effect.sequence[0]))?effectTextureKey(id,effect.sequence[0]):ASSET_PLACEHOLDER_TEXTURE_KEY).setVisible(true);
+    const keys=effect.sequence.map(index=>effectTextureKey(id,index));
+    this.refreshBootstrapTextures();
+    await this.ensureTextures(keys,`MagicRes ${id}特效`);
+    this.refreshBootstrapTextures();
+    if(this.effectId===id)this.notice(`MagicRes ${id}：ANI timing 使用已恢复 common consumer；FOCUS 放置/混合/阶段仍未验证。`);
   }
   async playEffect():Promise<void>{
     if(this.effectId===null)return;
@@ -961,11 +1010,13 @@ export class LabScene extends Phaser.Scene {
       const resourceId=enemy.visualResourceId??fallbackBindings.get(enemy.id);
       if(resourceId!==undefined&&this.pack.animations[String(resourceId)]?.['00'])enemyResourceIds.add(resourceId);
     }
+    // Battle entry needs the map, the player's complete idle slot, and only each enemy's idle first frame.
     const enemyKeys=[...enemyResourceIds].flatMap(id=>{
-      const animations=this.pack.animations[String(id)]??{};
-      return Object.keys(animations).flatMap(slot=>this.animationTextureKeys(String(id),slot));
+      const animation=this.pack.animations[String(id)]?.['00'];
+      const firstFrame=animation?.directions[0]?.[0];
+      return firstFrame===undefined?[]:[textureKey(String(id),'00',firstFrame)];
     });
-    const playerKeys=this.characterTextureKeys(this.character,Object.keys(this.pack.animations[this.character]??{}));
+    const playerKeys=this.characterTextureKeys(this.character,['00']);
     await this.ensureTextures([mapTextureKey(entry.battleZoneId),...playerKeys,...enemyKeys],`battleZone ${entry.battleZoneId}战斗资源`);
     const camera=this.cameras.main,center=camera.getWorldPoint(this.scale.width/2,this.scale.height/2);
     this.fieldReturn={mapId:this.mapId,anchor:{...this.anchor},direction:this.direction,camera:{x:center.x,y:center.y,zoom:camera.zoom}};
@@ -984,7 +1035,7 @@ export class LabScene extends Phaser.Scene {
     this.battleTargetingVisual=null;
     this.fit();
     this.selectedEnemy=this.state.enemies.find(enemy=>enemy.hp>0)?.id??'dummy-melee';
-    void this.setAction('00');
+    this.applyActionState('00');
     this.effectSprite?.setVisible(false);
     this.effectPlaying=false;
     this.updateGuideLabel();
