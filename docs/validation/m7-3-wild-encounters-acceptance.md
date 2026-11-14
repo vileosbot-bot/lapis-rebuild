@@ -13,19 +13,20 @@
 - [x] 探索报告与六条 map 1020 数据读回。
 - [x] route 040/048 现有路由定义读回。
 - [x] item 4002 便宜药草元数据读回。
-- [ ] map 1020 PNG / collision JSON 可用。
-- [ ] 六个实体坐标位于地图边界内。
-- [ ] 六个 approach 坐标均经真实 collision JSON 验证为 walkable。
-- [ ] route 048 真实路径与野怪触发区域的空间关系已验证。
+- [x] 原始 ybcs-offline.zip 大小 192,893,156 bytes、SHA-256 与 README 完全匹配。
+- [x] map 1000/1020/1030/1060 的 IMF/SMF/MMF 已抽取并静态解析，地图尺寸与 route 记录已读回。
+- [x] 六个实体坐标位于 map 1020 边界内，且 IMF grid value=1。
+- [x] 六个 approach 坐标均在边界内，且 IMF grid value=1。
+- [x] route 040/048 activation cells 与 map collision 已交叉核对；route 048 的重建 BFS 路径与实体 22022、22023 坐标相交，必须落实 D4 抑制规则。
 
-P0 最后四项受缺少派生地图资源阻塞。不得用 synthetic fixture 代替原地图验证，不得猜测或移动坐标。
+P0 坐标核验使用从原始 IMF 静态派生的 collision JSON，不使用 synthetic grid。地图 PNG 尚未生成，列为 P6 E2E/截图 fixture 准备项；不得公开部署原版资源。
 
 ## 2. 已批准策略及路由互斥要求
 
 - 距离：Manhattan distance 严格小于 4。
 - 触发：有效候选恰好 1 条；0 条或多条均不触发。
 - 触发时机：移动路线完成后；不在 routeLength 大于 0 时触发。
-- route 040/048：路线移动期间野怪触发必须被抑制；路线转换处理优先于野怪检查；抵达路线目标后由路线控制器完成地图转换，不得插入野怪战斗。
+- route 040/048：路线移动期间野怪触发必须被抑制；具体实现为 routeLength>0 时完全跳过野怪 authority，且 onSnapshot 先处理 handleChapter1Spatial；路线转换处理优先于野怪检查，抵达路线目标后提前返回，不得插入野怪战斗。route 048 路径从 (3,173) 到最近可达激活格 (67,13) 的 BFS 计算为 180 步，经过实体 22022 (37,139) 与 22023 (54,130)，因此该互斥是硬性验收项。
 - 只有玩家在 map 1020 完成普通移动、routeLength 归零且路线转换未提交时，才检查野怪候选。
 - 一条野外目录记录对应一名战斗敌人（D2，`RECONSTRUCTION_POLICY`）。
 - 野怪战斗使用 BattleEntry / ReconstructionBattleSetup；battleZone 1020 是重建 fallback（D3，`RECONSTRUCTION_POLICY`）。
@@ -54,7 +55,7 @@ P0 最后四项受缺少派生地图资源阻塞。不得用 synthetic fixture �
 
 另设 route 040/048 行走互斥专项断言：行走期间不进入战斗，路线到达后完成场景切换。
 
-## 4. 五张截图
+## 4. P6 本地地图 fixture 准备\n\n- 从原始 IMF 派生 collision JSON；P0 临时文件路径与 SHA-256 记录在 P0 核对报告。\n- 使用仓库现有 map bundle / SGR 转换器，从原始 MMF+SMF+SGR 生成 map PNG，放在本地私有测试资源目录；不得将原版资源推送到仓库或公开部署。\n- E2E 必须加载真实派生地图，不得用 synthetic map 代替。\n\n## 5. 五张截图
 
 | 文件 | 目标 | 必须记录 |
 |---|---|---|
@@ -64,7 +65,7 @@ P0 最后四项受缺少派生地图资源阻塞。不得用 synthetic fixture �
 | wild-04-save-load-state.png | 保存/读档后击败状态和 receipt 保持 | SHA-256、字节数、E2E checkpoint |
 | wild-05-map-entry-respawn.png | 离开 map 1020 再进入后的刷新 | SHA-256、字节数、E2E checkpoint |
 
-## 5. 执行命令
+## 6. 执行命令
 
 仅在 P0 gate 解除、代码实现完成后执行：
 
@@ -77,7 +78,7 @@ cd web && npm run test:e2e -- e2e/ch1-wild-encounters.spec.ts
 
 S42 本阶段不运行；S42 只在 S46 最终集成版上运行一次。
 
-## 6. 交付证据
+## 7. 交付证据
 
 实现阶段需提供：
 - 分支最终 HEAD 完整 SHA，并从 GitHub 读回；
