@@ -96,6 +96,8 @@ def map1020_walkable_cells()->set[tuple[int,int]]:
     ]
     cells.update(cell for cell in route048 if cell not in {(67,4),(67,13),(68,13)})
     cells.update({(3,173),(66,4)})
+    # A disconnected synthetic battle arena keeps chooseBattleLayout deterministic.
+    cells.update((x,y) for x in range(90,111) for y in range(190,211))
     return cells
 
 
