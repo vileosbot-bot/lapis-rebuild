@@ -7,6 +7,8 @@ type BootPack=Pick<LoadedPack,'manifest'|'animations'|'effects'|'images'>;
  * First paint: current map PNG, player's idle+walk sequences, the first frame
  * needed by each NPC actually visible on the start map, and the first
  * diagnostic-effect frame. Remaining animation frames stay deferred.
+ * With the verified start-map visuals present, M5 is 36 core images + 32 walk
+ * frames = 68; Chapter 1 is 35 core images + 32 walk frames = 67.
  */
 export function buildInitialImageKeys(pack:BootPack,startMapId:number,mode:'m5'|'chapter1'):string[]{
   const keys=new Set<string>();
