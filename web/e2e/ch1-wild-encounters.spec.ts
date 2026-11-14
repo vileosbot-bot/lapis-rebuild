@@ -211,7 +211,7 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   const won=await runtime(page);
   const wonSave=JSON.parse(await page.evaluate(()=>window.lapisM4!.exportJson()));
   expect(won.gold).toBe(40);
-  expect(won.inventory.items).toContainEqual({itemId:4002,quantity:1});
+  expect(won.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(1);
   expect(won.chapter1Wild.state.defeatedEntityIds).toContain(22024);
   expect(wonSave.rewardReceipts).toContain('ch1-wild-1-22024-win');
   expect(won.progression.level).toBeGreaterThanOrEqual(1);
@@ -232,7 +232,7 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   expect(restored.chapter1Wild.state.defeatedEntityIds).toContain(22024);
   expect(restored.chapter1Wild.state.spawnGeneration).toBe(generationBefore);
   expect(restoredSave.rewardReceipts).toContain('ch1-wild-1-22024-win');
-  expect(restored.inventory.items).toContainEqual({itemId:4002,quantity:1});
+  expect(restored.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(1);
   await capture(page,'wild-04','wild-04-save-load-state.png','M7.3-D5','Save/restore preserves defeated entity and reward receipt before map re-entry.',screenshots);
   assertions.push({id:'P6-06',status:'PASS',description:'D5 persistence boundary: save/load retains defeated IDs and generation-scoped reward receipts; the battle return itself does not refresh the map.',evidence_refs:['checkpoints.saveLoad','wild-04-save-load-state.png']});
   checkpoint.saveLoad={runtime:restored,save:{rewardReceipts:restoredSave.rewardReceipts,quest:restoredSave.quest}};
@@ -271,7 +271,7 @@ test('M7.3 map 1020 wild encounters P6 acceptance D1-D8',async({page})=>{
   expect(retreated.chapter1Wild.state.suppressedEntityId).toBe(22024);
   expect(retreated.gold).toBe(goldBeforeRetreat);
   expect(retreatSave.rewardReceipts).toEqual(receiptsBeforeRetreat);
-  expect(retreated.inventory.items).toContainEqual({itemId:4002,quantity:1});
+  expect(retreated.inventory.items.find((item:AnyRecord)=>item.itemId===4002)?.quantity).toBe(1);
   assertions.push({id:'P6-08',status:'PASS',description:'D6: retreat gives no reward and suppresses the same entity until the player leaves Manhattan distance <4.',evidence_refs:['checkpoints.retreatNoReward']});
   checkpoint.retreatNoReward={runtime:retreated,save:{rewardReceipts:retreatSave.rewardReceipts,inventory:retreatSave.inventory}};
 
