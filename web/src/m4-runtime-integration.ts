@@ -66,9 +66,10 @@ import {createCh1WorldPolicy} from './world/ch1-world-policy.ts';
 import type {Ch1WorldPolicy} from './world/ch1-world-policy.ts';
 import {CH1_WILD_ENCOUNTERS,manhattanDistance} from './world/ch1-wild-encounter-catalog.ts';
 import type {Ch1WildEncounterRecord} from './world/ch1-wild-encounter-catalog.ts';
-import {clearCh1WildSuppressionAfterLeavingRange,createCh1WildEncounterState,markCh1WildEncounterDefeated,markCh1WildMapEntered,markCh1WildMapLeft,resolveCh1WildEncounter,suppressCh1WildEncounterUntilLeave,validateCh1WildEncounterState} from './world/ch1-wild-encounter-authority.ts';
+import {clearCh1WildSuppressionAfterLeavingRange,createCh1WildEncounterState,markCh1WildMapEntered,markCh1WildMapLeft,resolveCh1WildEncounter,validateCh1WildEncounterState} from './world/ch1-wild-encounter-authority.ts';
 import type {Ch1WildEncounterState} from './world/ch1-wild-encounter-authority.ts';
 import {createCh1WildBattlePlan} from './world/ch1-wild-encounter-battle.ts';
+import {settleCh1WildBattle} from './world/ch1-wild-encounter-settlement.ts';
 import {CH1_GIO_TEACHER_VISUAL_PLACEMENT,Ch1WorldAuthority} from './world/ch1-world-authority.ts';
 import type {Ch1NpcDialogueSession,Ch1Quest1SelectionState} from './world/ch1-world-authority.ts';
 import {DEFAULT_RECONSTRUCTION_COMBAT_BALANCE} from './combat/reconstruction-combat-balance.ts';
@@ -1285,7 +1286,17 @@ export class M4RuntimeIntegration{
     this.trainingLaunchPending=false;
     this.lastSnapshot=null;
     this.suppressEncounterUntilLeave=!storyBattle&&!wildBattle;
-    if(wildBattle)this.ch1WildState=suppressCh1WildEncounterUntilLeave(this.ch1WildState,wildBattle.entityId,wildBattle.generation);
+    if(wildBattle){
+      const settlement=settleCh1WildBattle({
+        rewards:this.rewards,
+        wildState:this.ch1WildState,
+        record:wildBattle.record,
+        generation:wildBattle.generation,
+        outcome:'retreated',
+      });
+      this.rewards=settlement.rewards;
+      this.ch1WildState=settlement.wildState;
+    }
     this.activeCh1WildBattle=null;
     if(storyBattle){
       const returnCell=storyBattle.gateCell;
@@ -1512,22 +1523,18 @@ export class M4RuntimeIntegration{
         runtimeVerified:false,
       });
     }else if(wildBattle){
-      if(phase==='won'){
-        const receiptId='ch1-wild-'+wildBattle.generation+'-'+wildBattle.entityId+'-win';
-        const oldLevel=this.rewards.progression.level;
-        const applied=applyBattleReward(
-          this.rewards,
-          'ch1-wild:'+wildBattle.entityId,
-          receiptId,
-          {gold:wildBattle.record.reward.gold,exp:wildBattle.record.reward.exp,items:[{itemId:wildBattle.record.reward.dropItemId,quantity:1}]},
-        );
-        this.rewards=applied.state;
-        if(applied.applied)this.reconcileM7Attributes(receiptId);
-        this.reconcileM7Skills(oldLevel);
-        this.ch1WildState=markCh1WildEncounterDefeated(this.ch1WildState,wildBattle.entityId,wildBattle.generation);
-      }else{
-        this.ch1WildState=suppressCh1WildEncounterUntilLeave(this.ch1WildState,wildBattle.entityId,wildBattle.generation);
-      }
+      const oldLevel=this.rewards.progression.level;
+      const settlement=settleCh1WildBattle({
+        rewards:this.rewards,
+        wildState:this.ch1WildState,
+        record:wildBattle.record,
+        generation:wildBattle.generation,
+        outcome:phase==='won'?'won':'lost',
+      });
+      this.rewards=settlement.rewards;
+      this.ch1WildState=settlement.wildState;
+      if(settlement.applied&&settlement.receiptId)this.reconcileM7Attributes(settlement.receiptId);
+      this.reconcileM7Skills(oldLevel);
     }else if(this.pendingEncounter){
       const outcome=phase==='won'?'won':'lost';
       const resolution=this.worldAuthority.resolveBattle(this.world,{battleZoneId:this.scene.state.battleZoneId??-1,outcome});
