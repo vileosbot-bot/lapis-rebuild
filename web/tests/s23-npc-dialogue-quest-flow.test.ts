@@ -204,7 +204,7 @@ test('S23 explicit completion composes with the S12 receipt guard so turn-in rew
 
   const receipt=`quest:${TRAINING_QUEST_ID}:turn-in`;
   const first=applyQuestReward(
-    createM4RewardState(),
+    createM4RewardState(0),
     TRAINING_QUEST_ID,
     receipt,
     {gold:7,exp:230,questFlags:['m5.training.complete']},

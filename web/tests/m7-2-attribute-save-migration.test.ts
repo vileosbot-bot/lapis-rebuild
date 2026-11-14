@@ -73,6 +73,17 @@ test('schema 1 M7 extension migrates to schema 2 with all historical attribute p
   }
 });
 
+test('SaveV2 load preserves stored gold instead of applying the new-game starting balance',()=>{
+  const source=base('100',6);
+  for(const savedGold of [0,2_000,4_321,20_000,22_000]){
+    const migrated=migrateSaveToM7({...source,gold:savedGold},context,M6_SAVE_CONTENT);
+    assert.equal(migrated.gold,savedGold);
+    const json=serializeM7SaveV2(migrated,context,M6_SAVE_CONTENT);
+    const restored=migrateSaveToM7(JSON.parse(json),context,M6_SAVE_CONTENT);
+    assert.equal(restored.gold,savedGold);
+  }
+});
+
 test('a SaveV2 without any M7 extension receives current-level historical points as unspent',()=>{
   const source=base('109',6);
   const migrated=migrateSaveToM7(source,context,M6_SAVE_CONTENT);
