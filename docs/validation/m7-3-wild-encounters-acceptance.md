@@ -67,7 +67,7 @@ P0 坐标核验使用从原始 IMF 静态派生的 collision JSON，不使用 sy
 
 ## 6. 执行命令
 
-仅在 P0 gate 解除、代码实现完成后执行：
+P0 gate 已通过；以下命令在实现完成后执行：
 
 ```bash
 cd web && npm run typecheck
