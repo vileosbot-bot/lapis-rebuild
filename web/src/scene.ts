@@ -307,7 +307,7 @@ export class LabScene extends Phaser.Scene {
       await this.waitForForegroundTextures();
       const batch=remaining.slice(offset,offset+24);
       try{await this.ensureTextures(batch,`后台资源 ${Math.min(offset+batch.length,remaining.length)}/${remaining.length}`,'background');}
-      catch(error){this.reportLoadingProgress(`后台资源部分失败：${String(error)}；缺失贴图已记录`);}
+      catch(error){this.notice(`后台资源部分失败：${String(error)}；缺失贴图已记录`);}
       this.syncWorldVisualActors();
       this.ensureEnemyVisualActors();
       await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
@@ -421,7 +421,7 @@ export class LabScene extends Phaser.Scene {
     // Two animation frames leave one paint opportunity for the map/player before background requests begin.
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       void this.ensureTextures(initialKeys,'首屏资源补载')
-        .catch(error=>this.reportLoadingProgress('首屏资源仍有缺失：'+String(error)))
+        .catch(error=>this.notice('首屏资源仍有缺失：'+String(error)))
         .finally(()=>{
           // Refresh every recovered first-screen asset even if a different non-critical image failed.
           this.refreshBootstrapTextures();
@@ -970,7 +970,7 @@ export class LabScene extends Phaser.Scene {
     }
     this.route=nextRoute;
     if(this.inBattleView){this.battleCameraMode='FOLLOW_PLAYER';this.battleCameraTarget=null;}
-    void this.setAction('01').catch(error=>this.reportLoadingProgress('移动动画资源未就绪：'+String(error)));
+    void this.setAction('01').catch(error=>this.notice('移动动画资源未就绪：'+String(error)));
     this.playing=true;
     return true;
   }
@@ -994,7 +994,7 @@ export class LabScene extends Phaser.Scene {
     if(!entry){this.notice('当前交互没有产生战斗入口');return;}
     this.lastInteraction=intent;
     try{await this.applyBattleEntry(entry);}
-    catch(error){this.reportLoadingProgress(`战斗资源未就绪，未进入战斗：${String(error)}`);}
+    catch(error){this.notice(`战斗资源未就绪，未进入战斗：${String(error)}`);}
   }
 
   private async applyBattleEntry(entry:BattleEntry):Promise<void>{
@@ -1111,8 +1111,8 @@ export class LabScene extends Phaser.Scene {
     if(rid&&this.pack.effects[String(rid)]){
       void this.setEffect(rid).then(()=>{
         this.effectOrigin=!buff&&target?{x:target.x,y:target.y}:{...this.anchor};
-        void this.playEffect().catch(error=>this.reportLoadingProgress('特效资源未就绪：'+String(error)));
-      }).catch(error=>this.reportLoadingProgress('特效资源未就绪：'+String(error)));
+        void this.playEffect().catch(error=>this.notice('特效资源未就绪：'+String(error)));
+      }).catch(error=>this.notice('特效资源未就绪：'+String(error)));
     }
     return true;
   }
@@ -1131,8 +1131,8 @@ export class LabScene extends Phaser.Scene {
     if(magicResourceId!==undefined&&this.pack.effects[String(magicResourceId)]){
       void this.setEffect(magicResourceId).then(()=>{
         this.effectOrigin=explicitOrigin?{...explicitOrigin}:selfTarget||!primary?{...this.anchor}:{x:primary.x,y:primary.y};
-        void this.playEffect().catch(error=>this.reportLoadingProgress('特效资源未就绪：'+String(error)));
-      }).catch(error=>this.reportLoadingProgress('特效资源未就绪：'+String(error)));
+        void this.playEffect().catch(error=>this.notice('特效资源未就绪：'+String(error)));
+      }).catch(error=>this.notice('特效资源未就绪：'+String(error)));
     }
   }
 
