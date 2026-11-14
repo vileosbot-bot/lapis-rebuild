@@ -48,6 +48,11 @@ import {renderBattleHud} from './ui/battle-hud.ts';
 import {renderGameMenu} from './ui/game-menu.ts';
 import {renderAttributeAllocationPanel} from './ui/attribute-allocation-panel.ts';
 import {renderEquipmentPanel} from './ui/equipment-panel.ts';
+import {renderShopPanel} from './ui/shop-panel.ts';
+import {createShopRuntimeState,purchaseShopItem,useShopPotion,validateShopRuntimeState} from './shops/shop-runtime.ts';
+import type {Ch1ShopId} from './shops/shop-catalog.ts';
+import {getCh1ShopById} from './shops/shop-catalog.ts';
+import {Ch1ShopAuthority} from './world/ch1-shop-authority.ts';
 import {renderDebugPanel} from './ui/debug-panel.ts';
 import {escapeHtml} from './ui/ui-utils.ts';
 import type {BattleHudState,BattleStatusView,DiagnosticsState,FieldHudState,PlayerHudState} from './ui/types.ts';
@@ -221,6 +226,9 @@ export class M4RuntimeIntegration{
   developerMode=false;
   inventoryOpen=false;
   equipmentPanelOpen=false;
+  private shopAuthority=new Ch1ShopAuthority();
+  private shopState=createShopRuntimeState();
+  private activeShopId:Ch1ShopId|null=null;
   private activeDialogue:NpcDialogueSession|null=null;
   private activeChapter1Dialogue:Ch1NpcDialogueSession|null=null;
   private chapter1Quest1Selection:Ch1Quest1SelectionState|null=null;
@@ -357,6 +365,9 @@ export class M4RuntimeIntegration{
         acceptanceIssueAttack:()=>this.acceptanceIssueAttack(),
         acceptanceAdvanceLiveBattleStep:()=>this.acceptanceAdvanceLiveBattleStep(),
         acceptanceAdvanceUntilActionOrEnd:(maxSteps:number)=>this.acceptanceAdvanceUntilActionOrEnd(maxSteps),
+        acceptanceOpenShop:(shopId:string)=>this.acceptanceOpenShop(shopId),
+        acceptanceBuyShopItem:(shopId:string,itemId:number,transactionId:string)=>this.buyShopItem(shopId,itemId,transactionId),
+        acceptanceUsePotion:(itemId:number)=>this.usePotion(itemId),
       });
     });
   }
@@ -426,6 +437,8 @@ export class M4RuntimeIntegration{
         runtimeVerified:this.chapter1StoryLastResolution.runtimeVerified,
       }:null,
       quest:{...this.world.quest},
+      shop:{provenance:'RECONSTRUCTION_POLICY',routeStatus:'UNKNOWN',runtimeEnabled:false,candidates:this.shopAuthority.snapshot().candidates.map(row=>({shopId:row.shopId,npcId:row.npcId,mapId:row.mapId,program:row.program}))},
+      shopState:this.shopState,
       chapter1Quest1:this.chapter1Quest1Selection?{...this.chapter1Quest1Selection}:null,
       world:{mapId:this.scene.mapId,x:cell[0],y:cell[1]},
       progression:{...this.rewards.progression},
@@ -561,6 +574,9 @@ export class M4RuntimeIntegration{
       else if(action==='load')void this.load();
       else if(action==='inventory'){this.inventoryOpen=!this.inventoryOpen;this.equipmentPanelOpen=this.inventoryOpen;this.menuOpen=false;document.body.classList.toggle('m4-inventory-open',this.inventoryOpen);this.render(this.scene.snapshot());}
       else if(action==='equipment-close'){this.equipmentPanelOpen=false;this.inventoryOpen=false;document.body.classList.remove('m4-inventory-open');this.render(this.scene.snapshot());}
+      else if(action==='shop-close'){this.activeShopId=null;this.render(this.scene.snapshot());}
+      else if(action==='shop-buy')this.buyShopItem(target.dataset.shopId??'',Number(target.dataset.itemId),target.dataset.transactionId??'');
+      else if(action==='inventory-use')this.usePotion(Number(target.dataset.itemId));
       else if(action==='equipment-equip')this.equipEquipmentPanelItem(target.dataset.slot,target.dataset.itemId);
       else if(action==='equipment-unequip')this.equipEquipmentPanelItem(target.dataset.slot,null);
       else if(action==='attribute-panel')this.openAttributePanel();
@@ -1561,6 +1577,28 @@ export class M4RuntimeIntegration{
     this.setNotice(`任务完成：金币 +${reward.gold}，EXP +${reward.exp}，当前 Lv.${this.rewards.progression.level} / RECONSTRUCTION_POLICY`);
   }
 
+  private acceptanceOpenShop(shopId:string):boolean{
+    if(!navigator.webdriver)throw new Error('S45 shop acceptance entry is automation-only');
+    const shop=getCh1ShopById(shopId);if(!shop)throw new Error('Unknown S45 shop');
+    this.activeShopId=shop.id;this.equipmentPanelOpen=false;this.inventoryOpen=false;this.render(this.scene.snapshot());return true;
+  }
+  private buyShopItem(shopId:string,itemId:number,transactionId:string):void{
+    if(this.scene.inBattleView){this.setNotice('战斗中不能购买商品');return;}
+    const result=purchaseShopItem({shopId,itemId,quantity:1,transactionId,gold:this.rewards.gold,inventory:this.rewards.inventory,shopState:this.shopState});
+    if(!result.ok){this.setNotice('购买失败：'+result.reason+' / RECONSTRUCTION_POLICY');return;}
+    this.rewards={...this.rewards,gold:result.gold,inventory:result.inventory};this.shopState=result.shopState;this.syncSceneInventory();
+    this.setNotice(result.applied?'购买成功：金币与背包已更新':'交易已处理：未重复扣款');this.render(this.scene.snapshot());
+  }
+  private usePotion(itemId:number):void{
+    const result=useShopPotion({inventory:this.rewards.inventory,itemId,vitals:{hp:this.scene.state.hp,maxHp:this.scene.state.maxHp,mp:this.scene.state.mp,maxMp:this.scene.state.maxMp},inBattle:this.scene.inBattleView});
+    if(!result.ok){
+      const messages:Record<string,string>={'effect-unknown':'无法使用：药品恢复量缺少原始数值证据（UNKNOWN）；药品与 HP/MP 均未改变。','in-battle':'战斗中不能使用药品。','empty-inventory':'背包中没有该药品。','already-full':'对应状态已满，未消耗药品。','not-a-potion':'该物品不是已登记药品。','invalid-vitals':'角色 HP/MP 状态无效。'};
+      this.setNotice(messages[result.reason]??('药品使用失败：'+result.reason));this.render(this.scene.snapshot());return;
+    }
+    this.rewards={...this.rewards,inventory:result.inventory};this.scene.state.hp=result.vitals.hp;this.scene.state.mp=result.vitals.mp;this.syncSceneInventory();
+    this.setNotice('药品使用成功：'+result.resource.toUpperCase()+' 恢复 '+result.restored);this.render(this.scene.snapshot());
+  }
+
   private currentEquipmentAttributes(){
     return {con:10+totalAttributeValue(this.attributeState,'con'),wis:10+totalAttributeValue(this.attributeState,'wis'),str:10+totalAttributeValue(this.attributeState,'str'),dex:10+totalAttributeValue(this.attributeState,'dex'),int:10+totalAttributeValue(this.attributeState,'int'),reg:10+totalAttributeValue(this.attributeState,'reg')};
   }
@@ -1753,7 +1791,7 @@ export class M4RuntimeIntegration{
     return{
       kind:SAVE_KIND,version:CURRENT_SAVE_VERSION,pack:this.scene.pack.digest,character:this.scene.character,mapId:this.scene.mapId,
       x:this.scene.anchor.x,y:this.scene.anchor.y,gold:this.rewards.gold,inventory:this.rewards.inventory,
-      quest:{questId:this.world.quest.questId,stage:this.world.quest.stage} as JsonValue,
+      quest:{questId:this.world.quest.questId,stage:this.world.quest.stage,ch1ShopState:this.shopState} as JsonValue,
       questFlags:{...this.rewards.questFlags},progression:{...this.rewards.progression},rewardReceipts:[...this.rewards.rewardReceipts],m6,
       m7:createM7SaveExtension(this.scene.character,this.m7Level(),this.m7Skills,{hp:this.scene.state.hp,mp:this.scene.state.mp},this.attributeState),savedAt:new Date().toISOString(),
     };
@@ -1786,6 +1824,8 @@ export class M4RuntimeIntegration{
     this.developerSkillPoints=0;
     const save=migrateSaveToM7(raw,this.saveContext(),M6_SAVE_CONTENT);
     if(this.chapter1World&&!this.chapter1World.mapIds.includes(save.mapId as 1000|1020|1030|1060))throw new Error('Chapter 1 save map is outside the route graph: '+save.mapId);
+    const questRaw=save.quest&&typeof save.quest==='object'&&!Array.isArray(save.quest)?save.quest as Record<string,JsonValue>:null;
+    this.shopState=questRaw?.ch1ShopState===undefined?createShopRuntimeState():validateShopRuntimeState(questRaw.ch1ShopState);
     const quest=parseM4Quest(save.quest,this.worldAuthority.content.questId);
     this.rewards={gold:save.gold,inventory:save.inventory,progression:save.progression,questFlags:save.questFlags,rewardReceipts:save.rewardReceipts};
     this.m6Equipment=save.m6.equipment;
@@ -2140,6 +2180,7 @@ export class M4RuntimeIntegration{
     if(this.attributePanelOpen&&this.attributeDraft&&!this.scene.inBattleView){
       return renderAttributeAllocationPanel(this.attributeState,this.attributeDraft);
     }
+    if(this.activeShopId&&!this.scene.inBattleView){const shop=getCh1ShopById(this.activeShopId);if(shop)return renderShopPanel({shop,inventory:this.rewards.inventory,gold:this.rewards.gold,shopState:this.shopState});}
     if(this.equipmentPanelOpen&&!this.scene.inBattleView){
       const definition=playableClassById(this.scene.character);
       const context={characterId:this.scene.character,family:definition.family,stageId:Number(this.scene.character),level:this.rewards.progression.level,attributes:this.currentEquipmentAttributes()};

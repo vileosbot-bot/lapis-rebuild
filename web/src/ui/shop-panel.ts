@@ -56,7 +56,7 @@ export function renderPotionInventory(inventory:InventoryState):string{
       return '<article class="shop-panel__potion" data-item-id="'+item.itemResourceId+'">'+
         '<div><strong>'+escapeHtml(item.name)+'</strong><small>持有：'+count+' · '+escapeHtml(effect)+'</small></div>'+
         '<button type="button" data-action="inventory-use" data-item-id="'+item.itemResourceId+'" '+(known?'':'disabled')+'>'+
-        (known?'非战斗使用':'恢复量 UNKNOWN')+'</button></article>';
+        (known?'非战斗使用':'暂不可用：恢复量 UNKNOWN（不扣药、不改 HP/MP）')+'</button></article>';
     }).join('');
   if(!rows)return '<section class="equipment-panel__potions"><h3>药品</h3><p>背包中没有红药或蓝药。</p></section>';
   return '<section class="equipment-panel__potions"><h3>药品</h3><p>仅可在非战斗状态使用。</p>'+rows+'</section>';
