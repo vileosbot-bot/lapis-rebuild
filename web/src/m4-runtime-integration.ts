@@ -68,6 +68,7 @@ import {CH1_WILD_ENCOUNTERS,manhattanDistance} from './world/ch1-wild-encounter-
 import type {Ch1WildEncounterRecord} from './world/ch1-wild-encounter-catalog.ts';
 import {clearCh1WildSuppressionAfterLeavingRange,createCh1WildEncounterState,markCh1WildEncounterDefeated,markCh1WildMapEntered,markCh1WildMapLeft,resolveCh1WildEncounter,suppressCh1WildEncounterUntilLeave,validateCh1WildEncounterState} from './world/ch1-wild-encounter-authority.ts';
 import type {Ch1WildEncounterState} from './world/ch1-wild-encounter-authority.ts';
+import {createCh1WildBattlePlan} from './world/ch1-wild-encounter-battle.ts';
 import {CH1_GIO_TEACHER_VISUAL_PLACEMENT,Ch1WorldAuthority} from './world/ch1-world-authority.ts';
 import type {Ch1NpcDialogueSession,Ch1Quest1SelectionState} from './world/ch1-world-authority.ts';
 import {DEFAULT_RECONSTRUCTION_COMBAT_BALANCE} from './combat/reconstruction-combat-balance.ts';
@@ -1769,32 +1770,8 @@ export class M4RuntimeIntegration{
   }
 
   private prepareChapter1WildBattle(record:Ch1WildEncounterRecord):void{
-    const playerLevel=Math.max(1,this.rewards.progression.level);
-    const enemyLevel=record.minimumLevel;
-    const template=DEFAULT_RECONSTRUCTION_COMBAT_BALANCE.enemyStats({id:record.name,level:enemyLevel,rank:'normal',role:'melee'});
-    this.scene.setReconstructionBattleSetup({
-      playerClassId:this.scene.character,
-      level:playerLevel,
-      equipment:this.combatEquipment(),
-      enemyLevel,
-      enemyRank:'normal',
-      enemies:[{
-        id:record.name,
-        level:enemyLevel,
-        rank:'normal',
-        role:'melee',
-        maxHp:record.maxHp,
-        maxMp:record.maxMp,
-        attack:template.attack,
-        defense:template.defense,
-        magicAttack:template.magicAttack,
-        magicDefense:template.magicDefense,
-        movementRangeCells:1,
-        attackRangeCells:1,
-        traits:[],
-        abilities:[],
-      }],
-    });
+    const plan=createCh1WildBattlePlan(record,this.scene.character,Math.max(1,this.rewards.progression.level),this.combatEquipment());
+    this.scene.setReconstructionBattleSetup(plan.setup);
   }
 
   private applyClassProfile(resetVitals:boolean):void{
