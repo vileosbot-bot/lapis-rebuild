@@ -15,6 +15,7 @@ export type Ch1WildEncounterRecord=Readonly<{
   cell:Cell;
   approachCell:Cell;
   minimumLevel:number;
+  minimumLevelProvenance:'RECONSTRUCTION_POLICY';
   maxHp:number;
   maxMp:number;
   reward:Ch1WildRewardRecord;
@@ -45,13 +46,13 @@ function parseCell(value:unknown,label:string):Cell{
 
 function parseRecord(raw:unknown):Ch1WildEncounterRecord{
   if(!isObject(raw)||!exactKeys(raw,[
-    'entityId','name','modelId','entityType','cell','approachCell','minimumLevel',
+    'entityId','name','modelId','entityType','cell','approachCell','minimumLevel','minimumLevelProvenance',
     'maxHp','maxMp','reward','provenance','runtimeVerified',
   ]))throw new Error('Invalid Chapter 1 wild encounter record shape');
   if(!integer(raw.entityId,1,0xffff)||typeof raw.name!=='string'||!raw.name.trim())throw new Error('Invalid Chapter 1 wild encounter identity');
   if(!integer(raw.modelId,1,0xffff)||raw.entityType!==1)throw new Error('Invalid Chapter 1 wild encounter model/entity type');
   if(raw.provenance!=='RECOVERED_SECONDARY'||raw.runtimeVerified!==false)throw new Error('Wild placement evidence must remain RECOVERED_SECONDARY');
-  if(!integer(raw.minimumLevel,1,100)||!integer(raw.maxHp,1,100000)||!integer(raw.maxMp,0,100000))throw new Error('Invalid Chapter 1 wild encounter stats');
+  if(!integer(raw.minimumLevel,1,100)||raw.minimumLevelProvenance!=='RECONSTRUCTION_POLICY'||!integer(raw.maxHp,1,100000)||!integer(raw.maxMp,0,100000))throw new Error('Invalid Chapter 1 wild encounter stats/evidence');
   const cell=parseCell(raw.cell,'wild encounter cell');
   const approachCell=parseCell(raw.approachCell,'wild encounter approach cell');
   if(approachCell[0]!==cell[0]-1||approachCell[1]!==cell[1]-1)throw new Error('Wild encounter approach cell must be xy minus one');
@@ -69,6 +70,7 @@ function parseRecord(raw:unknown):Ch1WildEncounterRecord{
     cell,
     approachCell,
     minimumLevel:raw.minimumLevel,
+    minimumLevelProvenance:'RECONSTRUCTION_POLICY',
     maxHp:raw.maxHp,
     maxMp:raw.maxMp,
     reward:Object.freeze({gold:raw.reward.gold,exp:raw.reward.exp,dropItemId:raw.reward.dropItemId}),
