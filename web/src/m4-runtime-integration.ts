@@ -319,7 +319,7 @@ export class M4RuntimeIntegration{
     const initial=this.chapter1World
       ?{mapId:this.chapter1World.initial.mapId,x:this.chapter1World.initial.effectiveCell[0],y:this.chapter1World.initial.effectiveCell[1]}
       :this.m5World?.content.start??START_STATE;
-    this.applyWorldState(initial);
+    void this.applyWorldState(initial).catch(error=>this.setNotice('初始地图资源未就绪：'+String(error)));
     if(this.chapter1World){
       if(!this.chapter1Authority)throw new Error('Chapter 1 NPC authority was not initialized');
       if(!this.scene.pack.animations[String(CH1_GIO_TEACHER_VISUAL_PLACEMENT.resourceId)]){
@@ -486,8 +486,9 @@ export class M4RuntimeIntegration{
 
   private installSceneAdapters():void{
     const originalCharacter=this.scene.setCharacter.bind(this.scene);
-    this.scene.setCharacter=(id:string)=>{
-      originalCharacter(id);
+    this.scene.setCharacter=async (id:string)=>{
+      await this.scene.ensureTextures(this.scene.characterTextureKeys(id,['00','01']),`职业切换 B${id}资源`);
+      await originalCharacter(id);
       if(!M6_CHARACTER_IDS.includes(this.scene.character))return;
       if(String(this.m6Stage.stageId)!==this.scene.character)this.m6Stage=createM6StageState(this.scene.character);
       const reconciled=reconcileEquipmentForCharacter(this.rewards.inventory,this.scene.character,CLASS_RESOLVER);
@@ -525,7 +526,7 @@ export class M4RuntimeIntegration{
     };
 
     const originalEnter=this.scene.enterBattle.bind(this.scene);
-    this.scene.enterBattle=(entryOverride)=>{
+    this.scene.enterBattle=async (entryOverride)=>{
       this.clearBattleTargeting(false);
       this.activeDialogue=null;
       this.activeChapter1Dialogue=null;
@@ -538,7 +539,7 @@ export class M4RuntimeIntegration{
         provenance:'RECONSTRUCTION_POLICY' as const,
         authority:'offline-reconstruction' as const,
       }):undefined;
-      originalEnter(entryOverride??trainingEntry);
+      await originalEnter(entryOverride??trainingEntry);
       if(this.pauseBattleOnNextEntry&&this.scene.inBattleView){
         this.scene.battlePaused=true;
         this.pauseBattleOnNextEntry=false;
@@ -601,12 +602,12 @@ export class M4RuntimeIntegration{
       else if(action==='battle-exit-cancel')this.cancelBattleExit();
       else if(action==='battle-exit-confirm')this.confirmBattleExit();
       else if(action==='return')this.returnFromBattle();
-      else if(action==='class-swordsman')this.changeClass('100');
-      else if(action==='class-wizard')this.changeClass('109');
-      else if(action==='training-start')this.startTrainingBattle(Number(target.dataset.trainingBattleId));
-      else if(action==='dev-preset-apply')this.applyDeveloperPreset();
-      else if(action==='dev-preset-quick')this.applyDeveloperPreset(Number(target.dataset.devLevel));
-      else if(action==='m6-promote')this.promoteM6Stage();
+      else if(action==='class-swordsman')void this.changeClass('100');
+      else if(action==='class-wizard')void this.changeClass('109');
+      else if(action==='training-start')void this.startTrainingBattle(Number(target.dataset.trainingBattleId));
+      else if(action==='dev-preset-apply')void this.applyDeveloperPreset();
+      else if(action==='dev-preset-quick')void this.applyDeveloperPreset(Number(target.dataset.devLevel));
+      else if(action==='m6-promote')void this.promoteM6Stage();
     });
     document.addEventListener('change',event=>{
       const target=(event.target as HTMLElement).closest<HTMLInputElement>('[data-action="dev-toggle"]');
@@ -783,8 +784,10 @@ export class M4RuntimeIntegration{
     this.scene.setBattleTargetingVisualization(undefined);
   }
 
-  private changeClass(id:'100'|'109'):void{
+  private async changeClass(id:'100'|'109'):Promise<void>{
     if(this.scene.inBattleView){this.setNotice('请先结束战斗再开始新职业档');return;}
+    try{await this.scene.ensureTextures(this.scene.characterTextureKeys(id,['00','01']),`新职业档 B${id}资源`);}
+    catch(error){this.setNotice('职业切换资源未就绪：'+String(error));return;}
     this.activeDialogue=null;
     this.trainingManagerOpen=false;
     this.pendingEncounter=null;
@@ -801,20 +804,20 @@ export class M4RuntimeIntegration{
     this.attributeState=createAttributeAllocationState(1);
     this.attributePanelOpen=false;
     this.attributeDraft=null;
-    this.scene.setCharacter(id);
+    await this.scene.setCharacter(id);
     this.m6Stage=createM6StageState(id);
     this.syncSceneInventory();
-    this.applyWorldState(this.m5World?.content.start??START_STATE);
+    await this.applyWorldState(this.m5World?.content.start??START_STATE).catch(error=>this.setNotice('职业档地图资源未就绪：'+String(error)));
     this.applyClassProfile(true);
     this.menuOpen=false;
     this.setNotice(id==='100'?'已开始新的剑士职业档':'已开始新的巫师职业档');
     this.render(this.scene.snapshot());
   }
 
-  acceptanceStartTrainingBattle(id:number):void{
+  async acceptanceStartTrainingBattle(id:number):Promise<void>{
     if(!navigator.webdriver)throw new Error('M7.1 acceptance training fixture is automation-only');
     this.trainingManagerOpen=false;
-    this.startTrainingBattle(id);
+    await this.startTrainingBattle(id);
   }
 
   acceptanceSetEnemyHp(targetId:string,hp:number):void{
@@ -1003,7 +1006,7 @@ export class M4RuntimeIntegration{
     this.render(this.scene.snapshot());
   }
 
-  private promoteM6Stage():void{
+  private async promoteM6Stage():Promise<void>{
     if(this.scene.inBattleView){this.setNotice('请先结束战斗再晋阶');return;}
     const rule=integratedPromotionRuleForCharacter(this.scene.character);
     if(!rule){this.setNotice('当前已经是本职业第十阶段');return;}
@@ -1022,12 +1025,14 @@ export class M4RuntimeIntegration{
       this.setNotice(result.duplicate?'该晋阶已经完成':`暂不能晋阶：${result.reasons.join('、')}`);
       return;
     }
+    try{await this.scene.ensureTextures(this.scene.characterTextureKeys(String(result.state.stageId),['00','01']),`晋阶 B${result.state.stageId}资源`);}
+    catch(error){this.setNotice('晋阶资源未就绪：'+String(error));return;}
     const fromFamily=playableClassById(this.scene.character).family;
     const toFamily=playableClassById(String(result.state.stageId)).family;
     if((fromFamily==='swordsman'||fromFamily==='wizard')&&(toFamily==='swordsman'||toFamily==='wizard')){
       this.attributeState=retainAttributeAllocationAcrossStageChange(this.attributeState,fromFamily,toFamily);
     }
-    this.scene.setCharacter(String(result.state.stageId));
+    await this.scene.setCharacter(String(result.state.stageId));
     this.m6Stage=result.state;
     this.applyClassProfile(true);
     this.menuOpen=false;
@@ -1035,7 +1040,7 @@ export class M4RuntimeIntegration{
     this.render(this.scene.snapshot());
   }
 
-  private applyDeveloperPreset(levelOverride?:number):void{
+  private async applyDeveloperPreset(levelOverride?:number):Promise<void>{
     if(!this.developerMode){this.setNotice('Developer Preset 仅在 Developer / Diagnostics 模式可用');return;}
     if(this.scene.inBattleView){this.setNotice('请先结束战斗再应用 Developer Preset');return;}
     const currentProfession=playableClassById(this.scene.character).family as M7Profession;
@@ -1046,12 +1051,13 @@ export class M4RuntimeIntegration{
     const unlockAll=this.menuRoot.querySelector<HTMLInputElement>('[data-dev-unlock-all]')?.checked??false;
     try{
       const preset=buildM7DeveloperCharacterPreset(profession,level,unlockAll);
+      await this.scene.ensureTextures(this.scene.characterTextureKeys(String(preset.stageId),['00','01']),`Developer Preset B${preset.stageId}资源`);
       this.rewards={...this.rewards,progression:{...this.rewards.progression,level:preset.level,exp:totalExpForLevel(preset.level,this.rewards.progression.policyId)}};
       this.m7Skills=createM7IntegratedSkillState(String(preset.stageId),Math.min(65,preset.level));
       this.developerPresetActive=true;
       this.developerUnlockAllSkills=preset.unlockAllImplementedSkills;
       this.developerSkillPoints=preset.skillPoints;
-      this.scene.setCharacter(String(preset.stageId));
+      await this.scene.setCharacter(String(preset.stageId));
       this.m6Stage=createM6StageState(preset.stageId);
       this.equipDeveloperPreset();
       this.applyClassProfile(true);
@@ -1203,7 +1209,7 @@ export class M4RuntimeIntegration{
     this.render(this.scene.snapshot());
   }
 
-  private startTrainingBattle(id:number):void{
+  private async startTrainingBattle(id:number):Promise<void>{
     if(this.scene.inBattleView){this.setNotice('当前已在战斗中');return;}
     if(this.scene.route.length){this.setNotice('请等待移动结束后再开始训练战');return;}
     try{
@@ -1214,7 +1220,7 @@ export class M4RuntimeIntegration{
       this.pendingEncounter=null;
       this.menuOpen=false;
       this.trainingLaunchPending=true;
-      this.scene.enterBattle();
+      await this.scene.enterBattle();
       if(!this.scene.inBattleView){
         this.trainingLaunchPending=false;
         this.activeTrainingBattleId=null;
@@ -1419,7 +1425,7 @@ export class M4RuntimeIntegration{
       this.applyQuestSettlement();
     }else if(action==='quest-accepted'){
       if(!this.m5World&&this.worldAuthority.content.warpOnAccept){
-        this.applyWorldState({...this.worldAuthority.content.objectiveEntry});
+        void this.applyWorldState({...this.worldAuthority.content.objectiveEntry}).catch(error=>this.setNotice('地图切换失败：'+String(error)));
         this.setNotice('已接受训练委托：已前往外城训练点 / RECONSTRUCTION_POLICY');
       }else this.setNotice('已接受训练委托 / RECONSTRUCTION_POLICY');
     }else if(action==='declined'){
@@ -1446,12 +1452,14 @@ export class M4RuntimeIntegration{
     if(result.warp){
       const next=applyWarp(this.world.world,result.warp);
       this.world={...this.world,world:next};
-      this.applyWorldState(next);
+      void this.applyWorldState(next).catch(error=>this.setNotice('地图切换失败：'+String(error)));
     }
     if(result.encounter){
       this.pendingEncounter=result.encounter;
-      this.scene.enterBattle();
-      if(this.scene.inBattleView&&this.scene.state.battleZoneId!==result.encounter.battleZoneId)this.setNotice(`Encounter zone mismatch: expected ${result.encounter.battleZoneId}, got ${this.scene.state.battleZoneId}`);
+      void this.scene.enterBattle().then(()=>{
+        if(this.scene.inBattleView&&this.scene.state.battleZoneId!==result.encounter!.battleZoneId)this.setNotice(`Encounter zone mismatch: expected ${result.encounter!.battleZoneId}, got ${this.scene.state.battleZoneId}`);
+        this.render(this.scene.snapshot());
+      });
     }
     if(previousStage!=='complete'&&this.world.quest.stage==='complete')this.applyQuestSettlement();
     this.render(this.scene.snapshot());
@@ -1505,7 +1513,7 @@ export class M4RuntimeIntegration{
     this.clearBattleTargeting(false);
     this.scene.leaveBattle();
     this.scene.gold=this.rewards.gold;
-    if(returnState)this.applyWorldState(returnState);else this.world={...this.world,world:this.currentWorldState()};
+    if(returnState)void this.applyWorldState(returnState).catch(error=>this.setNotice('返回地图资源未就绪：'+String(error)));else this.world={...this.world,world:this.currentWorldState()};
     this.pendingEncounter=null;
     this.activeTrainingBattleId=null;
     this.activeChapter1StoryBattle=null;
@@ -1764,14 +1772,14 @@ export class M4RuntimeIntegration{
     return{mapId:this.scene.mapId,x:cell[0],y:cell[1]};
   }
 
-  private applyWorldState(state:WorldState):void{
+  private async applyWorldState(state:WorldState):Promise<void>{
     if(this.scene.inBattleView)return;
     this.activeDialogue=null;
     this.activeChapter1Dialogue=null;
     if(this.chapter1World&&!this.chapter1World.mapIds.includes(state.mapId as 1000|1020|1030|1060)){
       throw new Error('Chapter 1 mode cannot load map '+state.mapId);
     }
-    this.scene.setMap(state.mapId);
+    await this.scene.setMap(state.mapId);
     const [x,y]=referenceCellToScreen([state.x,state.y]);
     this.scene.anchor={x,y};
     this.scene.route=[];
@@ -1784,6 +1792,8 @@ export class M4RuntimeIntegration{
       this.spatial?.start({mapId:state.mapId,cell:[state.x,state.y]});
     }else this.scene.fit();
     this.world={...this.world,world:{...state}};
+    this.lastSnapshot=null;
+    this.render(this.scene.snapshot());
   }
 
   private saveContext():SaveValidationContext{
@@ -1816,13 +1826,13 @@ export class M4RuntimeIntegration{
   }
 
   async load():Promise<void>{
-    try{const raw=await readM4Save();if(raw===undefined)throw new Error('没有可读取的存档');this.restore(raw);}
+    try{const raw=await readM4Save();if(raw===undefined)throw new Error('没有可读取的存档');await this.restore(raw);}
     catch(error){this.setNotice(`读档失败：${String(error)}`);}
   }
 
   exportJson():string{return serializeM7SaveV2(this.makeSave(),this.saveContext(),M6_SAVE_CONTENT);}
 
-  restore(raw:unknown):void{
+  async restore(raw:unknown):Promise<void>{
     if(this.scene.inBattleView)throw new Error('请先结束战斗再读档');
     this.activeDialogue=null;
     this.activeChapter1Dialogue=null;
@@ -1837,19 +1847,21 @@ export class M4RuntimeIntegration{
     this.developerSkillPoints=0;
     const save=migrateSaveToM7(raw,this.saveContext(),M6_SAVE_CONTENT);
     if(this.chapter1World&&!this.chapter1World.mapIds.includes(save.mapId as 1000|1020|1030|1060))throw new Error('Chapter 1 save map is outside the route graph: '+save.mapId);
+    await this.scene.ensureTextures(this.scene.characterTextureKeys(save.character,['00','01']),'读档角色资源');
+    await this.scene.prepareMapTextures(save.mapId);
     const questRaw=save.quest&&typeof save.quest==='object'&&!Array.isArray(save.quest)?save.quest as Record<string,JsonValue>:null;
     this.shopState=questRaw?.ch1ShopState===undefined?createShopRuntimeState():validateShopRuntimeState(questRaw.ch1ShopState);
     const quest=parseM4Quest(save.quest,this.worldAuthority.content.questId);
     this.rewards={gold:save.gold,inventory:save.inventory,progression:save.progression,questFlags:save.questFlags,rewardReceipts:save.rewardReceipts};
     this.m6Equipment=save.m6.equipment;
     this.world={world:{mapId:save.mapId,...(()=>{const cell=nearestAnchor(save.x,save.y);return{x:cell[0],y:cell[1]};})()},quest};
-    this.scene.setCharacter(save.character);
+    await this.scene.setCharacter(save.character);
     this.m6Stage=save.m6.stage;
     this.m7Skills=save.m7.skills;
     this.attributeState=save.m7.attributes;
     this.attributePanelOpen=false;
     this.attributeDraft=null;
-    this.scene.setMap(save.mapId);
+    await this.scene.setMap(save.mapId);
     this.scene.anchor={x:save.x,y:save.y};
     this.scene.route=[];
     this.applyClassProfile(false);
@@ -1899,9 +1911,11 @@ export class M4RuntimeIntegration{
       const next={mapId:committed.mapId,x:committed.cell[0],y:committed.cell[1]};
       this.world={...this.world,world:next};
       if(committed.mapId===this.m5World.content.objectiveMapId)this.world=this.worldAuthority.arriveObjectiveMap(this.world,committed.mapId);
-      this.applyWorldState(next);
-      this.setNotice(committed.mapId===this.m5World.content.objectiveMapId?'已自动进入训练屋 / RECONSTRUCTION_POLICY':'已离开训练屋，返回外城 / RECONSTRUCTION_POLICY');
-      this.lastSnapshot=null;this.render(this.scene.snapshot());return true;
+      void this.applyWorldState(next).then(()=>{
+        this.setNotice(committed.mapId===this.m5World!.content.objectiveMapId?'已自动进入训练屋 / RECONSTRUCTION_POLICY':'已离开训练屋，返回外城 / RECONSTRUCTION_POLICY');
+        this.lastSnapshot=null;this.render(this.scene.snapshot());
+      }).catch(error=>this.setNotice('地图切换失败：'+String(error)));
+      return true;
     }
     const nearObjective=actor.mapId===this.m5World.content.objectiveMapId&&canInteract(this.m5World.content.objective,actor);
     if(this.suppressEncounterUntilLeave){
@@ -1912,8 +1926,11 @@ export class M4RuntimeIntegration{
       const resolved=this.worldAuthority.interact(this.world,{entityId:this.m5World.content.objective.id,mapId:actor.mapId,actorX:actor.x,actorY:actor.y,provenance:'RECONSTRUCTION_POLICY'});
       this.world=resolved.state;
       if(resolved.result.encounter){
-        this.pendingEncounter=resolved.result.encounter;this.scene.enterBattle();
-        this.setNotice('接近训练怪物：进入战斗 / RECONSTRUCTION_POLICY');
+        this.pendingEncounter=resolved.result.encounter;
+        void this.scene.enterBattle().then(()=>{
+          this.setNotice(this.scene.inBattleView?'接近训练怪物：进入战斗 / RECONSTRUCTION_POLICY':'战斗资源未就绪，未进入战斗');
+          this.render(this.scene.snapshot());
+        });
         return true;
       }
     }
@@ -1930,19 +1947,16 @@ export class M4RuntimeIntegration{
     const next={mapId:committed.mapId,x:committed.cell[0],y:committed.cell[1]};
     this.activeDialogue=null;
     this.activeChapter1Dialogue=null;
-    this.scene.setMap(committed.mapId);
-    const [x,y]=referenceCellToScreen(committed.cell);
-    this.scene.anchor={x,y};
-    this.scene.route=[];
-    this.scene.setPlayerCameraFollow(true);
-    this.scene.focusPlayer();
-    this.world={...this.world,world:next};
     const route=policy.routes.find(candidate=>candidate.routeId===committed.edgeId);
-    this.setNotice((route?route.routeId:'第一章路线')+'：已切换至 '+committed.mapId+' / RECOVERED_SECONDARY / runtimeVerified=false');
-    const mapSelector=document.getElementById('map') as HTMLSelectElement|null;
-    if(mapSelector)mapSelector.value=String(committed.mapId);
-    this.lastSnapshot=null;
-    this.render(this.scene.snapshot());
+    void this.applyWorldState(next).then(()=>{
+      this.scene.setPlayerCameraFollow(true);
+      this.scene.focusPlayer();
+      this.setNotice((route?route.routeId:'第一章路线')+'：已切换至 '+committed.mapId+' / RECOVERED_SECONDARY / runtimeVerified=false');
+      const mapSelector=document.getElementById('map') as HTMLSelectElement|null;
+      if(mapSelector)mapSelector.value=String(committed.mapId);
+      this.lastSnapshot=null;
+      this.render(this.scene.snapshot());
+    }).catch(error=>this.setNotice('地图切换失败：'+String(error)));
     return true;
   }
 
@@ -1986,14 +2000,15 @@ export class M4RuntimeIntegration{
       runtimeVerified:false,
     });
     this.setNotice('Story source 1 gate：movement-complete 命中 '+actor.x+','+actor.y+'，进入 battleZone 1 / RECOVERED_SECONDARY / runtimeVerified=false');
-    this.scene.enterBattle(entry);
-    if(!this.scene.inBattleView||this.scene.state.battleZoneId!==CH1_STORY_ONE_SOURCE.battleZoneId){
-      this.activeChapter1StoryBattle=null;
-      this.setNotice('Story source 1 battleZone 1 入口未能启动；未回退到其他 battleZone。');
+    void this.scene.enterBattle(entry).then(()=>{
+      if(!this.scene.inBattleView||this.scene.state.battleZoneId!==CH1_STORY_ONE_SOURCE.battleZoneId){
+        this.activeChapter1StoryBattle=null;
+        this.setNotice('Story source 1 battleZone 1 入口未能启动；未回退到其他 battleZone。');
+        this.render(this.scene.snapshot());
+        return;
+      }
       this.render(this.scene.snapshot());
-      return true;
-    }
-    this.render(this.scene.snapshot());
+    });
     return true;
   }
 
