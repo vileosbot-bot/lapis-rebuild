@@ -1,0 +1,85 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.16.0'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Generate synthetic game data
+        run: python3 tools/testing/make_web_fixture.py --out web/public/game-data
+
+      - name: Install dependencies and build for Pages subpath
+        working-directory: web
+        run: |
+          npm ci --ignore-scripts
+          npm run build -- --base=/lapis-rebuild/
+
+      - name: Verify production artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          dist = Path("web/dist")
+          html = (dist / "index.html").read_text(encoding="utf-8")
+          manifest = json.loads((dist / "game-data/prototype.json").read_text(encoding="utf-8"))
+
+          asset_urls = re.findall(r'(?:src|href)="([^"]+)"', html)
+          vite_assets = [url for url in asset_urls if "/assets/" in url]
+          assert any(url.startswith("/lapis-rebuild/") and url.endswith(".js") for url in vite_assets), "JavaScript asset is not rooted at /lapis-rebuild/"
+          assert any(url.startswith("/lapis-rebuild/") and url.endswith(".css") for url in vite_assets), "CSS asset is not rooted at /lapis-rebuild/"
+          assert (dist / "game-data/asset-index.json").is_file(), "Synthetic game-data asset index is missing"
+          assert manifest.get("provenance", {}).get("kind") == "synthetic", "Published game-data is not the synthetic fixture"
+          print("Verified GitHub Pages subpath assets and synthetic game-data.")
+          PY
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
