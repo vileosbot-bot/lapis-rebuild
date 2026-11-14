@@ -8,7 +8,7 @@ export const CATALOG = catalogData.items;
 const S45_POTION_ITEM_IDS = new Set<number>(
  ch1ShopData.shops
   .filter(shop=>shop.id==='caosia-potion')
-  .flatMap(shop=>shop.items.filter(item=>item.itemKind==='potion').map(item=>item.itemResourceId)),
+  .flatMap(shop=>shop.items.filter(item=>item.itemKind==='potion'&&item.evidenceLevel==='RECOVERED_SECONDARY').map(item=>item.itemResourceId)),
 );
 export const roleFor = (character: string) => Number(character)%10===9?'wizard':'swordsman';
 export function initialInventory(): Inventory { return {owned:CATALOG.map(i=>i.item_id),weapon:null,armor:null}; }

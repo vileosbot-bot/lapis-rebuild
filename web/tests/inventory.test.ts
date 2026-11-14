@@ -15,6 +15,7 @@ test('all nine S45 potion IDs are accepted by legacy snapshot inventory validati
  const potionItems=CH1_SHOP_CATALOG.shops.find(shop=>shop.id==='caosia-potion')?.items.filter(item=>item.itemKind==='potion')??[];
  assert.equal(potionItems.length,9);
  for(const item of potionItems){
+  assert.equal(item.evidenceLevel,'RECOVERED_SECONDARY');
   const inventory=validateInventory({owned:[item.itemResourceId],weapon:null,armor:null},'100');
   assert.deepEqual(equipmentBonus(inventory,'100'),{attack:0,defense:0});
  }
