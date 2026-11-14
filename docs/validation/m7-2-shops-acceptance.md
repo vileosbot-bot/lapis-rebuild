@@ -47,7 +47,7 @@ itemtbl 实际 shopNumber=3 原始记录为 103，不是 105。探索报告的 1
 
 ## Screenshots and checkpoints
 
-真实地图截图与交易 checkpoint 当前未生成。不得填写虚构文件路径、SHA-256 或字节数。验收 runner 应输出：
+本次 E2E 脚本定义了隔离入口截图：`shop-weapon-catalog.png`、`shop-purchase-confirmed.png`、`shop-potion-use.png`、`shop-inventory-after-purchase.png`，并生成武器/药品交易 checkpoint。由于测试未运行，本轮实际截图与 checkpoint 均未生成，不能报告路径、SHA-256 或字节数。`shop-quest2-intent.png` 不由隔离 acceptance bridge 伪造；NPC 21200 路线和真实 NPC 对话未接通，故该截图保持 NOT_VERIFIED，待路线与真实对话验收后采集。验收 runner 应输出：
 - shop-weapon-catalog.png
 - shop-purchase-confirmed.png
 - shop-inventory-after-purchase.png
