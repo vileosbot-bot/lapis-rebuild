@@ -1556,6 +1556,9 @@ export class M4RuntimeIntegration{
       this.ch1WildState=settlement.wildState;
       if(settlement.applied&&settlement.receiptId)this.reconcileM7Attributes(settlement.receiptId);
       this.reconcileM7Skills(oldLevel);
+      this.setNotice(phase==='won'
+        ?'野外胜利：金币 +'+wildBattle.record.reward.gold+'，EXP +'+wildBattle.record.reward.exp+'，便宜药草 ×1 / RECONSTRUCTION_POLICY'
+        :'野外战斗失败：未结算金币、EXP 或掉落 / RECONSTRUCTION_POLICY');
     }else if(this.pendingEncounter){
       const outcome=phase==='won'?'won':'lost';
       const resolution=this.worldAuthority.resolveBattle(this.world,{battleZoneId:this.scene.state.battleZoneId??-1,outcome});
