@@ -1,4 +1,5 @@
 import {test} from 'node:test';
+import {createInventory} from '../src/progression/inventory.ts';
 import assert from 'node:assert/strict';
 import {beginNpcDialogue,applyNpcDialogueChoice,type NpcDialogueIntent} from '../src/world/npc-dialogue-runtime.ts';
 import type {NpcDefinition} from '../src/world/npc-model.ts';
@@ -19,7 +20,7 @@ for(const spec of [
  test('S45 '+spec.name+' and shop intent are separate choices for NPC '+spec.npcId,()=>{
   const definition=npc(spec.npcId,spec.questId);
   const quest:QuestRuntimeState={questId:spec.questId,stage:'not_started'};
-  const world={mapId:n.entity.mapId,x:10,y:10};
+  const world={mapId:definition.entity.mapId,x:10,y:10};
   const begun=beginNpcDialogue(definition,quest,world,intent(definition,spec.shopId));
   assert.equal(begun.accepted,true);if(!begun.accepted)return;
   assert.deepEqual(begun.session.view.choices.map(x=>x.id),['accept-quest','decline-quest','open-shop']);
@@ -77,7 +78,7 @@ test('S45 Quest9 trigger/one-time boundary: shop selection cannot satisfy or rep
 import {renderPotionInventory} from '../src/ui/shop-panel.ts';
 import {grantItem} from '../src/progression/inventory.ts';
 test('S45 potion inventory UI exposes the UNKNOWN refusal reason instead of silently disabling use',()=>{
- const inventory=grantItem(empty,red.itemResourceId,1,{kind:'starter',ref:'s45-ui-test'});
+ const inventory=createInventory([{itemId:4001,source:{kind:'starter',ref:'s45-ui-test'}}]);
  const html=renderPotionInventory(inventory);
  assert.match(html,/恢复量 UNKNOWN/);
  assert.match(html,/不扣药、不改 HP\/MP/);

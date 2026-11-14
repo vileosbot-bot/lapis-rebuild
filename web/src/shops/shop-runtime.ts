@@ -107,7 +107,7 @@ export function validateShopRuntimeState(raw:unknown):ShopRuntimeState{
     if(seen.has(value.id))throw new Error('Duplicate S45 transaction id');
     seen.add(value.id);
     if(typeof value.shopId!=='string'||!shopIds.includes(value.shopId as Ch1ShopId))throw new Error('Invalid S45 transaction shop');
-    if(!Number.isInteger(value.itemId)||!Number.isInteger(value.quantity)||value.quantity!==1||!Number.isInteger(value.cost)||value.cost<0)throw new Error('Invalid S45 transaction fields');
+    if(!Number.isInteger(value.itemId)||!Number.isInteger(value.quantity)||value.quantity!==1||typeof value.cost!=='number'||!Number.isInteger(value.cost)||value.cost<0)throw new Error('Invalid S45 transaction fields');
     if(!getCh1ShopItem(value.shopId as Ch1ShopId,value.itemId as number))throw new Error('Unknown S45 transaction item');
     return{id:value.id,shopId:value.shopId as Ch1ShopId,itemId:value.itemId as number,quantity:1 as const,cost:value.cost as number};
   });

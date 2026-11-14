@@ -144,7 +144,7 @@ type Chapter1StoryBattleResolution=Readonly<{
   runtimeVerified:false;
 }>;
 const CLASS_RESOLVER:EquipmentCompatibilityResolver=(characterId,item)=>{
-  try{return isEquipmentCompatibleWithClass(characterId,item.itemId,item.slot);}catch{return false;}
+  try{return isEquipmentCompatibleWithClass(characterId,item.itemId,item.slot??undefined);}catch{return false;}
 };
 
 function starterInventory():InventoryState{
