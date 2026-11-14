@@ -2250,6 +2250,7 @@ export class M4RuntimeIntegration{
   }
 
   private setLoadingProgress(message:string):void{
+    // Keep preload progress separate: #m4-runtime-notice is the gameplay-notice channel.
     let node=document.getElementById('m4-runtime-loading-progress');
     if(!node){node=document.createElement('div');node.id='m4-runtime-loading-progress';node.className='game-notice';document.querySelector('.world')?.append(node);}
     node.textContent=message;
