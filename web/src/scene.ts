@@ -122,6 +122,7 @@ export class LabScene extends Phaser.Scene {
   private timedAction=0;
   private effectUntil=0;
   private notice: (message:string)=>void;
+  private loadingNoticeHandler:((message:string)=>void)|undefined;
   private worldVisualSpecs:WorldVisualSpec[]=[];
   private texturePromises=new Map<string,Promise<void>>();
   private textureAttempts=new Map<string,number>();
@@ -149,10 +150,13 @@ export class LabScene extends Phaser.Scene {
     graphics.destroy();
   }
 
+  setLoadingNoticeHandler(handler:((message:string)=>void)|undefined):void{this.loadingNoticeHandler=handler;}
+  private reportLoadingProgress(message:string):void{this.notice(message);this.loadingNoticeHandler?.(message);}
+
   private recordMissingTexture(key:string){
     if(this.missingTextures.has(key))return;
     this.missingTextures.add(key);
-    this.notice(`资源缺失 ${key}；已显示占位图，正在重试`);
+    this.reportLoadingProgress(`资源缺失 ${key}；已显示占位图，正在重试`);
     this.events.emit('asset-missing-recorded',key);
   }
 
@@ -235,19 +239,19 @@ export class LabScene extends Phaser.Scene {
     if(!unique.length)return;
     let cursor=0,completed=requested.length-unique.length;
     const failures:string[]=[];
-    this.notice(`正在加载${stage} ${completed}/${requested.length}`);
+    this.reportLoadingProgress(`正在加载${stage} ${completed}/${requested.length}`);
     const worker=async()=>{
       while(cursor<unique.length){
         const key=unique[cursor++]!;
         try{await this.ensureTexture(key);}
         catch(error){failures.push(key);this.recordMissingTexture(key);}
         completed+=1;
-        this.notice(`正在加载${stage} ${completed}/${requested.length}${failures.length?`，失败 ${failures.length}`:''}`);
+        this.reportLoadingProgress(`正在加载${stage} ${completed}/${requested.length}${failures.length?`，失败 ${failures.length}`:''}`);
       }
     };
     await Promise.all(Array.from({length:Math.min(8,unique.length)},()=>worker()));
     if(failures.length)throw new Error(`${stage}有 ${failures.length} 张图片未能加载：${failures.slice(0,8).join(', ')}`);
-    this.notice(`${stage}已就绪：${requested.length}/${requested.length}`);
+    this.reportLoadingProgress(`${stage}已就绪：${requested.length}/${requested.length}`);
   }
 
   private refreshBootstrapTextures(){
@@ -273,12 +277,12 @@ export class LabScene extends Phaser.Scene {
     for(let offset=0;offset<remaining.length;offset+=24){
       const batch=remaining.slice(offset,offset+24);
       try{await this.ensureTextures(batch,`后台资源 ${Math.min(offset+batch.length,remaining.length)}/${remaining.length}`);}
-      catch(error){this.notice(`后台资源部分失败：${String(error)}；缺失贴图已记录`);}
+      catch(error){this.reportLoadingProgress(`后台资源部分失败：${String(error)}；缺失贴图已记录`);}
       this.syncWorldVisualActors();
       this.ensureEnemyVisualActors();
       await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
     }
-    this.notice(`后台资源处理完成：已加载 ${Object.keys(this.pack.images).length-this.missingTextures.size}/${Object.keys(this.pack.images).length}，缺失 ${this.missingTextures.size}`);
+    this.reportLoadingProgress(`后台资源处理完成：已加载 ${Object.keys(this.pack.images).length-this.missingTextures.size}/${Object.keys(this.pack.images).length}，缺失 ${this.missingTextures.size}`);
   }
 
   preload(){
@@ -287,7 +291,7 @@ export class LabScene extends Phaser.Scene {
     this.load.maxRetries=0;
     const onFileComplete=()=>{
       completed+=1;
-      this.notice(`首屏图片加载 ${completed}/${initialKeys.length}`);
+      this.reportLoadingProgress(`首屏图片加载 ${completed}/${initialKeys.length}`);
     };
     this.load.on('filecomplete',onFileComplete);
     this.load.once('complete',()=>this.load.off('filecomplete',onFileComplete));
@@ -310,7 +314,7 @@ export class LabScene extends Phaser.Scene {
     const initialKeys=this.pack.initialImageKeys??Object.keys(this.pack.images);
     const missingInitial=initialKeys.filter(key=>!this.textures.exists(key));
     for(const key of missingInitial)this.recordMissingTexture(key);
-    if(missingInitial.length)this.notice(`首屏有 ${missingInitial.length} 张图片暂缺，先用占位图初始化并后台重试`);
+    if(missingInitial.length)this.reportLoadingProgress(`首屏有 ${missingInitial.length} 张图片暂缺，先用占位图初始化并后台重试`);
     const mapKey=mapTextureKey(this.mapId),map=this.currentMap();
     this.mapImage=this.add.image(0,0,this.textures.exists(mapKey)?mapKey:ASSET_PLACEHOLDER_TEXTURE_KEY).setOrigin(0).setDepth(0);
     if(!this.textures.exists(mapKey))this.mapImage.setDisplaySize(map.manifest.render.width,map.manifest.render.height);
