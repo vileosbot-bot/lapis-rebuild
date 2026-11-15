@@ -9,7 +9,6 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  actions: read
 concurrency:
   group: web-ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
@@ -17,9 +16,6 @@ jobs:
   synthetic:
     permissions:
       contents: read
-      actions: read
-      pull-requests: write
-      issues: write
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     steps:
@@ -275,23 +271,121 @@ jobs:
           GATE_SELF_TEST: ${{ steps.gate-self-test.outcome }}
           GATE_SYNTHETIC_ARTIFACT: ${{ steps.synthetic-artifact.outcome }}
         run: python3 tools/gate/check_gate.py summarize --output "$RUNNER_TEMP/agent-ops-gate/summary.md" --json-output "$RUNNER_TEMP/agent-ops-gate/summary.json" --readback "$RUNNER_TEMP/agent-ops-gate/readback.json"
-      - name: Write machine gate result back to PR
-        id: gate-comment
-        if: always() && !cancelled() && github.event_name == 'pull_request'
+      - name: Publish gate comment payload
+        id: gate-summary-artifact
+        if: always()
         timeout-minutes: 3
         continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: python3 tools/gate/check_gate.py comment --summary "$RUNNER_TEMP/agent-ops-gate/summary.md" --output "$RUNNER_TEMP/agent-ops-gate/comment.json"
-      - name: Finalize machine gate status
-        id: gate-finalize
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: agent-ops-gate-summary
+          path: |
+            ${{ runner.temp }}/agent-ops-gate/summary.md
+            ${{ runner.temp }}/agent-ops-gate/summary.json
+          retention-days: 1
+          if-no-files-found: warn
+  gate-comment:
+    needs: synthetic
+    if: always() && github.event_name == 'pull_request'
+    permissions:
+      issues: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Download gate comment payload
+        id: gate-comment-download
+        if: always()
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: agent-ops-gate-summary
+          path: ${{ runner.temp }}/agent-ops-gate-artifact
+      - name: Prepare current-head gate comment
+        id: gate-comment-prepare
         if: always()
         timeout-minutes: 2
         env:
-          IS_PR: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
-        run: python3 tools/gate/check_gate.py finalize --summary-json "$RUNNER_TEMP/agent-ops-gate/summary.json" --comment-json "$RUNNER_TEMP/agent-ops-gate/comment.json"
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          SYNTHETIC_RESULT: ${{ needs.synthetic.result }}
+        run: |
+          set -euo pipefail
+          current_head="$(curl --fail --silent --show-error "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" | jq -r '.head.sha')"
+          if [ "$current_head" != "$EXPECTED_HEAD_SHA" ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "Stale workflow run for head $EXPECTED_HEAD_SHA; current PR head is $current_head. Skip comment writeback."
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/agent-ops-gate-comment"
+          summary_path="$(find "$RUNNER_TEMP/agent-ops-gate-artifact" -name summary.md -print -quit || true)"
+          json_path="$(find "$RUNNER_TEMP/agent-ops-gate-artifact" -name summary.json -print -quit || true)"
+          if [ -z "$summary_path" ] || [ -z "$json_path" ]; then
+            summary_path="$RUNNER_TEMP/agent-ops-gate-comment/summary.md"
+            json_path="$RUNNER_TEMP/agent-ops-gate-comment/summary.json"
+            cat > "$summary_path" <<EOF
+          <!-- agent-ops-gate -->
+          ## 机器门禁结果：门禁未知
+
+          - PR：#$PR_NUMBER
+          - base：$EXPECTED_BASE_SHA
+          - head：$EXPECTED_HEAD_SHA
+          - synthetic job：$SYNTHETIC_RESULT
+          - 原因：门禁 job 未能上传 summary artifact（可能发生 job 超时/取消或 artifact 上传失败）。
+
+          缺少完整门禁证据，不得视为通过。
+          EOF
+            printf '{"overall":"UNKNOWN","reason":"summary artifact missing","synthetic_result":"%s"}\n' "$SYNTHETIC_RESULT" > "$json_path"
+          fi
+          echo "summary_path=$summary_path" >> "$GITHUB_OUTPUT"
+          echo "summary_json=$json_path" >> "$GITHUB_OUTPUT"
+      - name: Write machine gate result back to PR
+        id: gate-comment-write
+        if: steps.gate-comment-prepare.outcome == 'success' && steps.gate-comment-prepare.outputs.stale != 'true'
+        timeout-minutes: 2
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SUMMARY_PATH: ${{ steps.gate-comment-prepare.outputs.summary_path }}
+        run: |
+          set -euo pipefail
+          body="$(cat "$SUMMARY_PATH")"
+          existing_id="$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("<!-- agent-ops-gate -->"))) | .id' | head -n 1 || true)"
+          payload="$(jq -n --arg body "$body" '{body: $body}')"
+          if [ -n "$existing_id" ]; then
+            printf '%s' "$payload" | gh api "repos/$GITHUB_REPOSITORY/issues/comments/$existing_id" --method PATCH --input -
+            echo "Updated bot-owned gate comment $existing_id"
+          else
+            printf '%s' "$payload" | gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --method POST --input -
+            echo "Created bot-owned gate comment"
+          fi
+      - name: Finalize machine gate status
+        id: gate-finalize
+        if: always()
+        timeout-minutes: 1
+        env:
+          STALE: ${{ steps.gate-comment-prepare.outputs.stale }}
+          PREPARE_OUTCOME: ${{ steps.gate-comment-prepare.outcome }}
+          COMMENT_OUTCOME: ${{ steps.gate-comment-write.outcome }}
+          SYNTHETIC_RESULT: ${{ needs.synthetic.result }}
+          SUMMARY_JSON: ${{ steps.gate-comment-prepare.outputs.summary_json }}
+        run: |
+          set -euo pipefail
+          if [ "$STALE" = "true" ]; then
+            echo "Stale run; no PR comment or gate result is published."
+            exit 0
+          fi
+          if [ "$PREPARE_OUTCOME" != "success" ] || [ "$COMMENT_OUTCOME" != "success" ] || [ ! -s "$SUMMARY_JSON" ]; then
+            echo "::error::Gate comment/summary unavailable; result is UNKNOWN."
+            exit 1
+          fi
+          overall="$(jq -r '.overall // "UNKNOWN"' "$SUMMARY_JSON")"
+          if [ "$SYNTHETIC_RESULT" != "success" ] || [ "$overall" != "PASS" ]; then
+            echo "::error::Machine gate not passed: synthetic=$SYNTHETIC_RESULT overall=$overall"
+            exit 1
+          fi
+          echo "Final machine gate status: PASS"
   private-original:
     permissions:
       contents: read

@@ -6,11 +6,15 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import io
 import os
 import re
 import struct
 import subprocess
 import sys
+import tempfile
+from contextlib import redirect_stdout
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -25,9 +29,10 @@ SECRET_PATTERNS = (
     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b"),
     re.compile(r"\bgithub_pat_[A-Za-z0-9_]{40,}\b"),
     re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
-    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----"),
-    re.compile(r"""(?i)\b(?:password|passwd|secret|api[_-]?key|client[_-]?secret|access[_-]?token)\b\s*[:=]\s*["'][^"'\s]{12,}["']"""),
+    re.compile(r"-----BEGIN (?:(?:RSA|DSA|EC|OPENSSH|PGP) |ENCRYPTED )?PRIVATE KEY(?: BLOCK)?-----"),
+    re.compile(r"""(?i)\b(?:password|passwd|secret|api[_-]?key|client[_-]?secret|access[_-]?token)\b\s*[:=]\s*(?:"[^"\s]{12,}"|'[^'\s]{12,}'|[A-Za-z0-9_./+=-]{12,})"""),
 )
+
 FALLBACKS = {
     "unit_tests": ("web/package.json", 1),
     "build": ("web/vite.config.ts", 1),
@@ -59,13 +64,18 @@ def read_json(path: str | Path, default: dict | None = None) -> dict:
         return default or {}
 
 
-def git(*args: str) -> str:
+def git_at(root: Path, *args: str) -> str:
     result = subprocess.run(
-        ["git", *args], cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False
+        ["git", *args], cwd=Path(root), text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False
     )
     if result.returncode:
         raise RuntimeError(result.stderr.strip() or f"git {' '.join(args)} failed")
     return result.stdout
+
+
+def git(*args: str) -> str:
+    return git_at(ROOT, *args)
 
 
 def diff_refs() -> tuple[str, str]:
@@ -128,7 +138,16 @@ def overall_status(statuses: list[str]) -> str:
     return "PASS"
 
 
+def touches_gate_self(files: list[dict]) -> bool:
+    return any(
+        str(item.get("filename", "")).startswith((".github/workflows/", "tools/gate/"))
+        for item in files
+    )
+
+
 def classify_review(files: list[dict], changed_lines: int, diff_text: str = "") -> str:
+    if touches_gate_self(files):
+        return "red"
     red_path = re.compile(
         r"(^|/)(payments?|billing|wallet|money|finance|economy|currency|gold|balance|price|transaction|delete|deletion|remove|removal|purge|deploy|deployment|release|publish|freeze|permissions?|access-control|auth)(/|[-_.]|$)",
         re.IGNORECASE,
@@ -217,34 +236,43 @@ def command_run(args: argparse.Namespace) -> int:
     return code
 
 
-def format_check() -> int:
-    base, head = diff_refs()
+def format_check(root: Path = ROOT, base: str | None = None, head: str | None = None) -> int:
+    if base is None or head is None:
+        base, head = diff_refs()
+    root = Path(root)
     failed = False
     try:
-        output = git("diff", "--check", f"{base}...{head}")
-        if output.strip():
-            for line in output.splitlines():
+        check = subprocess.run(
+            ["git", "diff", "--check", f"{base}...{head}"],
+            cwd=root, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False
+        )
+        if check.returncode not in {0, 2}:
+            raise RuntimeError(check.stderr.strip() or f"git diff --check exited {check.returncode}")
+        if check.stdout.strip():
+            for line in check.stdout.splitlines():
                 match = re.match(r"(.+?):(\d+):\s*(.*)", line)
                 if match:
                     annotation(match.group(1), int(match.group(2)), match.group(3))
                 else:
                     annotation(".github/workflows/web-ci.yml", 1, line)
                 failed = True
-        status_rows = git("diff", "--name-status", f"{base}...{head}").splitlines()
+        elif check.returncode == 2:
+            annotation(".github/workflows/web-ci.yml", 1, check.stderr.strip() or "git diff --check returned 2 without detail")
+            failed = True
+        status_rows = git_at(root, "diff", "--name-status", f"{base}...{head}").splitlines()
     except RuntimeError as exc:
         annotation(".github/workflows/web-ci.yml", 1, f"格式检查无法读取 diff：{exc}")
         return 1
-    # git diff --check checks trailing whitespace on added lines; inspect whole changed files for newline consistency.
     for row in status_rows:
         parts = row.split("\t")
         if len(parts) < 2:
             continue
         status, name = parts[0], parts[-1]
-        path = ROOT / name
+        path = root / name
         if not path.is_file():
             continue
         try:
-            content = path.read_text(encoding="utf-8")
+            content = path.read_bytes().decode("utf-8")
         except (UnicodeDecodeError, OSError):
             continue
         issues = format_issues(content) if status == "A" else newline_issues(content)
@@ -279,8 +307,10 @@ def static_check() -> int:
             "id: playwright-install", "id: standalone-preview", "id: chromium-e2e",
             "id: s41-e2e", "id: m73-fixture", "id: m73-build", "id: m73-e2e",
             "id: gate-format", "id: gate-static", "id: gate-secrets", "id: gate-screenshot",
-            "id: gate-readback", "id: gate-self-test", "id: synthetic-artifact",
-            "id: gate-summary", "id: gate-comment", "id: gate-finalize",
+            "id: gate-readback", "id: gate-self-test", "id: synthetic-artifact", "id: gate-summary",
+            "id: gate-summary-artifact", "gate-comment:", "needs: synthetic",
+            "if: always() && github.event_name == 'pull_request'",
+            "id: gate-comment-download", "id: gate-comment-prepare", "id: gate-comment-write", "id: gate-finalize",
         )
         lines = workflow.splitlines()
         for token in required:
@@ -297,18 +327,29 @@ def static_check() -> int:
         step_ids = [token.split(": ", 1)[1] for token in required if token.startswith("id: ")]
         for step_id in step_ids:
             indexes = [i for i, line in enumerate(lines) if line.strip() == f"id: {step_id}"]
-            if not indexes:
-                continue
-            index = indexes[0]
-            start = index
-            while start > 0 and not re.match(r"^\s{6}- ", lines[start]):
-                start -= 1
-            end = index + 1
-            while end < len(lines) and not re.match(r"^\s{6}- ", lines[end]):
-                end += 1
-            if not any("timeout-minutes:" in line for line in lines[start:end]):
-                annotation(".github/workflows/web-ci.yml", index + 1, f"{step_id} 缺少单项超时")
-                failed = True
+            if indexes:
+                index = indexes[0]
+                start = index
+                while start > 0 and not re.match(r"^\s{6}- ", lines[start]):
+                    start -= 1
+                end = index + 1
+                while end < len(lines) and not re.match(r"^\s{6}- ", lines[end]):
+                    end += 1
+                if not any("timeout-minutes:" in line for line in lines[start:end]):
+                    annotation(".github/workflows/web-ci.yml", index + 1, f"{step_id} 缺少单项超时")
+                    failed = True
+        synthetic = workflow.split("  synthetic:\n", 1)[1].split("\n  gate-comment:", 1)[0] if "  synthetic:\n" in workflow and "\n  gate-comment:" in workflow else ""
+        comment = workflow.split("  gate-comment:\n", 1)[1].split("\n  private-original:", 1)[0] if "  gate-comment:\n" in workflow and "\n  private-original:" in workflow else ""
+        top_permissions = workflow.split("permissions:\n", 1)[1].split("\nconcurrency:", 1)[0] if "permissions:\n" in workflow else ""
+        if "permissions:\n      contents: read" not in synthetic or "actions: read" in synthetic or "pull-requests: write" in synthetic or "issues: write" in synthetic:
+            annotation(".github/workflows/web-ci.yml", 1, "synthetic job 必须仅有 contents: read")
+            failed = True
+        if "permissions:\n      issues: write" not in comment or "pull-requests: write" in comment or "actions: read" in comment:
+            annotation(".github/workflows/web-ci.yml", 1, "gate-comment job 必须仅有 issues: write")
+            failed = True
+        if "actions: read" in top_permissions:
+            annotation(".github/workflows/web-ci.yml", 1, "顶层 permissions 不应授予未使用的 actions: read")
+            failed = True
     if (ROOT / ".github/workflows/ci.yml").exists():
         annotation(".github/workflows/ci.yml", 1, "检测到禁止另建的 ci.yml")
         failed = True
@@ -316,17 +357,19 @@ def static_check() -> int:
     return int(failed)
 
 
-def secret_scan() -> int:
-    base, head = diff_refs()
+def secret_scan(root: Path = ROOT, base: str | None = None, head: str | None = None) -> int:
+    if base is None or head is None:
+        base, head = diff_refs()
+    root = Path(root)
     try:
-        diff = git("diff", "--unified=0", f"{base}...{head}")
+        patch = git_at(root, "log", "-p", "--format=", "--no-ext-diff", "--unified=0", f"{base}..{head}")
     except RuntimeError as exc:
-        annotation(".github/workflows/web-ci.yml", 1, f"无法读取 diff：{exc}")
+        annotation(".github/workflows/web-ci.yml", 1, f"无法读取提交历史 diff：{exc}")
         return 1
     filename = ".github/workflows/web-ci.yml"
     new_line = 1
     failed = False
-    for line in diff.splitlines():
+    for line in patch.splitlines():
         if line.startswith("+++ b/"):
             filename = line[6:]
         elif line.startswith("@@"):
@@ -335,7 +378,7 @@ def secret_scan() -> int:
                 new_line = int(match.group(1))
         elif line.startswith("+") and not line.startswith("+++"):
             if detect_secret(line[1:]):
-                annotation(filename, new_line, "新增行疑似包含密钥/凭据，禁止提交")
+                annotation(filename, new_line, "提交历史新增行疑似包含密钥/凭据，禁止提交")
                 failed = True
             new_line += 1
     print(f"secret_scan: {'FAIL' if failed else 'PASS'}")
@@ -384,14 +427,81 @@ def paged_api(url: str, token: str) -> list[dict]:
         page += 1
 
 
-def parse_ledger(path: Path) -> list[int]:
+def parse_ledger_text(content: str) -> list[dict]:
     rows = []
-    pattern = re.compile(r"^\|\s*#(\d+)\s*\|\s*\d{4}-\d{2}-\d{2}T[^|]+\|\s*[0-9a-f]{40}\s*\|")
-    for line in path.read_text(encoding="utf-8").splitlines():
+    pattern = re.compile(r"^\|\s*#(\d+)\s*\|\s*([^|]+?)\s*\|\s*([0-9a-f]{40})\s*\|")
+    fence_char = ""
+    fence_len = 0
+    in_comment = False
+    for line in content.splitlines():
+        if fence_char:
+            if re.match(rf"^\s*{re.escape(fence_char)}{{{fence_len},}}\s*$", line):
+                fence_char = ""
+                fence_len = 0
+            continue
+        fence = re.match(r"^\s*(\x60{3,}|~{3,})", line)
+        if fence and not in_comment:
+            fence_char = fence.group(1)[0]
+            fence_len = len(fence.group(1))
+            continue
+        while True:
+            if in_comment:
+                end = line.find("-->")
+                if end < 0:
+                    line = ""
+                    break
+                line = line[end + 3:]
+                in_comment = False
+            start = line.find("<!--")
+            if start < 0:
+                break
+            end = line.find("-->", start + 4)
+            if end < 0:
+                line = line[:start]
+                in_comment = True
+                break
+            line = line[:start] + line[end + 3:]
+        if in_comment:
+            continue
         match = pattern.match(line)
         if match:
-            rows.append(int(match.group(1)))
+            rows.append({
+                "number": int(match.group(1)),
+                "merged_at": match.group(2).strip(),
+                "merge_sha": match.group(3).lower(),
+            })
     return rows
+
+
+def parse_ledger(path: Path) -> list[dict]:
+    return parse_ledger_text(path.read_bytes().decode("utf-8"))
+
+
+def normalize_timestamp(value: str) -> str:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def ledger_matches(merged: dict[int, tuple[str, str]], ledger_rows: list[dict]) -> bool:
+    ledger_by_number = {}
+    for row in ledger_rows:
+        number = int(row["number"])
+        if number in ledger_by_number:
+            return False
+        try:
+            merged_at = normalize_timestamp(str(row["merged_at"]))
+        except (TypeError, ValueError):
+            return False
+        ledger_by_number[number] = (merged_at, str(row["merge_sha"]).lower())
+    merged_by_number = {}
+    for number, facts in merged.items():
+        try:
+            merged_by_number[int(number)] = (normalize_timestamp(str(facts[0])), str(facts[1]).lower())
+        except (TypeError, ValueError, IndexError):
+            return False
+    return ledger_by_number == merged_by_number
 
 
 def readback(args: argparse.Namespace) -> int:
@@ -421,15 +531,25 @@ def readback(args: argparse.Namespace) -> int:
         local_names = set(changed_paths(base, head))
         if api_names != local_names:
             raise ReadbackMismatch(f"PR changed files 与本地 diff 不一致：API={sorted(api_names)} local={sorted(local_names)}")
-        merged = paged_api(f"{root}/pulls?state=closed", token)
-        merged_numbers = {int(x["number"]) for x in merged if x.get("merged_at")}
+        merged_prs = paged_api(f"{root}/pulls?state=closed&base=main", token)
+        merged = {
+            int(x["number"]): (str(x.get("merged_at", "")), str(x.get("merge_commit_sha", "")))
+            for x in merged_prs if x.get("merged_at")
+        }
         ledger_rows = parse_ledger(ROOT / "docs/agent-ops/review-ledger.md")
-        ledger_numbers = set(ledger_rows)
-        if not ledger_matches(merged_numbers, ledger_rows):
+        ledger_by_number = {int(x["number"]): x for x in ledger_rows}
+        if not ledger_matches(merged, ledger_rows):
+            merged_numbers = set(merged)
+            ledger_numbers = set(ledger_by_number)
+            mismatched = sorted(
+                n for n in merged_numbers & ledger_numbers
+                if normalize_timestamp(merged[n][0]) != normalize_timestamp(ledger_by_number[n]["merged_at"])
+                or merged[n][1].lower() != ledger_by_number[n]["merge_sha"].lower()
+            )
             raise ReadbackMismatch(
-                f"审查台账不一致：merged={len(merged_numbers)} ledger_rows={len(ledger_rows)} "
-                f"ledger_unique={len(ledger_numbers)} missing={sorted(merged_numbers-ledger_numbers)} "
-                f"extra={sorted(ledger_numbers-merged_numbers)}"
+                f"审查台账不一致（base=main）：merged={len(merged)} ledger_rows={len(ledger_rows)} "
+                f"missing={sorted(merged_numbers-ledger_numbers)} extra={sorted(ledger_numbers-merged_numbers)} "
+                f"sha_or_merged_at_mismatch={mismatched}"
             )
         changed_lines = sum(int(x.get("additions", 0)) + int(x.get("deletions", 0)) for x in files)
         diff_text = git("diff", "--unified=0", f"{base}...{head}")
@@ -443,11 +563,12 @@ def readback(args: argparse.Namespace) -> int:
                 "additions": int(x.get("additions", 0)), "deletions": int(x.get("deletions", 0))
             } for x in files], key=lambda x: str(x["filename"])),
             "changed_lines": changed_lines, "review_level": level,
-            "merged_pr_count": len(merged_numbers), "review_ledger_count": len(ledger_rows),
+            "merged_pr_count": len(merged), "review_ledger_count": len(ledger_rows),
             "review_ledger_matches": True,
+            "gate_self_modified": touches_gate_self(files),
         }
         write_json(args.output, payload)
-        print(f"github_readback: PASS; PR=#{number}; level={level}; merged={len(merged_numbers)}; ledger={len(ledger_numbers)}")
+        print(f"github_readback: PASS; PR=#{number}; level={level}; merged={len(merged_numbers)}; ledger={len(ledger_rows)}")
         return 0
     except ReadbackMismatch as exc:
         write_json(args.output, {"status": "FAIL", "reason": str(exc)})
@@ -461,29 +582,97 @@ def readback(args: argparse.Namespace) -> int:
         return 0
 
 
+def init_test_repo(root: Path) -> None:
+    subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.email", "gate-test@example.invalid"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.name", "Gate Self Test"], cwd=root, check=True)
+
+
+def test_format_check_real_file() -> bool:
+    with tempfile.TemporaryDirectory(prefix="lapis-gate-format-") as directory:
+        repo = Path(directory)
+        init_test_repo(repo)
+        target = repo / "mixed.txt"
+        target.write_bytes(b"alpha\nbeta\n")
+        git_at(repo, "add", "mixed.txt")
+        git_at(repo, "commit", "--quiet", "-m", "baseline")
+        base = git_at(repo, "rev-parse", "HEAD").strip()
+        target.write_bytes(b"alpha\r\nbeta\n")
+        output = io.StringIO()
+        with redirect_stdout(output):
+            result = format_check(root=repo, base=base, head="HEAD")
+        captured = output.getvalue()
+        return result == 1 and "mixed.txt" in captured and "文件混用了 CRLF 与 LF 换行" in captured and "line=1" in captured
+
+
+def test_secret_scan_commit_history() -> bool:
+    with tempfile.TemporaryDirectory(prefix="lapis-gate-secret-") as directory:
+        repo = Path(directory)
+        init_test_repo(repo)
+        target = repo / "credentials.env"
+        target.write_text("MODE=test\n", encoding="utf-8")
+        git_at(repo, "add", "credentials.env")
+        git_at(repo, "commit", "--quiet", "-m", "baseline")
+        base = git_at(repo, "rev-parse", "HEAD").strip()
+        target.write_text("MODE=test\nAPI_KEY=synthetic-test-secret-value-12345\n", encoding="utf-8")
+        git_at(repo, "add", "credentials.env")
+        git_at(repo, "commit", "--quiet", "-m", "add temporary test credential")
+        target.write_text("MODE=test\n", encoding="utf-8")
+        git_at(repo, "add", "credentials.env")
+        git_at(repo, "commit", "--quiet", "-m", "remove temporary test credential")
+        output = io.StringIO()
+        with redirect_stdout(output):
+            result = secret_scan(root=repo, base=base, head="HEAD")
+        return result == 1 and "credentials.env" in output.getvalue() and "line=2" in output.getvalue()
+
+
 def reverse_tests() -> int:
+    sha_a = "a" * 40
+    sha_b = "b" * 40
+    timestamp = "2026-11-07T10:18:04Z"
+    ledger_sample = "\n".join([
+        f"| #1 | {timestamp} | {sha_a} | historical |",
+        "<!--",
+        f"| #2 | {timestamp} | {sha_b} | commented example |",
+        "-->",
+        "\x60\x60\x60md",
+        f"| #3 | {timestamp} | {sha_b} | fenced example |",
+        "\x60\x60\x60",
+    ])
+    parsed_ledger = parse_ledger_text(ledger_sample)
+    bot_comment = {"id": 2, "user": {"login": "github-actions[bot]"}, "body": "<!-- agent-ops-gate -->"}
+    human_comment = {"id": 1, "user": {"login": "reviewer"}, "body": "<!-- agent-ops-gate -->"}
+    secret_samples = (
+        "AKIA" + "A" * 16,
+        "-----BEGIN PGP PRIVATE KEY BLOCK-----",
+        "-----BEGIN ENCRYPTED PRIVATE KEY-----",
+        "-----BEGIN DSA PRIVATE KEY-----",
+        "API_KEY=synthetic-test-secret-value-12345",
+    )
     tests = [
         ("1 单元测试失败的 PR 返回阻断退出码", combine_statuses("failure", "success") == "FAIL" and final_exit_code("FAIL") == 1),
-        ("2 模拟密钥被扫描", detect_secret("AKIA" + "A" * 16)),
-        ("3 格式错误与混合换行被拦截",
-         bool(format_issues("bad line  \n")) and bool(newline_issues("first\r\nsecond\n"))),
+        ("2 PGP/ENCRYPTED/DSA/无引号凭据及逐提交扫描均拦截", all(detect_secret(value) for value in secret_samples) and test_secret_scan_commit_history()),
+        ("3 真实文件 format_check 检出混合换行并输出行号", test_format_check_real_file()),
         ("4 全通过时放行并正确分为绿灯",
          overall_status(["PASS"] * 8) == "PASS" and final_exit_code("PASS") == 0 and
          classify_review([{"filename": "docs/agent-ops/example.md", "status": "modified"}], 10) == "green" and
          review_decision("green", "PASS", blind_review="passed", manager_review="not_selected")["merge_allowed"]),
         ("5 超时明确归为失败", normalize_status("timed_out") == "FAIL" and final_exit_code("FAIL") == 1),
         ("6 CI/API 不可用显示未知且不放行", normalize_status(None) == "UNKNOWN" and status_label("UNKNOWN") == "门禁未知" and final_exit_code("UNKNOWN") == 1),
-        ("7 钱/删除变更归红灯且缺少 Opus 不得合并",
+        ("7 钱/删除/门禁自身变更归红灯且缺少 Opus 不得合并",
          classify_review([{"filename": "web/src/player-state.ts", "status": "modified"}], 4, "+player.gold += 20") == "red" and
          classify_review([{"filename": "web/data/catalog.json", "status": "removed"}], 10) == "red" and
+         classify_review([{"filename": ".github/workflows/web-ci.yml", "status": "modified"}], 10) == "red" and
+         classify_review([{"filename": "tools/gate/check_gate.py", "status": "modified"}], 10) == "red" and
          not review_decision("red", "PASS", opus_review="missing", manager_review="approved")["merge_allowed"]),
-        ("8 绿灯缺少子代理盲审不得标记已审查",
-         not review_decision("green", "PASS", manager_review="not_selected")["reviewed"]),
-        ("9 台账 PR 集合/行数与合并 PR 集合一致性校验",
-         ledger_matches({1, 2, 3}, [1, 2, 3]) and
-         not ledger_matches({1, 2, 3}, [1, 2, 2, 3]) and
-         not ledger_matches({1, 2}, [1, 2, 3]) and
-         not review_decision("unknown", "PASS", blind_review="passed", manager_review="approved")["merge_allowed"]),
+        ("8 绿灯缺少子代理盲审不得标记已审查，且只更新 Actions bot 评论",
+         not review_decision("green", "PASS", manager_review="not_selected")["reviewed"] and
+         find_bot_comment([human_comment, bot_comment]) == bot_comment),
+        ("9 台账忽略代码块/HTML 注释并逐项核对 PR/SHA/merged_at",
+         len(parsed_ledger) == 1 and parsed_ledger[0]["number"] == 1 and
+         ledger_matches({1: (timestamp + ".000Z", sha_a)}, parsed_ledger) and
+         not ledger_matches({1: (timestamp, sha_b)}, parsed_ledger) and
+         not ledger_matches({1: (timestamp, sha_a), 2: (timestamp, sha_b)}, parsed_ledger)),
     ]
     failed = 0
     for name, passed in tests:
@@ -491,6 +680,8 @@ def reverse_tests() -> int:
         failed += int(not passed)
     print(f"reverse_tests: {len(tests)-failed}/{len(tests)} passed")
     return int(failed > 0)
+
+
 
 
 def local_file_rows() -> list[dict]:
@@ -548,7 +739,12 @@ def summarize(args: argparse.Namespace) -> int:
     elif artifact != "PASS" and overall == "PASS":
         overall = "UNKNOWN"
     rows = readback_data.get("changed_files") or local_file_rows()
+    gate_self_modified = bool(readback_data.get("gate_self_modified")) or touches_gate_self(rows)
     level = readback_data.get("review_level", "未判定")
+    if gate_self_modified:
+        level = "red"
+        if overall == "PASS":
+            overall = "UNKNOWN"
     base_sha = readback_data.get("base_sha") or os.environ.get("GATE_BASE_SHA", "")
     head_sha = readback_data.get("head_sha") or os.environ.get("GATE_HEAD_SHA", "")
     lines = [
@@ -569,6 +765,8 @@ def summarize(args: argparse.Namespace) -> int:
             lines.append(f"- {item.get('filename')}（{item.get('status')}，+{item.get('additions', 0)} / -{item.get('deletions', 0)}）")
     else:
         lines.append("- 无法取得改动清单；按门禁未知处理。")
+    if gate_self_modified:
+        lines += ["", "**可信度警告：** 本 PR 修改了门禁自身，结果不可信；不得仅凭本次门禁结果放行。"]
     if level == "red":
         lines += ["", "**审查路径：** 红灯；须先取得 Opus 盲审，再由总管作最终决定。在此之前不得合并。"]
     elif level == "yellow":
@@ -582,7 +780,7 @@ def summarize(args: argparse.Namespace) -> int:
     write_json(args.json_output, {
         "overall": overall, "gates": {key: status for _, status, key in gates},
         "reverse_tests": reverse, "evidence_upload": artifact, "review_level": level,
-        "changed_files": rows, "readback": readback_data,
+        "gate_self_modified": gate_self_modified, "changed_files": rows, "readback": readback_data,
     })
     step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if step_summary:
@@ -598,6 +796,14 @@ def summarize(args: argparse.Namespace) -> int:
     return 0
 
 
+def find_bot_comment(comments: list[dict], marker: str = "<!-- agent-ops-gate -->") -> dict | None:
+    return next((
+        item for item in comments
+        if (item.get("user") or {}).get("login") == "github-actions[bot]"
+        and marker in str(item.get("body", ""))
+    ), None)
+
+
 def post_comment(args: argparse.Namespace) -> int:
     token = os.environ.get("GITHUB_TOKEN", "")
     repo = os.environ.get("GITHUB_REPOSITORY", "")
@@ -611,7 +817,7 @@ def post_comment(args: argparse.Namespace) -> int:
     try:
         root = f"https://api.github.com/repos/{repo}"
         comments = paged_api(f"{root}/issues/{number}/comments", token)
-        existing = next((x for x in comments if marker in str(x.get("body", ""))), None)
+        existing = find_bot_comment(comments, marker)
         if existing:
             result = api_json(f"{root}/issues/comments/{existing['id']}", token, {"body": body}, "PATCH")
             action = "updated"
