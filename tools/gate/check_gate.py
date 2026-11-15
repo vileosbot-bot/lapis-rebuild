@@ -558,8 +558,8 @@ def summarize(args: argparse.Namespace) -> int:
     for title, status, _ in gates:
         lines.append(f"| {title} | {status_label(status)} |")
     lines += [
-        f"| 九项反向测试 | {labels.get(reverse, '门禁未知')} |",
-        f"| 验证产物上传 | {labels.get(artifact, '门禁未知')} |",
+        f"| 九项反向测试 | {status_label(reverse)} |",
+        f"| 验证产物上传 | {status_label(artifact)} |",
         "", f"**审查等级：** {level}", "", "**改动清单：**",
     ]
     if is_pr:
@@ -591,7 +591,7 @@ def summarize(args: argparse.Namespace) -> int:
     for title, status, key in gates:
         if status in {"FAIL", "UNKNOWN"}:
             path, line = FALLBACKS[key]
-            annotation(path, line, f"{title}：{labels.get(status, '门禁未知')}；查看对应日志/读回证据")
+            annotation(path, line, f"{title}：{status_label(status)}；查看对应日志/读回证据")
     if reverse != "PASS":
         annotation("tools/gate/check_gate.py", 1, "九项反向测试未通过或未执行")
     print(f"gate_summary: {overall}")
@@ -649,8 +649,7 @@ def finalize(args: argparse.Namespace) -> int:
         comment = read_json(args.comment_json, {})
         if str(comment.get("status", "UNKNOWN")).upper() != "PASS" and overall == "PASS":
             overall = "UNKNOWN"
-    labels = {"PASS": "通过", "FAIL": "未通过", "UNKNOWN": "门禁未知"}
-    message = f"最终门禁状态：{labels.get(overall, '门禁未知')}。"
+    message = f"最终门禁状态：{status_label(overall)}。"
     step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if step_summary:
         with open(step_summary, "a", encoding="utf-8") as handle:
