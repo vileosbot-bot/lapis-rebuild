@@ -59,3 +59,9 @@ Git commit SHA 由提交内容决定。登记表不能在同一提交内写入�
 - 若 GitHub HEAD 是登记表单文件的直接子提交，须先确认父提交与唯一 changed file，再按 `head_sha_policy` 处理；不得把未经核实的 SHA 写入登记表。
 - 若登记表 seed 已知过期，`head_sha_verified_at` 必须为 `null`，并记录待刷新原因；不得让旧 SHA 看起来像刚刚核验通过。
 - P0-1 为总管明确指定的本轮例外：当前 seed SHA 暂不更新；待 P0-1 验收完成后，由总管另行通知刷新。此前保持 `head_sha_verified_at=null` 并保留实际观察到的较新 SHA 作为备注，不将其冒充为登记 seed。
+
+## 已知限制（M6：声明式文件冲突检查）
+
+当前并发冲突检查只比较活跃任务在登记表中声明的 `write_files` 路径交集，不会在每次检查时把这些声明与 Git 实际 changed files、PR changed files 做交叉核对。因此，若任务漏报某个实际写入文件，登记阶段可能漏掉共享文件冲突。
+
+未登记代码提交会在后续 HEAD 核对时被 `HEAD_MISMATCH` 兜底发现，但这是提交后的检测，不能替代提交前的文件范围核对。该限制本轮按总管裁决保留，不阻挡本次验收；后续加固方向是在 CP2/PR 检查时将 `write_files` 与 GitHub 实际 changed files 比较，并在不一致时阻止进入审查状态。
