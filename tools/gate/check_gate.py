@@ -678,7 +678,7 @@ def reverse_tests() -> int:
          find_bot_comment([human_comment, bot_comment]) == bot_comment),
         ("9 台账忽略代码块/HTML 注释并逐项核对 PR/SHA/merged_at",
          len(parsed_ledger) == 1 and parsed_ledger[0]["number"] == 1 and
-         ledger_matches({1: (timestamp + ".000Z", sha_a)}, parsed_ledger) and
+         ledger_matches({1: (timestamp.replace("Z", ".000Z"), sha_a)}, parsed_ledger) and
          not ledger_matches({1: (timestamp, sha_b)}, parsed_ledger) and
          not ledger_matches({1: (timestamp, sha_a), 2: (timestamp, sha_b)}, parsed_ledger)),
     ]
