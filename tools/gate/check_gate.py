@@ -568,7 +568,7 @@ def readback(args: argparse.Namespace) -> int:
             "gate_self_modified": touches_gate_self(files),
         }
         write_json(args.output, payload)
-        print(f"github_readback: PASS; PR=#{number}; level={level}; merged={len(merged_numbers)}; ledger={len(ledger_rows)}")
+        print(f"github_readback: PASS; PR=#{number}; level={level}; merged={len(merged)}; ledger={len(ledger_rows)}")
         return 0
     except ReadbackMismatch as exc:
         write_json(args.output, {"status": "FAIL", "reason": str(exc)})
