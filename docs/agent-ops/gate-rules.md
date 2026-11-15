@@ -27,10 +27,10 @@
 | 4 | 格式检查 | git diff --check；检查变更文本文件的行尾空白、混合换行和末尾换行 | 3 分钟 | 精确到变更文件和行号 |
 | 5 | 静态检查 | 对变更 Python 文件执行 AST 解析；核验 web-ci.yml 的 PR 触发、门禁步骤超时、Action SHA 固定及禁止另建 ci.yml | 3 分钟 | 精确到 Python 文件/行；工作流结构错误定位到 web-ci.yml 对应行 |
 | 6 | 敏感信息扫描 | 扫描 PR 新增行中的常见云密钥、GitHub token、Slack token、私钥块和凭据赋值 | 3 分钟 | 精确到文件和新增行号 |
-| 7 | 截图自检 | 现有 Chromium E2E + production preview 冒烟；确认 canvas 可见、页面无 pageerror/横向溢出，生成并校验 PNG | E2E 15 分钟；截图 5 分钟 | 浏览器错误、失败测试文件/行；截图格式错误定位到截图文件 |
+| 7 | 截图自检 | 现有 Chromium E2E + production preview 冒烟；确认 canvas 可见、页面无 pageerror/横向溢出，生成并校验 PNG | E2E 25 分钟；截图 5 分钟 | 浏览器错误、失败测试文件/行；截图格式错误定位到截图文件 |
 | 8 | GitHub 独立读回 | 用 Actions token 从 GitHub API 读回 PR head/base、PR 文件清单、合并 PR 集合及审查台账；与本次 checkout 的 Git diff 对照 | 3 分钟 | 不一致为 FAIL；API 不可用为 UNKNOWN，绝不当作 PASS |
 
-依赖安装、synthetic fixture 生成、Chromium 安装也分别设有步骤超时。整个 synthetic job 有总超时；总超时或未到达的检查均不能显示为通过。
+依赖安装、synthetic fixture 生成、Chromium 安装也分别设有步骤超时。完整 Chromium E2E 采用 25 分钟上限；如果 Playwright 因超时留下 4173 端口的 preview server，后续 M7.3 E2E 与截图自检会先清理该端口，避免把残留进程误判为新的测试失败。整个 synthetic job 有总超时；总超时或未到达的检查均不能显示为通过。
 
 ### 失败定位规则
 

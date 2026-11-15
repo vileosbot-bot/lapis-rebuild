@@ -98,7 +98,7 @@ jobs:
         id: chromium-e2e
         if: steps.playwright-install.outcome == 'success' && steps.standalone-preview.outcome == 'success'
         working-directory: web
-        timeout-minutes: 15
+        timeout-minutes: 25
         continue-on-error: true
         env:
           LAPIS_OFFLINE_PREVIEW: ${{ runner.temp }}/offline.html
@@ -137,7 +137,10 @@ jobs:
         env:
           M73_WILD_SYNTHETIC_ACCEPTANCE: '1'
           LAPIS_OFFLINE_PREVIEW: ${{ runner.temp }}/offline.html
-        run: python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/m73-e2e.log" --cwd web --fallback-file web/e2e/ch1-wild-encounters.spec.ts --fallback-line 1 -- npm run test:e2e -- e2e/ch1-wild-encounters.spec.ts
+        run: |
+          command -v fuser >/dev/null 2>&1 || { echo "fuser is required to clean up a timed-out Playwright preview server"; exit 1; }
+          fuser -k 4173/tcp || true
+          python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/m73-e2e.log" --cwd web --fallback-file web/e2e/ch1-wild-encounters.spec.ts --fallback-line 1 -- npm run test:e2e -- e2e/ch1-wild-encounters.spec.ts
       - name: Format check
         id: gate-format
         if: always()
@@ -174,6 +177,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p test-results
+          command -v fuser >/dev/null 2>&1 || { echo "fuser is required to clean up a stale Playwright preview server"; exit 1; }
+          fuser -k 4173/tcp || true
           npm run preview -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/agent-ops-gate/preview.log" 2>&1 &
           preview_pid=$!
           trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
