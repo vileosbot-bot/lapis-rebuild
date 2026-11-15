@@ -36,10 +36,10 @@ class ReadbackMismatch(ValueError):
 APPROVED_HISTORICAL_FIXTURE_COMMIT = "e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9"
 APPROVED_HISTORICAL_FIXTURE_PATH = "tools/gate/check_gate.py"
 APPROVED_HISTORICAL_FIXTURE_LINE_SHA256 = frozenset({
-    "dc1668e57aa2c6fe5327254bc73d21543d2580303f3933eedd944ec46d331429",
-    "02f58620bbca5af6179609332567aed3984c83d5f29b0b1b1cb6a777ee7c3e6c",
-    "2fd2afdff79dc195f154f14e10c9a9db88750a09fcc9e1ae0aeaefd87f3750ad",
-    "108d5bc5dec2be87c33b95d6cbd501b0dad945c3f1874515057ea1075cea0d67",
+    "5d6cafd9fab07bba7cbfa902b98be73cd39bfce06744ad061430fa3d60602d2d",
+    "711cdba565595a5d729491c66cc161f6d20a738d35eca4edd5456fd35d586cc5",
+    "c81fde293f565bf94149a6f9b95e2b47696f41cc33a5a19cae17a9eb9a94dad9",
+    "5ec4f78707ca2f0c24718d26335ed2517e1c3f2d0311446b010f347d71c59c4b",
 })
 
 
@@ -697,10 +697,10 @@ def test_historical_exception_scope() -> bool:
         "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345"),
     ]
     patch_lines = [
-        "    '" + '"' + samples[0] + '",' + "'",
-        "    '" + '"' + samples[1] + '",' + "'",
-        "    '" + '"' + samples[2] + '",' + "'",
-        "    '" + '"' + samples[3] + '",' + "'",
+        "    '" + '"' + samples[0] + '",' + "',",
+        "    '" + '"' + samples[1] + '",' + "',",
+        "    '" + '"' + samples[2] + '",' + "',",
+        "    '" + '"' + samples[3] + '",' + "',",
     ]
     exact_sha = APPROVED_HISTORICAL_FIXTURE_COMMIT
     other_sha = "f" * 40
