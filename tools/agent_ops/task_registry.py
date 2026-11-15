@@ -255,8 +255,6 @@ def validate_transition(task: dict[str, Any], target: str, *, release=False, res
             raise RegistryError("; ".join(errors))
         if task["checkpoints"]["CP2"].get("tests_passed") is not True:
             raise RegistryError("test gate failed")
-        if task["checkpoints"]["CP3"].get("ci_status") != "success":
-            raise RegistryError("CI gate is not success")
         if not task.get("pull_request_url"):
             raise RegistryError("PR URL required")
     elif current == "awaiting_review" and target == "in_progress" and not changes_requested:
@@ -284,6 +282,8 @@ def validate_transition(task: dict[str, Any], target: str, *, release=False, res
             raise RegistryError("CP0-CP3 required before completion")
         if task.get("acceptance_status") != "accepted":
             raise RegistryError("acceptance_status must be accepted")
+        if task.get("checkpoints", {}).get("CP3", {}).get("ci_status") != "success":
+            raise RegistryError("cannot complete while CP3 CI status is not success")
 
 
 def find_task(data: dict[str, Any], request_id: str) -> dict[str, Any]:
@@ -451,11 +451,10 @@ def command_checkpoint(args):
         if errors:
             raise RegistryError("; ".join(errors))
         task["pull_request_url"] = payload["pull_request_url"]
-        if payload["ci_status"] == "success":
-            validate_transition(task, "awaiting_review")
-            task["status"] = "awaiting_review"
-        else:
-            print(f"CP3_RECORDED: ci_status={payload['ci_status']}; remains in_progress")
+        validate_transition(task, "awaiting_review")
+        task["status"] = "awaiting_review"
+        if payload["ci_status"] != "success":
+            print(f"CI_NOT_PASS: awaiting_review recorded with ci_status={payload['ci_status']}; not marked success")
     else:
         raise RegistryError("checkpoint must be CP0, CP1, CP2 or CP3")
 
@@ -604,11 +603,14 @@ def command_self_test(_args):
             "CP3": {"completed": True, "pull_request_url": "https://github.com/o/r/pull/1", "ci_status": "failure", "pending_todos": ["fix CI"]},
         }
         a["pull_request_url"] = "https://github.com/o/r/pull/1"
+        validate_transition(a, "awaiting_review")
+        a["status"] = "awaiting_review"
+        a["acceptance_status"] = "accepted"
         try:
-            validate_transition(a, "awaiting_review")
+            validate_transition(a, "completed", accepted_by="manager")
         except RegistryError:
             return
-        raise AssertionError("CI failure entered awaiting_review")
+        raise AssertionError("CI failure was allowed to complete")
 
     def registry_only():
         assert compare_head("1" * 40, "2" * 40, "1" * 40, [REGISTRY_REL]) == "REGISTRY_ONLY"
@@ -634,7 +636,7 @@ def command_self_test(_args):
         ("recovery emits URL and SHA", recovery),
         ("same-branch concurrent write blocked", same_branch),
         ("unaccepted task cannot complete", unaccepted),
-        ("CI failure cannot enter awaiting_review", ci_failure),
+        ("CI failure is recorded honestly and cannot complete", ci_failure),
         ("registry-only metadata commit recognized", registry_only),
         ("uncompleted dependency blocks start", dependency_blocked),
         ("dead-letter requires exceeded budget evidence", dead_letter_guard),
