@@ -1,192 +1,269 @@
-schema_version: 1
-project: "佣兵传说单机"
-registry_repository: "vileosbot-bot/lapis-rebuild"
-parallel_limit: 10
-active_statuses:
-  - in_progress
-  - awaiting_review
-non_active_statuses:
-  - created
-  - dispatched
-  - blocked
-  - paused
-  - completed
-  - cancelled
-  - failed
-  - dead_letter
-head_sha_policy: >-
-  head_sha 是最近一次被检查点确认的任务代码 HEAD。登记表自身的纯登记提交不写入自身 SHA；
-  检查器允许当前分支 HEAD 是 head_sha 的直接子提交，且该提交唯一变更文件为
-  docs/agent-ops/task-registry.yml。其他未登记提交或 HEAD 不一致必须告警，不得自动修复。
-tasks:
-  - task_key: "P0-1"
-    request_id: "agent-7x24-p01-gate-20261116-01"
-    task_name: "P0-1 门禁"
-    conversation_url: "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6af9f1ee-cb44-83e9-b2f2-caf567e2c87b"
-    workspace: "0718 (EN) Business"
-    model: "GPT-6"
-    mode: "Chat"
-    repository: "vileosbot-bot/lapis-rebuild"
-    branch: "feat/agent-ops-gate-20261116"
-    base_sha: "5fbf1679367142b358b8d6ac3a0f288dc33d24b2"
-    head_sha: "2041c630ba7d0f858d7bbc78e6071ce171751e22"
-    status: "awaiting_review"
-    progress: "PR #20 保持 Open、未合并；返工中，门禁 FAIL 待查，Opus 再审待定。GitHub 实际读回的 PR head/base 与登记值一致。"
-    next_action: "核查门禁 FAIL 根因，取得 Opus 再审结论，等待总管裁决。"
-    deadline: null
-    risk_level: "high"
-    approval_required: true
-    approval_status: "granted"
-    last_updated: "2026-11-16"
-    cost_budget:
-      max_rounds: null
-      timeout_minutes: null
-      cost_record: []
-    conflict_group: "agent-ops"
-    shared_files: []
-    depends_on: []
-    blocked_by: []
-    pull_request_url: "https://github.com/vileosbot-bot/lapis-rebuild/pull/20"
-    checkpoints:
-      CP0:
-        completed: true
-        conversation_url: "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6af9f1ee-cb44-83e9-b2f2-caf567e2c87b"
-        branch: "feat/agent-ops-gate-20261116"
-        base_sha: "5fbf1679367142b358b8d6ac3a0f288dc33d24b2"
-    notes:
-      - "PR #20 实际读回：Open、未合并，head 2041c630ba7d0f858d7bbc78e6071ce171751e22，base main@5fbf1679367142b358b8d6ac3a0f288dc33d24b2。"
-      - "PR #20 六个文件：.github/workflows/web-ci.yml、docs/agent-ops/blind-review.md、docs/agent-ops/gate-rules.md、docs/agent-ops/review-ladder.md、docs/agent-ops/review-ledger.md、tools/gate/check_gate.py。"
-  - task_key: "P0-2"
-    request_id: "agent-7x24-p02-memory-20261116-01"
-    task_name: "P0-2 记忆库"
-    conversation_url: "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6af9f1ec-c3ec-83ea-bfbe-faf881bfb8f7"
-    workspace: "0718 (EN) Business"
-    model: "GPT-6"
-    mode: "Chat"
-    repository: "vileosbot-bot/agent-memory"
-    branch: "main"
-    base_sha: ""
-    base_sha_note: "新库建库，首批提交无父提交"
-    head_sha: "7627ef30d3011ad9634d11564ad88a7b1de68435"
-    status: "completed"
-    progress: "总管已验收；私有记忆库已建立并完成首批文件提交。GitHub 实际读回 main HEAD 与登记值一致。"
-    next_action: "无；已完成。"
-    deadline: null
-    risk_level: "medium"
-    approval_required: true
-    approval_status: "granted"
-    last_updated: "2026-11-16"
-    cost_budget:
-      max_rounds: null
-      timeout_minutes: null
-      cost_record: []
-    conflict_group: null
-    shared_files: []
-    depends_on: []
-    blocked_by: []
-    pull_request_url: null
-    checkpoints: {}
-    notes:
-      - "GitHub 实际读回 main HEAD：7627ef30d3011ad9634d11564ad88a7b1de68435。"
-      - "GitHub 实际读回首次 README 提交 9e08afcc3ce674888b27e7a96c79b452e1dc99b5 的 parents=[]，确认首批提交起点无父提交，因此 base_sha 留空。"
-  - task_key: "P0-3"
-    request_id: "agent-7x24-p03-registry-20261117-01"
-    task_name: "P0-3 登记表"
-    conversation_url: "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6afa2e8c-b3e8-83ea-9f82-f5196afa3ed4"
-    workspace: "0718 (EN) Business"
-    model: "GPT-6"
-    mode: "Chat"
-    repository: "vileosbot-bot/lapis-rebuild"
-    branch: "feat/agent-ops-registry-20261117"
-    base_sha: "5fbf1679367142b358b8d6ac3a0f288dc33d24b2"
-    head_sha: "5fbf1679367142b358b8d6ac3a0f288dc33d24b2"
-    status: "dispatched"
-    progress: "CP0 完成：真实对话链接、分支和基线 SHA 已核实并记录；CP1 尚未开始。"
-    next_action: "进入 CP1：记录授权范围和计划步骤，创建其余五项交付物。"
-    deadline: "2026-11-17T12:00:00+08:00"
-    risk_level: "high"
-    approval_required: true
-    approval_status: "granted"
-    last_updated: "2026-11-16"
-    cost_budget:
-      max_rounds: null
-      timeout_minutes: null
-      cost_record: []
-    conflict_group: "agent-ops"
-    shared_files: []
-    depends_on: []
-    blocked_by: []
-    pull_request_url: null
-    checkpoints:
-      CP0:
-        completed: true
-        conversation_url: "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6afa2e8c-b3e8-83ea-9f82-f5196afa3ed4"
-        branch: "feat/agent-ops-registry-20261117"
-        base_sha: "5fbf1679367142b358b8d6ac3a0f288dc33d24b2"
-        head_sha_at_checkpoint: "5fbf1679367142b358b8d6ac3a0f288dc33d24b2"
-        source: "用户在本对话明确提供真实链接；分支与 SHA 由 GitHub 实际读回。"
-    notes:
-      - "CP0 与 dispatched 同时完成；三项必填值在状态转换前齐全。"
-      - "PR #20 的六个实际改动路径与本任务六个目标路径不重名；同属 docs/agent-ops 目录不构成同文件冲突。"
-  - task_key: "P1-4"
-    request_id: "待派活时填"
-    task_name: "P1-4 成本上限"
-    conversation_url: null
-    workspace: null
-    model: null
-    mode: null
-    repository: null
-    branch: null
-    base_sha: null
-    head_sha: null
-    status: "created"
-    progress: "已登记待派活；尚未派出。"
-    next_action: "周三由总管派活时补 request-id、真实对话链接、工作空间、模型、仓库、分支和基线。"
-    deadline: null
-    risk_level: "待派活时填"
-    approval_required: true
-    approval_status: "pending"
-    last_updated: "2026-11-16"
-    cost_budget:
-      max_rounds: null
-      timeout_minutes: null
-      cost_record: []
-    conflict_group: null
-    shared_files: []
-    depends_on: []
-    blocked_by: []
-    pull_request_url: null
-    checkpoints: {}
-    notes:
-      - "request-id 按总管指示保留占位值，不参与重复编号检测。"
-  - task_key: "P1-5"
-    request_id: "待派活时填"
-    task_name: "P1-5 巡检"
-    conversation_url: null
-    workspace: null
-    model: null
-    mode: null
-    repository: null
-    branch: null
-    base_sha: null
-    head_sha: null
-    status: "created"
-    progress: "已登记待派活；尚未派出。"
-    next_action: "周三由总管派活时补 request-id、真实对话链接、工作空间、模型、仓库、分支和基线。"
-    deadline: null
-    risk_level: "待派活时填"
-    approval_required: true
-    approval_status: "pending"
-    last_updated: "2026-11-16"
-    cost_budget:
-      max_rounds: null
-      timeout_minutes: null
-      cost_record: []
-    conflict_group: null
-    shared_files: []
-    depends_on: []
-    blocked_by: []
-    pull_request_url: null
-    checkpoints: {}
-    notes:
-      - "request-id 按总管指示保留占位值，不参与重复编号检测。"
+{
+  "schema_version": 1,
+  "project": "佣兵传说单机",
+  "registry_repository": "vileosbot-bot/lapis-rebuild",
+  "parallel_limit": 10,
+  "active_statuses": [
+    "in_progress",
+    "awaiting_review"
+  ],
+  "non_active_statuses": [
+    "created",
+    "dispatched",
+    "blocked",
+    "paused",
+    "completed",
+    "cancelled",
+    "failed",
+    "dead_letter"
+  ],
+  "head_sha_policy": "head_sha 是最近一次被检查点确认的任务代码 HEAD。登记表自身的纯登记提交不写入自身 SHA；检查器允许当前分支 HEAD 是 head_sha 的直接子提交，且该提交唯一变更文件为 docs/agent-ops/task-registry.yml。其他未登记提交或 HEAD 不一致必须告警，不得自动修复。",
+  "tasks": [
+    {
+      "task_key": "P0-1",
+      "request_id": "agent-7x24-p01-gate-20261116-01",
+      "task_name": "P0-1 门禁",
+      "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6af9f1ee-cb44-83e9-b2f2-caf567e2c87b",
+      "workspace": "0718 (EN) Business",
+      "model": "GPT-6",
+      "mode": "Chat",
+      "repository": "vileosbot-bot/lapis-rebuild",
+      "branch": "feat/agent-ops-gate-20261116",
+      "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+      "head_sha": "2041c630ba7d0f858d7bbc78e6071ce171751e22",
+      "status": "awaiting_review",
+      "progress": "PR #20 保持 Open、未合并；返工中，门禁 FAIL 待查，Opus 再审待定。GitHub 实际读回的 PR head/base 与登记值一致。",
+      "next_action": "核查门禁 FAIL 根因，取得 Opus 再审结论，等待总管裁决。",
+      "deadline": null,
+      "risk_level": "high",
+      "approval_required": true,
+      "approval_status": "granted",
+      "last_updated": "2026-11-16",
+      "cost_budget": {
+        "max_rounds": null,
+        "timeout_minutes": null,
+        "cost_record": []
+      },
+      "conflict_group": "agent-ops",
+      "shared_files": [],
+      "write_files": [
+        ".github/workflows/web-ci.yml",
+        "docs/agent-ops/blind-review.md",
+        "docs/agent-ops/gate-rules.md",
+        "docs/agent-ops/review-ladder.md",
+        "docs/agent-ops/review-ledger.md",
+        "tools/gate/check_gate.py"
+      ],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/20",
+      "legacy_import": true,
+      "acceptance_status": "pending",
+      "checkpoints": {
+        "CP0": {
+          "completed": true,
+          "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6af9f1ee-cb44-83e9-b2f2-caf567e2c87b",
+          "branch": "feat/agent-ops-gate-20261116",
+          "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2"
+        }
+      },
+      "notes": [
+        "PR #20 实际读回：Open、未合并，head 2041c630ba7d0f858d7bbc78e6071ce171751e22，base main@5fbf1679367142b358b8d6ac3a0f288dc33d24b2。",
+        "PR #20 六个文件均由 GitHub changed-files 实际读回；本任务不写这些路径。",
+        "历史任务导入；未从旧对话推测或补造缺失检查点。"
+      ]
+    },
+    {
+      "task_key": "P0-2",
+      "request_id": "agent-7x24-p02-memory-20261116-01",
+      "task_name": "P0-2 记忆库",
+      "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6af9f1ec-c3ec-83ea-bfbe-faf881bfb8f7",
+      "workspace": "0718 (EN) Business",
+      "model": "GPT-6",
+      "mode": "Chat",
+      "repository": "vileosbot-bot/agent-memory",
+      "branch": "main",
+      "base_sha": "",
+      "base_sha_note": "新库建库，首批提交无父提交",
+      "head_sha": "7627ef30d3011ad9634d11564ad88a7b1de68435",
+      "status": "completed",
+      "progress": "总管已验收；私有记忆库已建立并完成首批文件提交。GitHub 实际读回 main HEAD 与登记值一致。",
+      "next_action": "无；已完成。",
+      "deadline": null,
+      "risk_level": "medium",
+      "approval_required": true,
+      "approval_status": "granted",
+      "last_updated": "2026-11-16",
+      "cost_budget": {
+        "max_rounds": null,
+        "timeout_minutes": null,
+        "cost_record": []
+      },
+      "conflict_group": null,
+      "shared_files": [],
+      "write_files": [],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": null,
+      "legacy_import": true,
+      "acceptance_status": "accepted",
+      "checkpoints": {},
+      "notes": [
+        "GitHub 实际读回 main HEAD：7627ef30d3011ad9634d11564ad88a7b1de68435。",
+        "GitHub 实际读回首次 README 提交 9e08afcc3ce674888b27e7a96c79b452e1dc99b5 的 parents=[]，确认首批提交起点无父提交，因此 base_sha 留空。",
+        "历史任务导入；总管已验收状态来自用户明确提供，不补造旧检查点细节。"
+      ]
+    },
+    {
+      "task_key": "P0-3",
+      "request_id": "agent-7x24-p03-registry-20261117-01",
+      "task_name": "P0-3 登记表",
+      "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6afa2e8c-b3e8-83ea-9f82-f5196afa3ed4",
+      "workspace": "0718 (EN) Business",
+      "model": "GPT-6",
+      "mode": "Chat",
+      "repository": "vileosbot-bot/lapis-rebuild",
+      "branch": "feat/agent-ops-registry-20261117",
+      "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+      "head_sha": "b2b9d9ca51ac922cd627075b33abf723abbff2aa",
+      "status": "in_progress",
+      "progress": "CP0 完成；CP1 已记录授权范围与实施计划，开始创建剩余五项交付物。",
+      "next_action": "创建状态机、检查点制度、恢复流程、登记检查脚本和历史目录 README；随后执行 CP2 验收。",
+      "deadline": "2026-11-17T12:00:00+08:00",
+      "risk_level": "high",
+      "approval_required": true,
+      "approval_status": "granted",
+      "last_updated": "2026-11-16",
+      "cost_budget": {
+        "max_rounds": null,
+        "timeout_minutes": null,
+        "cost_record": []
+      },
+      "conflict_group": "agent-ops",
+      "shared_files": [],
+      "write_files": [
+        "docs/agent-ops/task-registry.yml",
+        "docs/agent-ops/task-state-machine.md",
+        "docs/agent-ops/checkpoint-rules.md",
+        "docs/agent-ops/recovery-procedure.md",
+        "tools/agent_ops/task_registry.py",
+        "docs/agent-ops/task-history/README"
+      ],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": null,
+      "legacy_import": false,
+      "acceptance_status": "pending",
+      "checkpoints": {
+        "CP0": {
+          "completed": true,
+          "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6afa2e8c-b3e8-83ea-9f82-f5196afa3ed4",
+          "branch": "feat/agent-ops-registry-20261117",
+          "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+          "head_sha_at_checkpoint": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+          "source": "用户在本对话明确提供真实链接；分支与 SHA 由 GitHub 实际读回。"
+        },
+        "CP1": {
+          "completed": true,
+          "recorded_before_artifact_changes": true,
+          "authorization_scope": [
+            "只在 feat/agent-ops-registry-20261117 新建登记表、状态机、检查点、恢复流程、登记检查脚本、历史 README 六项交付物。",
+            "不改 PR #20 分支及其六个文件；不改游戏逻辑、测试用例、测试数据。",
+            "不动投资系统仓库、agent-memory 记忆库和 04:00 备份配置；不写 main、不合并 PR。",
+            "并行活跃上限保持 10；不迁 Docker、不挂 VPS、不购买新平台。"
+          ],
+          "plan_steps": [
+            "实现合法状态转换、审批门禁、并行名额和文件冲突检查。",
+            "实现 CP0-CP3 检查点字段与关键阶段缺失告警。",
+            "实现登记、检查、状态转换和恢复信息生成 CLI；脚本只读写登记数据，不执行代码改动、合并或部署。",
+            "运行九项登记/检查验收和五种中断恢复模拟。",
+            "记录 CP2 的实际提交与测试证据，CP3 只开 PR 并核验检查状态。"
+          ],
+          "release_status": "granted",
+          "release_source": "用户在本对话明确放行。"
+        }
+      },
+      "notes": [
+        "CP0 与 dispatched 同时完成；三项必填值在状态转换前齐全。",
+        "CP1 在任何交付物代码/文档改动前登记，状态由 dispatched 合法转为 in_progress。",
+        "head_sha 记录最后一次已确认的任务代码 HEAD；登记表自更新提交按顶层 head_sha_policy 处理。"
+      ]
+    },
+    {
+      "task_key": "P1-4",
+      "request_id": "待派活时填",
+      "task_name": "P1-4 成本上限",
+      "conversation_url": null,
+      "workspace": null,
+      "model": null,
+      "mode": null,
+      "repository": null,
+      "branch": null,
+      "base_sha": null,
+      "head_sha": null,
+      "status": "created",
+      "progress": "已登记待派活；尚未派出。",
+      "next_action": "周三由总管派活时补 request-id、真实对话链接、工作空间、模型、仓库、分支和基线。",
+      "deadline": null,
+      "risk_level": "待派活时填",
+      "approval_required": true,
+      "approval_status": "pending",
+      "last_updated": "2026-11-16",
+      "cost_budget": {
+        "max_rounds": null,
+        "timeout_minutes": null,
+        "cost_record": []
+      },
+      "conflict_group": null,
+      "shared_files": [],
+      "write_files": [],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": null,
+      "legacy_import": false,
+      "acceptance_status": "pending",
+      "checkpoints": {},
+      "notes": [
+        "request-id 按总管指示保留占位值，不参与重复编号检测。"
+      ]
+    },
+    {
+      "task_key": "P1-5",
+      "request_id": "待派活时填",
+      "task_name": "P1-5 巡检",
+      "conversation_url": null,
+      "workspace": null,
+      "model": null,
+      "mode": null,
+      "repository": null,
+      "branch": null,
+      "base_sha": null,
+      "head_sha": null,
+      "status": "created",
+      "progress": "已登记待派活；尚未派出。",
+      "next_action": "周三由总管派活时补 request-id、真实对话链接、工作空间、模型、仓库、分支和基线。",
+      "deadline": null,
+      "risk_level": "待派活时填",
+      "approval_required": true,
+      "approval_status": "pending",
+      "last_updated": "2026-11-16",
+      "cost_budget": {
+        "max_rounds": null,
+        "timeout_minutes": null,
+        "cost_record": []
+      },
+      "conflict_group": null,
+      "shared_files": [],
+      "write_files": [],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": null,
+      "legacy_import": false,
+      "acceptance_status": "pending",
+      "checkpoints": {},
+      "notes": [
+        "request-id 按总管指示保留占位值，不参与重复编号检测。"
+      ]
+    }
+  ]
+}
