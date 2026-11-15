@@ -16,6 +16,10 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+class ReadbackMismatch(ValueError):
+    """A successful GitHub API read returned facts that contradict the PR event."""
 SECRET_PATTERNS = (
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b"),
@@ -118,7 +122,7 @@ def overall_status(statuses: list[str]) -> str:
 
 def classify_review(files: list[dict], changed_lines: int, diff_text: str = "") -> str:
     red_path = re.compile(
-        r"(^|/)(payments?|billing|wallet|money|finance|deploy|deployment|release|publish|freeze|permissions?|access-control|auth)(/|[-_.]|$)",
+        r"(^|/)(payments?|billing|wallet|money|finance|economy|currency|gold|balance|price|transaction|delete|deletion|removal|deploy|deployment|release|publish|freeze|permissions?|access-control|auth)(/|[-_.]|$)",
         re.IGNORECASE,
     )
     for item in files:
@@ -139,6 +143,8 @@ def review_decision(level: str, gate_status: str, blind_review: str = "missing",
                     opus_review: str = "missing", manager_review: str = "missing") -> dict:
     if gate_status != "PASS":
         return {"reviewed": False, "merge_allowed": False, "reason": "门禁未通过或未知"}
+    if level not in {"green", "yellow", "red"}:
+        return {"reviewed": False, "merge_allowed": False, "reason": "审查等级未知，按高一级阻断"}
     if level == "red":
         passed = opus_review == "passed" and manager_review == "approved"
         return {"reviewed": passed, "merge_allowed": passed, "reason": "红灯需要 Opus 盲审和总管最终批准"}
@@ -148,6 +154,8 @@ def review_decision(level: str, gate_status: str, blind_review: str = "missing",
     passed = blind_review == "passed"
     manager_ok = manager_review in {"not_selected", "sampled_approved", "approved"}
     return {"reviewed": passed, "merge_allowed": passed and manager_ok, "reason": "绿灯必须先完成子代理盲审"}
+
+
 
 
 def ledger_matches(merged: set[int], ledger_rows: list[int]) -> bool:
@@ -254,9 +262,13 @@ def static_check() -> int:
     if workflow_path.exists():
         workflow = workflow_path.read_text(encoding="utf-8")
         required = (
-            "pull_request:", "branches: [main]", "id: gate-format", "id: gate-static",
-            "id: gate-secrets", "id: gate-screenshot", "id: gate-readback",
-            "id: gate-self-test", "id: gate-summary", "id: gate-comment", "id: gate-finalize",
+            "pull_request:", "branches: [main]",
+            "id: parser-unit", "id: deps", "id: typecheck", "id: web-unit", "id: build",
+            "id: playwright-install", "id: standalone-preview", "id: chromium-e2e",
+            "id: s41-e2e", "id: m73-fixture", "id: m73-build", "id: m73-e2e",
+            "id: gate-format", "id: gate-static", "id: gate-secrets", "id: gate-screenshot",
+            "id: gate-readback", "id: gate-self-test", "id: synthetic-artifact",
+            "id: gate-summary", "id: gate-comment", "id: gate-finalize",
         )
         lines = workflow.splitlines()
         for token in required:
@@ -270,19 +282,21 @@ def static_check() -> int:
                 if "@" not in action or not re.fullmatch(r"[0-9a-fA-F]{40}", action.rsplit("@", 1)[-1]):
                     annotation(".github/workflows/web-ci.yml", number, f"Action 未固定到完整 40 位 SHA：{action}")
                     failed = True
-        for step_id in [token.split(": ", 1)[1] for token in required if token.startswith("id: ")]:
+        step_ids = [token.split(": ", 1)[1] for token in required if token.startswith("id: ")]
+        for step_id in step_ids:
             indexes = [i for i, line in enumerate(lines) if line.strip() == f"id: {step_id}"]
-            if indexes:
-                index = indexes[0]
-                start = index
-                while start > 0 and not re.match(r"^\s{6}- ", lines[start]):
-                    start -= 1
-                end = index + 1
-                while end < len(lines) and not re.match(r"^\s{6}- ", lines[end]):
-                    end += 1
-                if not any("timeout-minutes:" in line for line in lines[start:end]):
-                    annotation(".github/workflows/web-ci.yml", index + 1, f"{step_id} 缺少单项超时")
-                    failed = True
+            if not indexes:
+                continue
+            index = indexes[0]
+            start = index
+            while start > 0 and not re.match(r"^\s{6}- ", lines[start]):
+                start -= 1
+            end = index + 1
+            while end < len(lines) and not re.match(r"^\s{6}- ", lines[end]):
+                end += 1
+            if not any("timeout-minutes:" in line for line in lines[start:end]):
+                annotation(".github/workflows/web-ci.yml", index + 1, f"{step_id} 缺少单项超时")
+                failed = True
     if (ROOT / ".github/workflows/ci.yml").exists():
         annotation(".github/workflows/ci.yml", 1, "检测到禁止另建的 ci.yml")
         failed = True
@@ -383,24 +397,24 @@ def readback(args: argparse.Namespace) -> int:
         root = f"https://api.github.com/repos/{repo}"
         pr = api_json(f"{root}/pulls/{number}", token)
         if pr.get("state") != "open" or pr.get("merged"):
-            raise ValueError("PR 不是 open 状态或已经合并")
+            raise ReadbackMismatch("PR 不是 open 状态或已经合并")
         if pr.get("head", {}).get("sha") != head:
-            raise ValueError("GitHub PR head SHA 与事件 head SHA 不一致")
+            raise ReadbackMismatch("GitHub PR head SHA 与事件 head SHA 不一致")
         if pr.get("base", {}).get("sha") != base or pr.get("base", {}).get("ref") != base_ref:
-            raise ValueError("GitHub PR base SHA/ref 与事件不一致")
+            raise ReadbackMismatch("GitHub PR base SHA/ref 与事件不一致")
         if pr.get("head", {}).get("repo", {}).get("full_name") != repo:
-            raise ValueError("PR head repo 不是 bot 目标仓库")
+            raise ReadbackMismatch("PR head repo 不是 bot 目标仓库")
         files = paged_api(f"{root}/pulls/{number}/files", token)
         api_names = {str(x.get("filename")) for x in files}
         local_names = set(changed_paths(base, head))
         if api_names != local_names:
-            raise ValueError(f"PR changed files 与本地 diff 不一致：API={sorted(api_names)} local={sorted(local_names)}")
+            raise ReadbackMismatch(f"PR changed files 与本地 diff 不一致：API={sorted(api_names)} local={sorted(local_names)}")
         merged = paged_api(f"{root}/pulls?state=closed", token)
         merged_numbers = {int(x["number"]) for x in merged if x.get("merged_at")}
         ledger_rows = parse_ledger(ROOT / "docs/agent-ops/review-ledger.md")
         ledger_numbers = set(ledger_rows)
         if not ledger_matches(merged_numbers, ledger_rows):
-            raise ValueError(
+            raise ReadbackMismatch(
                 f"审查台账不一致：merged={len(merged_numbers)} ledger_rows={len(ledger_rows)} "
                 f"ledger_unique={len(ledger_numbers)} missing={sorted(merged_numbers-ledger_numbers)} "
                 f"extra={sorted(ledger_numbers-merged_numbers)}"
@@ -423,12 +437,12 @@ def readback(args: argparse.Namespace) -> int:
         write_json(args.output, payload)
         print(f"github_readback: PASS; PR=#{number}; level={level}; merged={len(merged_numbers)}; ledger={len(ledger_numbers)}")
         return 0
-    except ValueError as exc:
+    except ReadbackMismatch as exc:
         write_json(args.output, {"status": "FAIL", "reason": str(exc)})
         annotation(".github/workflows/web-ci.yml", 1, f"GitHub 独立读回不一致：{exc}")
         print(f"github_readback: FAIL; {exc}")
         return 0
-    except (HTTPError, URLError, TimeoutError, RuntimeError, OSError, json.JSONDecodeError) as exc:
+    except (HTTPError, URLError, TimeoutError, RuntimeError, OSError, json.JSONDecodeError, AttributeError, TypeError) as exc:
         write_json(args.output, {"status": "UNKNOWN", "reason": f"API/读回不可用：{type(exc).__name__}"})
         annotation(".github/workflows/web-ci.yml", 1, "GitHub API 不可用；状态为门禁未知，不得视为通过")
         print(f"github_readback: UNKNOWN; {type(exc).__name__}")
@@ -452,7 +466,8 @@ def reverse_tests() -> int:
         ("9 台账 PR 集合/行数与合并 PR 集合一致性校验",
          ledger_matches({1, 2, 3}, [1, 2, 3]) and
          not ledger_matches({1, 2, 3}, [1, 2, 2, 3]) and
-         not ledger_matches({1, 2}, [1, 2, 3])),
+         not ledger_matches({1, 2}, [1, 2, 3]) and
+         not review_decision("unknown", "PASS", blind_review="passed", manager_review="approved")["merge_allowed"]),
     ]
     failed = 0
     for name, passed in tests:
@@ -483,17 +498,19 @@ def local_file_rows() -> list[dict]:
 def summarize(args: argparse.Namespace) -> int:
     is_pr = os.environ.get("IS_PR", "false").lower() == "true"
     readback_data = read_json(args.readback, {})
-    build = combine_statuses(os.environ.get("GATE_BUILD"), os.environ.get("GATE_M73_BUILD"))
+    dependencies = normalize_status(os.environ.get("GATE_DEPS"))
+    build = combine_statuses(dependencies, os.environ.get("GATE_BUILD"), os.environ.get("GATE_M73_BUILD"))
     screenshot = combine_statuses(
         os.environ.get("GATE_SCREENSHOT"), os.environ.get("GATE_CHROMIUM_E2E"),
         os.environ.get("GATE_M73_E2E"), os.environ.get("GATE_PLAYWRIGHT_INSTALL"),
-        os.environ.get("GATE_STANDALONE_PREVIEW"), os.environ.get("GATE_M73_FIXTURE")
+        os.environ.get("GATE_STANDALONE_PREVIEW"), os.environ.get("GATE_M73_FIXTURE"),
+        os.environ.get("GATE_S41_E2E", "success")
     )
     readback_status = str(readback_data.get("status", "UNKNOWN")).upper() if is_pr else "NOT_APPLICABLE"
     gates = [
-        ("单元测试", combine_statuses(os.environ.get("GATE_PARSER_UNIT"), os.environ.get("GATE_WEB_UNIT")), "unit_tests"),
+        ("单元测试", combine_statuses(dependencies, os.environ.get("GATE_PARSER_UNIT"), os.environ.get("GATE_WEB_UNIT")), "unit_tests"),
         ("构建", build, "build"),
-        ("类型检查", normalize_status(os.environ.get("GATE_TYPECHECK")), "typecheck"),
+        ("类型检查", combine_statuses(dependencies, os.environ.get("GATE_TYPECHECK")), "typecheck"),
         ("格式检查", normalize_status(os.environ.get("GATE_FORMAT")), "format"),
         ("静态检查", normalize_status(os.environ.get("GATE_STATIC")), "static"),
         ("敏感信息扫描", normalize_status(os.environ.get("GATE_SECRETS")), "secrets"),
@@ -510,6 +527,8 @@ def summarize(args: argparse.Namespace) -> int:
     labels = {"PASS": "通过", "FAIL": "未通过", "UNKNOWN": "门禁未知", "NOT_APPLICABLE": "不适用"}
     rows = readback_data.get("changed_files") or local_file_rows()
     level = readback_data.get("review_level", "未判定")
+    base_sha = readback_data.get("base_sha") or os.environ.get("GATE_BASE_SHA", "")
+    head_sha = readback_data.get("head_sha") or os.environ.get("GATE_HEAD_SHA", "")
     lines = [
         "<!-- agent-ops-gate -->", f"## 机器门禁结果：{labels.get(overall, '门禁未知')}", "",
         "| 门禁 | 状态 |", "| --- | --- |",
@@ -521,8 +540,8 @@ def summarize(args: argparse.Namespace) -> int:
         f"| 验证产物上传 | {labels.get(artifact, '门禁未知')} |",
         "", f"**审查等级：** {level}", "", "**改动清单：**",
     ]
-    if readback_data.get("pr_number"):
-        lines.append(f"**PR：** #{readback_data.get('pr_number')}；base={readback_data.get('base_sha')}；head={readback_data.get('head_sha')}")
+    if is_pr:
+        lines.append(f"**PR：** #{readback_data.get('pr_number', os.environ.get('PR_NUMBER', 'unknown'))}；base={base_sha or 'unknown'}；head={head_sha or 'unknown'}")
     if rows:
         for item in rows:
             lines.append(f"- {item.get('filename')}（{item.get('status')}，+{item.get('additions', 0)} / -{item.get('deletions', 0)}）")

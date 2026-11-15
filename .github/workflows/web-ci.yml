@@ -10,13 +10,16 @@ on:
 permissions:
   contents: read
   actions: read
-  pull-requests: read
-  issues: write
 concurrency:
   group: web-ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   synthetic:
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      issues: write
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     steps:
@@ -77,7 +80,7 @@ jobs:
         run: |
           mkdir -p web/test-results web/ci-pack-builder
           python3 tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/standalone-preview.log" --fallback-file tools/package_web_preview.py --fallback-line 1 -- python3 tools/package_web_preview.py --dist web/dist --pack web/public/game-data --out "$RUNNER_TEMP/offline.html"
-          cp "$RUNNER_TEMP/agent-ops-gate/standalone-preview.log" web/test-results/m7-standalone-synthetic.json
+          cp "$RUNNER_TEMP/agent-ops-gate/standalone-preview.log" web/test-results/m7-standalone-synthetic.log
           cp "$RUNNER_TEMP/offline.html" web/test-results/lapis-m7-synthetic.html
           cp "$RUNNER_TEMP/offline.html" web/ci-pack-builder/lapis-m7-synthetic.html
           tar -czf web/ci-pack-builder/m7-private-pack-builder.tar.gz tools manifests web/THIRD_PARTY_NOTICES.txt
@@ -117,7 +120,7 @@ jobs:
         continue-on-error: true
         run: |
           rm -rf web/public/game-data
-          python3 tools/testing/make_ch1_wild_fixture.py --out web/public/game-data
+          python3 tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/m73-fixture.log" --fallback-file tools/testing/make_ch1_wild_fixture.py --fallback-line 1 -- python3 tools/testing/make_ch1_wild_fixture.py --out web/public/game-data
       - name: Build M7.3 synthetic Chapter 1 preview
         id: m73-build
         if: steps.m73-fixture.outcome == 'success' && steps.deps.outcome == 'success'
@@ -198,6 +201,7 @@ jobs:
           }
           NODE
           python3 ../tools/gate/check_gate.py screenshot --path web/test-results/agent-gate-homepage.png
+          sha256sum test-results/agent-gate-homepage.png | tee test-results/agent-gate-homepage.sha256
       - name: GitHub independent PR readback
         id: gate-readback
         if: always() && github.event_name == 'pull_request'
@@ -210,6 +214,8 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           EXPECTED_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GATE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GATE_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: python3 tools/gate/check_gate.py readback --output "$RUNNER_TEMP/agent-ops-gate/readback.json"
       - name: Run nine reverse tests
         id: gate-self-test
@@ -242,6 +248,10 @@ jobs:
         continue-on-error: true
         env:
           IS_PR: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+          GATE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.event.repository.default_branch }}
+          GATE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GATE_DEPS: ${{ steps.deps.outcome }}
+          GATE_S41_E2E: ${{ steps.s41-e2e.outcome == 'skipped' && 'success' || steps.s41-e2e.outcome }}
           GATE_PARSER_UNIT: ${{ steps.parser-unit.outcome }}
           GATE_WEB_UNIT: ${{ steps.web-unit.outcome }}
           GATE_BUILD: ${{ steps.build.outcome }}
