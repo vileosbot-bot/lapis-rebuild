@@ -234,6 +234,37 @@ def checkpoint_errors(task: dict[str, Any], name: str) -> list[str]:
     return [f"unknown checkpoint: {name}"]
 
 
+def completion_authorization_errors(task: dict[str, Any], supplied_accepted_by: str | None) -> list[str]:
+    """Require the manager's acceptance to be recorded before the worker transition."""
+    errors: list[str] = []
+    if task.get("acceptance_status") != "accepted":
+        errors.append("acceptance_status must be pre-recorded as accepted by the total manager")
+    recorded = task.get("accepted_by")
+    if not isinstance(recorded, str) or not recorded.strip():
+        errors.append("accepted_by must be pre-recorded in the registry by the total manager")
+    elif supplied_accepted_by != recorded:
+        errors.append(" --accepted-by must exactly match the registry's pre-recorded accepted_by")
+    return errors
+
+
+def resolve_check_branch(current_branch: str, requested_branch: str | None):
+    """Resolve branch association without treating detached HEAD as an empty branch mismatch."""
+    if not current_branch:
+        if requested_branch:
+            return requested_branch, ["detached HEAD; using explicit --branch for task association"], []
+        return None, [], ["detached HEAD requires --branch; HEAD comparison skipped"]
+    if requested_branch and requested_branch != current_branch:
+        return current_branch, [], [f"checked-out branch {current_branch} != requested {requested_branch}"]
+    return requested_branch or current_branch, [], []
+
+
+def checkpoint_gate_errors(tasks: list[dict[str, Any]]) -> list[str]:
+    errors: list[str] = []
+    for task in tasks:
+        errors.extend(f"checkpoint gate error: {warning}" for warning in checkpoint_warnings(task))
+    return errors
+
+
 def validate_transition(task: dict[str, Any], target: str, *, release=False, resume=False,
                         retry=False, changes_requested=False, accepted_by=None) -> None:
     current = task.get("status")
@@ -276,8 +307,9 @@ def validate_transition(task: dict[str, Any], target: str, *, release=False, res
         if not isinstance(actual, (int, float)) or actual <= limit or not evidence.get("evidence"):
             raise RegistryError("dead_letter requires actual_value > limit and supporting evidence")
     elif target == "completed":
-        if not accepted_by:
-            raise RegistryError("total-manager acceptance required")
+        authorization_errors = completion_authorization_errors(task, accepted_by)
+        if authorization_errors:
+            raise RegistryError("; ".join(authorization_errors))
         if any(not task.get("checkpoints", {}).get(n, {}).get("completed") for n in ("CP0", "CP1", "CP2", "CP3")):
             raise RegistryError("CP0-CP3 required before completion")
         if task.get("acceptance_status") != "accepted":
@@ -341,14 +373,15 @@ def recovery_payload(task, observed, parent, files):
 def command_check(args):
     data = load_registry(Path(args.registry))
     errors = registry_errors(data)
-    warnings = [warning for task in data["tasks"] for warning in checkpoint_warnings(task)]
+    errors.extend(checkpoint_gate_errors(data["tasks"]))
+    warnings = []
     branch, observed, parent, files = args.branch, args.observed_head, args.observed_parent, args.observed_file or []
     if observed is None:
         try:
             current, observed, parent, files = git_state(Path(args.repo_root))
-            branch = branch or current
-            if args.branch and args.branch != current:
-                errors.append(f"checked-out branch {current} != requested {args.branch}")
+            branch, branch_warnings, branch_errors = resolve_check_branch(current, args.branch)
+            warnings.extend(branch_warnings)
+            errors.extend(branch_errors)
         except RegistryError as exc:
             warnings.append(f"local Git HEAD not checked: {exc}")
     if branch and observed:
@@ -361,7 +394,7 @@ def command_check(args):
             if state == "HEAD_MISMATCH":
                 errors.append(f"HEAD_MISMATCH for {task.get('request_id')}")
     else:
-        warnings.append("branch/observed HEAD not supplied; HEAD comparison skipped")
+        errors.append("HEAD comparison skipped: provide a branch association and an observed HEAD; CHECK cannot pass without a comparison")
     active_count = sum(1 for t in data["tasks"] if t.get("status") in ACTIVE)
     print(f"ACTIVE_COUNT: {active_count}/{data.get('parallel_limit', 10)}")
     for warning in warnings:
@@ -480,18 +513,14 @@ def command_transition(args):
             raise RegistryError("dead_letter requires --dead-letter-evidence JSON")
         task["dead_letter_evidence"] = json.loads(args.dead_letter_evidence)
     if args.to == "completed":
-        if not args.accepted_by:
-            raise RegistryError("completed requires --accepted-by")
-        task["acceptance_status"] = "accepted"
+        authorization_errors = completion_authorization_errors(task, args.accepted_by)
+        if authorization_errors:
+            raise RegistryError("; ".join(authorization_errors))
     validate_transition(
         task, args.to, release=args.release_approved, resume=args.resume_approved,
         retry=args.retry_approved, changes_requested=args.changes_requested,
         accepted_by=args.accepted_by,
     )
-    if args.to == "completed":
-        task["accepted_by"] = args.accepted_by
-        task["accepted_at"] = now_iso()
-        task["acceptance_note"] = args.acceptance_note or "Total manager accepted"
     task["status"] = args.to
     task["last_updated"] = now_iso()
     errors = capacity_errors(data["tasks"], data["parallel_limit"]) + conflict_errors(data["tasks"])
@@ -626,6 +655,52 @@ def command_self_test(_args):
             return
         raise AssertionError("dead_letter accepted without exceeded budget evidence")
 
+    def completion_not_preaccepted():
+        a = sample(status="awaiting_review")
+        a["checkpoints"] = {n: {"completed": True} for n in ("CP0", "CP1", "CP2", "CP3")}
+        a["checkpoints"]["CP2"].update({"tests_passed": True, "test_results": []})
+        a["checkpoints"]["CP3"].update({"ci_status": "success", "pull_request_url": "https://github.com/o/r/pull/1", "pending_todos": []})
+        a["pull_request_url"] = "https://github.com/o/r/pull/1"
+        a["acceptance_status"] = "pending"
+        a["accepted_by"] = "total-manager"
+        try:
+            validate_transition(a, "completed", accepted_by="total-manager")
+        except RegistryError:
+            return
+        raise AssertionError("worker supplied acceptance instead of pre-recorded manager acceptance")
+
+    def completion_identity_mismatch():
+        a = sample(status="awaiting_review")
+        a["checkpoints"] = {n: {"completed": True} for n in ("CP0", "CP1", "CP2", "CP3")}
+        a["checkpoints"]["CP2"].update({"tests_passed": True, "test_results": []})
+        a["checkpoints"]["CP3"].update({"ci_status": "success", "pull_request_url": "https://github.com/o/r/pull/1", "pending_todos": []})
+        a["pull_request_url"] = "https://github.com/o/r/pull/1"
+        a["acceptance_status"] = "accepted"
+        a["accepted_by"] = "total-manager"
+        try:
+            validate_transition(a, "completed", accepted_by="random-name")
+        except RegistryError:
+            return
+        raise AssertionError("mismatched --accepted-by was accepted")
+
+    def missing_cp_check_fails():
+        a = sample(status="awaiting_review")
+        a["checkpoints"] = {
+            "CP0": {"completed": True}, "CP1": {"completed": True},
+            "CP2": {"completed": True, "tests_passed": True, "test_results": []},
+        }
+        errors = checkpoint_gate_errors([a])
+        assert errors and any("CP3" in item for item in errors), errors
+
+    def detached_without_branch_fails():
+        branch, warnings, errors = resolve_check_branch("", None)
+        assert branch is None and errors and "HEAD comparison skipped" in errors[0]
+
+    def detached_with_branch_uses_explicit_branch():
+        branch, warnings, errors = resolve_check_branch("", "branch-A")
+        assert branch == "branch-A" and warnings and not errors
+        assert compare_head("1" * 40, "1" * 40, None, []) == "MATCH"
+
     tests = [
         ("duplicate request-id rejected", duplicate),
         ("missing required field rejected", missing),
@@ -640,6 +715,11 @@ def command_self_test(_args):
         ("registry-only metadata commit recognized", registry_only),
         ("uncompleted dependency blocks start", dependency_blocked),
         ("dead-letter requires exceeded budget evidence", dead_letter_guard),
+        ("completion rejected without pre-recorded manager acceptance", completion_not_preaccepted),
+        ("completion rejects mismatched --accepted-by identity", completion_identity_mismatch),
+        ("missing CP3 in awaiting_review makes check FAIL", missing_cp_check_fails),
+        ("detached HEAD without --branch cannot PASS", detached_without_branch_fails),
+        ("detached HEAD with --branch is associated without false mismatch", detached_with_branch_uses_explicit_branch),
     ]
     for name, fn in tests:
         run(name, fn)
