@@ -32,7 +32,7 @@
 
 ## CP3：创建 PR
 
-记录 PR 编号和真实 URL、head branch/head SHA、base branch/base SHA、PR Open/merged 状态、必需检查名称/运行号/结论，以及审查意见和 TODO。PR 已创建但 CI pending/failed/unknown 时，CP3 可记录事实，但任务仍保持 in_progress；只有必需检查成功才可进入 awaiting_review。只开 PR、不合并。
+记录 PR 编号和真实 URL、head branch/head SHA、base branch/base SHA、PR Open/merged 状态、必需检查名称/运行号/结论，以及审查意见和 TODO。PR 已创建后，CP3 必须记录真实 CI 状态。CP2 测试通过且 CP3 已记录 PR URL 与明确 CI 状态（success/failure/pending/unknown）时，可进入 awaiting_review；该状态表示等待人工审查，不代表 CI 已通过。failure/pending/unknown 必须原样记录；completed 仍要求 CI success 和总管验收。只开 PR、不合并。
 
 ## head_sha 的自引用边界
 
