@@ -10,37 +10,81 @@ on:
 permissions:
   contents: read
   actions: read
+  pull-requests: read
+  issues: write
 concurrency:
   group: web-ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   synthetic:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with: {persist-credentials: false}
-      - name: Parser tests and synthetic pack
-        run: |
-          python3 -m unittest discover -s tests/parsers -v
-          python3 tools/testing/make_web_fixture.py --out web/public/game-data
-      - name: Locked dependencies, typecheck, unit tests and build
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Python parser unit tests
+        id: parser-unit
+        timeout-minutes: 5
+        continue-on-error: true
+        run: python3 tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/parser-unit.log" --fallback-file .github/workflows/web-ci.yml --fallback-line 1 -- python3 -m unittest discover -s tests/parsers -v
+      - name: Generate synthetic web fixture
+        id: synthetic-pack
+        timeout-minutes: 5
+        continue-on-error: true
+        run: python3 tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/synthetic-pack.log" --fallback-file tools/testing/make_web_fixture.py --fallback-line 1 -- python3 tools/testing/make_web_fixture.py --out web/public/game-data
+      - name: Install locked Web dependencies
+        id: deps
         working-directory: web
-        run: |
-          npm ci --ignore-scripts
-          npm run typecheck
-          npm test
-          npm run build
-          npx playwright install --with-deps chromium
+        timeout-minutes: 10
+        continue-on-error: true
+        run: python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/npm-ci.log" --cwd web --fallback-file web/package-lock.json --fallback-line 1 -- npm ci --ignore-scripts
+      - name: TypeScript typecheck
+        id: typecheck
+        if: steps.deps.outcome == 'success'
+        working-directory: web
+        timeout-minutes: 5
+        continue-on-error: true
+        run: python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/typecheck.log" --cwd web --fallback-file web/tsconfig.json --fallback-line 1 -- npm run typecheck
+      - name: Web unit tests
+        id: web-unit
+        if: steps.deps.outcome == 'success'
+        working-directory: web
+        timeout-minutes: 10
+        continue-on-error: true
+        run: python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/web-unit.log" --cwd web --fallback-file web/package.json --fallback-line 1 -- npm test
+      - name: Production build
+        id: build
+        if: steps.deps.outcome == 'success'
+        working-directory: web
+        timeout-minutes: 10
+        continue-on-error: true
+        run: python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/build.log" --cwd web --fallback-file web/vite.config.ts --fallback-line 1 -- npm run build
+      - name: Install Chromium
+        id: playwright-install
+        if: steps.build.outcome == 'success'
+        working-directory: web
+        timeout-minutes: 10
+        continue-on-error: true
+        run: python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/playwright-install.log" --cwd web --fallback-file web/playwright.config.ts --fallback-line 1 -- npx playwright install --with-deps chromium
       - name: Build standalone synthetic preview
+        id: standalone-preview
+        if: steps.build.outcome == 'success' && steps.synthetic-pack.outcome == 'success'
+        timeout-minutes: 5
+        continue-on-error: true
         shell: bash
         run: |
           mkdir -p web/test-results web/ci-pack-builder
-          python3 tools/package_web_preview.py --dist web/dist --pack web/public/game-data --out "$RUNNER_TEMP/offline.html" | tee web/test-results/m7-standalone-synthetic.json
+          python3 tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/standalone-preview.log" --fallback-file tools/package_web_preview.py --fallback-line 1 -- python3 tools/package_web_preview.py --dist web/dist --pack web/public/game-data --out "$RUNNER_TEMP/offline.html"
+          cp "$RUNNER_TEMP/agent-ops-gate/standalone-preview.log" web/test-results/m7-standalone-synthetic.json
           cp "$RUNNER_TEMP/offline.html" web/test-results/lapis-m7-synthetic.html
           cp "$RUNNER_TEMP/offline.html" web/ci-pack-builder/lapis-m7-synthetic.html
           tar -czf web/ci-pack-builder/m7-private-pack-builder.tar.gz tools manifests web/THIRD_PARTY_NOTICES.txt
       - name: Publish current-code private pack builder before Playwright cleanup
+        if: steps.standalone-preview.outcome == 'success'
+        timeout-minutes: 5
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: m7-private-pack-builder
@@ -48,37 +92,190 @@ jobs:
           retention-days: 3
           if-no-files-found: error
       - name: Chromium integration and offline tests
+        id: chromium-e2e
+        if: steps.playwright-install.outcome == 'success' && steps.standalone-preview.outcome == 'success'
         working-directory: web
+        timeout-minutes: 15
+        continue-on-error: true
         env:
           LAPIS_OFFLINE_PREVIEW: ${{ runner.temp }}/offline.html
-        run: npm run test:e2e -- --workers=2
+        run: python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/chromium-e2e.log" --cwd web --fallback-file web/playwright.config.ts --fallback-line 1 -- npm run test:e2e -- --workers=2
       - name: S41 M7.1 final acceptance
-        if: github.ref_name == 'codex/s41-m7-1-final-glue' || github.head_ref == 'codex/s41-m7-1-final-glue'
+        id: s41-e2e
+        if: (github.ref_name == 'codex/s41-m7-1-final-glue' || github.head_ref == 'codex/s41-m7-1-final-glue') && steps.playwright-install.outcome == 'success' && steps.standalone-preview.outcome == 'success'
         working-directory: web
+        timeout-minutes: 8
+        continue-on-error: true
         env:
           LAPIS_OFFLINE_PREVIEW: ${{ runner.temp }}/offline.html
           S41_M7_1_FINAL: '1'
-        run: npm run test:e2e -- e2e/s41-m7-1-acceptance.spec.ts
+        run: python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/s41-e2e.log" --cwd web --fallback-file web/e2e/s41-m7-1-acceptance.spec.ts --fallback-line 1 -- npm run test:e2e -- e2e/s41-m7-1-acceptance.spec.ts
       - name: Build M7.3 synthetic Chapter 1 test pack (no original assets)
+        id: m73-fixture
+        if: steps.synthetic-pack.outcome == 'success'
+        timeout-minutes: 5
+        continue-on-error: true
         run: |
           rm -rf web/public/game-data
           python3 tools/testing/make_ch1_wild_fixture.py --out web/public/game-data
       - name: Build M7.3 synthetic Chapter 1 preview
+        id: m73-build
+        if: steps.m73-fixture.outcome == 'success' && steps.deps.outcome == 'success'
         working-directory: web
-        run: npm run build
+        timeout-minutes: 8
+        continue-on-error: true
+        run: python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/m73-build.log" --cwd web --fallback-file web/vite.config.ts --fallback-line 1 -- npm run build
       - name: M7.3 map 1020 wild encounter browser acceptance (synthetic maps; S42 not run)
+        id: m73-e2e
+        if: steps.m73-build.outcome == 'success' && steps.playwright-install.outcome == 'success'
         working-directory: web
+        timeout-minutes: 10
+        continue-on-error: true
         env:
           M73_WILD_SYNTHETIC_ACCEPTANCE: '1'
           LAPIS_OFFLINE_PREVIEW: ${{ runner.temp }}/offline.html
-        run: npm run test:e2e -- e2e/ch1-wild-encounters.spec.ts
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        run: python3 ../tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/m73-e2e.log" --cwd web --fallback-file web/e2e/ch1-wild-encounters.spec.ts --fallback-line 1 -- npm run test:e2e -- e2e/ch1-wild-encounters.spec.ts
+      - name: Format check
+        id: gate-format
         if: always()
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          GATE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.event.repository.default_branch }}
+          GATE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python3 tools/gate/check_gate.py format
+      - name: Static analysis
+        id: gate-static
+        if: always()
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          GATE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.event.repository.default_branch }}
+          GATE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python3 tools/gate/check_gate.py static
+      - name: Sensitive information scan
+        id: gate-secrets
+        if: always()
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          GATE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.event.repository.default_branch }}
+          GATE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python3 tools/gate/check_gate.py secrets
+      - name: Production screenshot self-check
+        id: gate-screenshot
+        if: always() && steps.m73-build.outcome == 'success' && steps.playwright-install.outcome == 'success'
+        working-directory: web
+        timeout-minutes: 5
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          npm run preview -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/agent-ops-gate/preview.log" 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node --input-type=module <<'NODE'
+          import { chromium } from '@playwright/test';
+          const errors = [];
+          const browser = await chromium.launch({ headless: true });
+          try {
+            const page = await browser.newPage({ viewport: { width: 1440, height: 1080 } });
+            page.on('pageerror', error => errors.push(error.message));
+            const response = await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+            if (!response || response.status() !== 200) throw new Error('production preview did not return HTTP 200');
+            await page.waitForSelector('canvas', { timeout: 15000 });
+            await page.screenshot({ path: 'test-results/agent-gate-homepage.png', fullPage: true });
+            const layout = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: window.innerWidth }));
+            if (layout.width > layout.viewport) throw new Error('horizontal overflow detected');
+            if (errors.length) throw new Error('pageerror: ' + errors.join('; '));
+            console.log(JSON.stringify({ status: 'PASS', screenshot: 'test-results/agent-gate-homepage.png', canvas: true, layout }));
+          } finally {
+            await browser.close();
+          }
+          NODE
+          python3 ../tools/gate/check_gate.py screenshot --path web/test-results/agent-gate-homepage.png
+      - name: GitHub independent PR readback
+        id: gate-readback
+        if: always() && github.event_name == 'pull_request'
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: python3 tools/gate/check_gate.py readback --output "$RUNNER_TEMP/agent-ops-gate/readback.json"
+      - name: Run nine reverse tests
+        id: gate-self-test
+        if: always()
+        timeout-minutes: 3
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/agent-ops-gate"
+          set +e
+          python3 tools/gate/check_gate.py self-test > "$RUNNER_TEMP/agent-ops-gate/reverse-tests.log" 2>&1
+          status=$?
+          cat "$RUNNER_TEMP/agent-ops-gate/reverse-tests.log"
+          exit "$status"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        id: synthetic-artifact
+        if: always()
+        timeout-minutes: 5
+        continue-on-error: true
         with:
           name: web-synthetic-validation
-          path: web/test-results/
+          path: |
+            web/test-results/
+            ${{ runner.temp }}/agent-ops-gate/
           retention-days: 7
           if-no-files-found: warn
+      - name: Summarize machine gate and changed files
+        id: gate-summary
+        if: always()
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+          GATE_PARSER_UNIT: ${{ steps.parser-unit.outcome }}
+          GATE_WEB_UNIT: ${{ steps.web-unit.outcome }}
+          GATE_BUILD: ${{ steps.build.outcome }}
+          GATE_M73_BUILD: ${{ steps.m73-build.outcome }}
+          GATE_TYPECHECK: ${{ steps.typecheck.outcome }}
+          GATE_FORMAT: ${{ steps.gate-format.outcome }}
+          GATE_STATIC: ${{ steps.gate-static.outcome }}
+          GATE_SECRETS: ${{ steps.gate-secrets.outcome }}
+          GATE_SCREENSHOT: ${{ steps.gate-screenshot.outcome }}
+          GATE_CHROMIUM_E2E: ${{ steps.chromium-e2e.outcome }}
+          GATE_M73_E2E: ${{ steps.m73-e2e.outcome }}
+          GATE_PLAYWRIGHT_INSTALL: ${{ steps.playwright-install.outcome }}
+          GATE_STANDALONE_PREVIEW: ${{ steps.standalone-preview.outcome }}
+          GATE_M73_FIXTURE: ${{ steps.m73-fixture.outcome }}
+          GATE_SELF_TEST: ${{ steps.gate-self-test.outcome }}
+          GATE_SYNTHETIC_ARTIFACT: ${{ steps.synthetic-artifact.outcome }}
+        run: python3 tools/gate/check_gate.py summarize --output "$RUNNER_TEMP/agent-ops-gate/summary.md" --json-output "$RUNNER_TEMP/agent-ops-gate/summary.json" --readback "$RUNNER_TEMP/agent-ops-gate/readback.json"
+      - name: Write machine gate result back to PR
+        id: gate-comment
+        if: always() && github.event_name == 'pull_request'
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: python3 tools/gate/check_gate.py comment --summary "$RUNNER_TEMP/agent-ops-gate/summary.md" --output "$RUNNER_TEMP/agent-ops-gate/comment.json"
+      - name: Finalize machine gate status
+        id: gate-finalize
+        if: always()
+        timeout-minutes: 2
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+        run: python3 tools/gate/check_gate.py finalize --summary-json "$RUNNER_TEMP/agent-ops-gate/summary.json" --comment-json "$RUNNER_TEMP/agent-ops-gate/comment.json"
   private-original:
     if: github.event_name == 'push' && contains(github.event.head_commit.message, '[private-smoke]')
     runs-on: ubuntu-24.04

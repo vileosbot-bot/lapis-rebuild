@@ -14,6 +14,7 @@
 - M8.0 集成 PR #75 head `017dc629af6094ce27946ada0c05191d05ca88d7`：Cloudflare Pages static smoke run `36188231126` success；Web and parser validation run `36188231235` success，其中 parser、typecheck、unit、production build、Chromium integration/offline 全部通过；`private-original` 按 PR 条件 skipped，不记作通过。
 - M8.0 主线 merge commit：`5f7896ffa89726a0ab864b5a9f5034047ce4fd04`。后续开发从该 main 新建分支。
 - Worker 执行模式同时升级：并行 Worker 默认只使用 GitHub/CI/在线工具；禁止使用 Desktop Commander 或用户本地电脑作为开发执行环境。仅主 Session 在明确集成排障/恢复未上传成果时可例外。
+- 2026-11-16 P0-1 机器门禁试运行：基线 main@5fbf1679367142b358b8d6ac3a0f288dc33d24b2；在 feat/agent-ops-gate-20261116 建设八项机器门禁、三级审查规则与盲审协议。试运行仅为参考模式，不启用 required-check 分支保护、不自动合并；结果以 PR 评论、Actions Summary 和运行日志为准。
 
 - `main` 已收口 PR #2/#3/#4/#5，以及第一波并行考古 PR #7–#11（S1 Encounter、S2 Enemy AI、S3 Damage、S4 Quest/NPC、S5 Visual）。
 - M0/G0：完成。安装包、精确 payload、全量静态展开、哈希和主要解析器均可复现。
