@@ -25,30 +25,49 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class ReadbackMismatch(ValueError):
     """A successful GitHub API read returned facts that contradict the PR event."""
-# One-time manager-approved historical false-positive exclusion.
-# Full commit SHA: e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9.
-# GitHub patch and manager local reproduction verified exactly four synthetic examples in
-# tools/gate/check_gate.py: a PGP private-key block header, an encrypted private-key header,
-# a DSA private-key header, and one unquoted API_KEY assignment with a synthetic placeholder.
-# They are test examples, not credentials. Match the full commit SHA, exact path and exact
-# added-line SHA-256; every other commit and line remains scanned. Never add another exclusion
-# without explicit manager approval.
-APPROVED_HISTORICAL_FIXTURE_COMMIT = "e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9"
+# Three one-time manager-approved historical false-positive exclusions.
+# 1) Full SHA e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9: four lines in this file,
+#    using the outer-single-quoted representation of one PGP header, one ENCRYPTED
+#    header, one DSA header and one unquoted API_KEY assignment with a synthetic value.
+# 2) Full SHA 0522d7944d395674213f0b63e7feec2dc291be50: four lines in this file,
+#    using four-space indentation and double-quoted representations of the same examples.
+# 3) Full SHA 779084fa369c5efbdf84d168d7b5892eef00b0c0: four lines in this file,
+#    using eight-space indentation and double-quoted representations of the same examples.
+# Verification: the manager inspected each full GitHub commit patch and reproduced the
+# findings locally. All twelve lines are synthetic detector fixtures, not real credentials;
+# no credential was exposed and no credential rotation is required.
+# Exclusion requires the exact full commit SHA, this exact file path and the SHA-256 of
+# the complete raw added line. Other commits containing identical text remain scanned.
+# Do not add any further exclusion without explicit manager approval.
 APPROVED_HISTORICAL_FIXTURE_PATH = "tools/gate/check_gate.py"
-APPROVED_HISTORICAL_FIXTURE_LINE_SHA256 = frozenset({
-    "5d6cafd9fab07bba7cbfa902b98be73cd39bfce06744ad061430fa3d60602d2d",
-    "711cdba565595a5d729491c66cc161f6d20a738d35eca4edd5456fd35d586cc5",
-    "c81fde293f565bf94149a6f9b95e2b47696f41cc33a5a19cae17a9eb9a94dad9",
-    "5ec4f78707ca2f0c24718d26335ed2517e1c3f2d0311446b010f347d71c59c4b",
-})
+APPROVED_HISTORICAL_FIXTURE_LINE_SHA256_BY_COMMIT = {
+    "e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9": frozenset({
+        "5d6cafd9fab07bba7cbfa902b98be73cd39bfce06744ad061430fa3d60602d2d",
+        "711cdba565595a5d729491c66cc161f6d20a738d35eca4edd5456fd35d586cc5",
+        "c81fde293f565bf94149a6f9b95e2b47696f41cc33a5a19cae17a9eb9a94dad9",
+        "5ec4f78707ca2f0c24718d26335ed2517e1c3f2d0311446b010f347d71c59c4b",
+    }),
+    "0522d7944d395674213f0b63e7feec2dc291be50": frozenset({
+        "eaa11013a2e1155229f7edd42a981dc5986035f0afb3383460d951bc58c3182c",
+        "e8eb3e4c932b68dfe0d12b23ece777dc273a8474e648c146c93aa9b01d9ce314",
+        "c948725d1679873347377d65fb1d8b0885e823fd22a127469a69d7fd1d23c06a",
+        "f6051f6f2f15d04792b3bfdebbee279face7d9510ffe06ef289f6486091e7c86",
+    }),
+    "779084fa369c5efbdf84d168d7b5892eef00b0c0": frozenset({
+        "dea5ecaae8a914f8b839711458069a9ebdd85cb104bc2713f60ad62a06e0bd26",
+        "4baf23ead2728907e9b9553d70a059015872ffd17988d6a4353bd47830be1cf3",
+        "76afa013e252cf272dff87511ae796013ac00e6dc635bf835ec9fce246ca6049",
+        "76f4e5c3a67498d36e50488e15cd7c70f9da93db53b54007505004f824934353",
+    }),
+}
 
 
 def is_approved_historical_fixture(commit_sha: str, filename: str, added_line: str) -> bool:
+    expected_hashes = APPROVED_HISTORICAL_FIXTURE_LINE_SHA256_BY_COMMIT.get(commit_sha)
     return (
-        commit_sha == APPROVED_HISTORICAL_FIXTURE_COMMIT
+        expected_hashes is not None
         and filename == APPROVED_HISTORICAL_FIXTURE_PATH
-        and hashlib.sha256(added_line.encode("utf-8")).hexdigest()
-        in APPROVED_HISTORICAL_FIXTURE_LINE_SHA256
+        and hashlib.sha256(added_line.encode("utf-8")).hexdigest() in expected_hashes
     )
 
 
@@ -393,13 +412,16 @@ def secret_scan(root: Path = ROOT, base: str | None = None, head: str | None = N
     filename = ".github/workflows/web-ci.yml"
     new_line = 1
     failed = False
-    approved_commit_seen = False
-    excluded_counts = {digest: 0 for digest in APPROVED_HISTORICAL_FIXTURE_LINE_SHA256}
+    approved_commits_seen: set[str] = set()
+    excluded_counts = {
+        sha: {digest: 0 for digest in hashes}
+        for sha, hashes in APPROVED_HISTORICAL_FIXTURE_LINE_SHA256_BY_COMMIT.items()
+    }
     for line in patch.splitlines():
         if line.startswith("commit:"):
             current_commit = line[len("commit:"):].strip()
-            if current_commit == APPROVED_HISTORICAL_FIXTURE_COMMIT:
-                approved_commit_seen = True
+            if current_commit in APPROVED_HISTORICAL_FIXTURE_LINE_SHA256_BY_COMMIT:
+                approved_commits_seen.add(current_commit)
             filename = ".github/workflows/web-ci.yml"
             new_line = 1
         elif line.startswith("+++ b/"):
@@ -412,23 +434,26 @@ def secret_scan(root: Path = ROOT, base: str | None = None, head: str | None = N
             added = line[1:]
             digest = hashlib.sha256(added.encode("utf-8")).hexdigest()
             if is_approved_historical_fixture(current_commit, filename, added):
-                excluded_counts[digest] += 1
+                excluded_counts[current_commit][digest] += 1
                 new_line += 1
                 continue
             if detect_secret(added):
                 annotation(filename, new_line, "提交历史新增行疑似包含密钥/凭据，禁止提交")
                 failed = True
             new_line += 1
-    if approved_commit_seen:
-        if any(count != 1 for count in excluded_counts.values()):
+    for commit_sha in sorted(approved_commits_seen):
+        counts = excluded_counts[commit_sha]
+        if any(count != 1 for count in counts.values()):
             annotation(
                 APPROVED_HISTORICAL_FIXTURE_PATH, 1,
-                "一次性历史误报排除未精确命中预期的四条样例；拒绝通过"
+                f"一次性历史误报排除 {commit_sha} 未精确命中预期的四条样例；拒绝通过"
             )
             failed = True
+        print(
+            f"historical_fixture_exclusion: exact_sha={commit_sha}; "
+            f"excluded_lines={sum(counts.values())}/4"
+        )
     print(f"secret_scan: {'FAIL' if failed else 'PASS'}")
-    if approved_commit_seen:
-        print(f"historical_fixture_exclusion: exact_sha={APPROVED_HISTORICAL_FIXTURE_COMMIT}; excluded_lines={sum(excluded_counts.values())}/4")
     return int(failed)
 
 
@@ -689,48 +714,66 @@ def test_secret_scan_commit_history() -> bool:
 
 
 def test_historical_exception_scope() -> bool:
-    # Build the same four synthetic examples dynamically; never store literal key-like samples.
+    # Recreate each historical patch line from dynamic detector samples; do not store key-like literals.
     samples = [
         "-----BEGIN " + "PGP PRIVATE KEY BLOCK" + "-----",
         "-----BEGIN " + "ENCRYPTED PRIVATE KEY" + "-----",
         "-----BEGIN " + "DSA PRIVATE KEY" + "-----",
         "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345"),
     ]
-    patch_lines = [
-        "    '" + '"' + samples[0] + '",' + "',",
-        "    '" + '"' + samples[1] + '",' + "',",
-        "    '" + '"' + samples[2] + '",' + "',",
-        "    '" + '"' + samples[3] + '",' + "',",
-    ]
-    exact_sha = APPROVED_HISTORICAL_FIXTURE_COMMIT
-    other_sha = "f" * 40
-    scope_checks = (
-        all(is_approved_historical_fixture(exact_sha, APPROVED_HISTORICAL_FIXTURE_PATH, line) for line in patch_lines)
-        and not any(is_approved_historical_fixture(other_sha, APPROVED_HISTORICAL_FIXTURE_PATH, line) for line in patch_lines)
-        and not any(is_approved_historical_fixture(exact_sha[:12], APPROVED_HISTORICAL_FIXTURE_PATH, line) for line in patch_lines)
-        and not any(is_approved_historical_fixture(exact_sha, "other/path.py", line) for line in patch_lines)
+    line_sets = {
+        "e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9": [
+            "    '" + '"' + sample + '",' + "'," for sample in samples
+        ],
+        "0522d7944d395674213f0b63e7feec2dc291be50": [
+            "    " + '"' + sample + '",' for sample in samples
+        ],
+        "779084fa369c5efbdf84d168d7b5892eef00b0c0": [
+            "        " + '"' + sample + '",' for sample in samples
+        ],
+    }
+    expected_scope = all(
+        len(set(lines)) == 4
+        and all(is_approved_historical_fixture(sha, APPROVED_HISTORICAL_FIXTURE_PATH, line) for line in lines)
+        for sha, lines in line_sets.items()
+    )
+    wrong_sha_checks = all(
+        not is_approved_historical_fixture("f" * 40, APPROVED_HISTORICAL_FIXTURE_PATH, line)
+        and not is_approved_historical_fixture(sha[:12], APPROVED_HISTORICAL_FIXTURE_PATH, line)
+        and not is_approved_historical_fixture(sha, "other/path.py", line)
+        for sha, lines in line_sets.items()
+        for line in lines
+    )
+    cross_commit_checks = all(
+        not is_approved_historical_fixture(other_sha, APPROVED_HISTORICAL_FIXTURE_PATH, line)
+        for approved_sha, lines in line_sets.items()
+        for other_sha in line_sets
+        if other_sha != approved_sha
+        for line in lines
     )
     with tempfile.TemporaryDirectory(prefix="lapis-gate-history-scope-") as directory:
         repo = Path(directory)
         init_test_repo(repo)
-        target = repo / "tools" / "gate" / "check_gate.py"
-        target.parent.mkdir(parents=True, exist_ok=True)
         baseline = repo / "README.md"
-        baseline.write_text("baseline\\n", encoding="utf-8")
+        baseline.write_text("baseline\n", encoding="utf-8")
         git_at(repo, "add", "README.md")
         git_at(repo, "commit", "--quiet", "-m", "baseline")
         base = git_at(repo, "rev-parse", "HEAD").strip()
+        target = repo / "tools" / "gate" / "check_gate.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text("\n".join(samples) + "\n", encoding="utf-8")
         git_at(repo, "add", "tools/gate/check_gate.py")
-        git_at(repo, "commit", "--quiet", "-m", "same examples in a different commit")
+        git_at(repo, "commit", "--quiet", "-m", "same examples in a non-approved commit")
         other_commit = git_at(repo, "rev-parse", "HEAD").strip()
         output = io.StringIO()
         with redirect_stdout(output):
             result = secret_scan(root=repo, base=base, head="HEAD")
         actual_lines = output.getvalue().count("提交历史新增行疑似包含密钥/凭据")
         return (
-            scope_checks
-            and other_commit != APPROVED_HISTORICAL_FIXTURE_COMMIT
+            expected_scope
+            and wrong_sha_checks
+            and cross_commit_checks
+            and other_commit not in line_sets
             and result == 1
             and actual_lines == 4
         )
