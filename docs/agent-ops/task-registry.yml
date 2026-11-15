@@ -125,10 +125,10 @@
       "repository": "vileosbot-bot/lapis-rebuild",
       "branch": "feat/agent-ops-registry-20261117",
       "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
-      "head_sha": "b2b9d9ca51ac922cd627075b33abf723abbff2aa",
-      "status": "in_progress",
-      "progress": "CP0 完成；CP1 已记录授权范围与实施计划，开始创建剩余五项交付物。",
-      "next_action": "创建状态机、检查点制度、恢复流程、登记检查脚本和历史目录 README；随后执行 CP2 验收。",
+      "head_sha": "31f0ed2852c723458a12b8acebca60cb94de9727",
+      "status": "awaiting_review",
+      "progress": "CP0–CP3 已记录；PR #21 已由 GitHub 实际创建并读回为 Open、未合并；CI 对最新 PR head 仍为 pending，未标记为 success。",
+      "next_action": "等待 GitHub Actions workflow run #43774944303（run #74）结束并读取最终 CI 结论；等待总管审查；本 PR 不合并。",
       "deadline": "2026-11-17T12:00:00+08:00",
       "risk_level": "high",
       "approval_required": true,
@@ -151,7 +151,7 @@
       ],
       "depends_on": [],
       "blocked_by": [],
-      "pull_request_url": null,
+      "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/21",
       "legacy_import": false,
       "acceptance_status": "pending",
       "checkpoints": {
@@ -181,12 +181,207 @@
           ],
           "release_status": "granted",
           "release_source": "用户在本对话明确放行。"
+        },
+        "CP2": {
+          "completed": true,
+          "head_sha": "31f0ed2852c723458a12b8acebca60cb94de9727",
+          "commit_sha": "31f0ed2852c723458a12b8acebca60cb94de9727",
+          "latest_commit_message": "registry(2026-11-17): allow review while CI remains pending\n\nrequest-id: agent-7x24-p03-registry-20261117-01\n来源：PR #21 实际 CI 快照与 CP3 状态定义复核\n原因：允许记录 awaiting_review 与 pending/failure CI 快照；completed 仍强制要求 CI success。",
+          "changed_files": [
+            "docs/agent-ops/task-registry.yml",
+            "docs/agent-ops/task-state-machine.md",
+            "docs/agent-ops/checkpoint-rules.md",
+            "docs/agent-ops/recovery-procedure.md",
+            "tools/agent_ops/task_registry.py",
+            "docs/agent-ops/task-history/README"
+          ],
+          "tests_passed": true,
+          "test_summary": "13/13 PASS",
+          "test_execution": {
+            "method": "Python in-memory logic harness reproducing the validator, transition, HEAD comparison, recovery and conflict functions read back from tools/agent_ops/task_registry.py.",
+            "limitation": "This corrective turn did not invoke the checked-in CLI file as a subprocess in a local checkout. Results below are logic-harness tests, not a claim of direct CLI end-to-end execution."
+          },
+          "test_results": [
+            {
+              "name": "duplicate request-id rejected",
+              "status": "PASS"
+            },
+            {
+              "name": "missing required field rejected",
+              "status": "PASS"
+            },
+            {
+              "name": "illegal status transition rejected",
+              "status": "PASS"
+            },
+            {
+              "name": "11th active task rejected",
+              "status": "PASS"
+            },
+            {
+              "name": "actual HEAD mismatch flagged",
+              "status": "PASS"
+            },
+            {
+              "name": "missing key checkpoint warned",
+              "status": "PASS"
+            },
+            {
+              "name": "recovery emits URL and SHA",
+              "status": "PASS"
+            },
+            {
+              "name": "same-branch concurrent write blocked",
+              "status": "PASS"
+            },
+            {
+              "name": "unaccepted task cannot complete",
+              "status": "PASS"
+            },
+            {
+              "name": "CI pending is recorded in awaiting_review but cannot complete",
+              "status": "PASS"
+            },
+            {
+              "name": "registry-only metadata commit recognized",
+              "status": "PASS"
+            },
+            {
+              "name": "uncompleted dependency blocks start",
+              "status": "PASS"
+            },
+            {
+              "name": "dead-letter requires exceeded budget evidence",
+              "status": "PASS"
+            }
+          ],
+          "registry_check": {
+            "source": "GitHub actual readback of task-registry.yml before this update",
+            "task_count": 5,
+            "missing_required_fields": [],
+            "duplicate_real_request_ids": [],
+            "active_count": 2,
+            "active_limit": 10,
+            "p02_base_sha": "",
+            "p02_base_sha_note": "新库建库，首批提交无父提交",
+            "p14_request_id": "待派活时填",
+            "p15_request_id": "待派活时填"
+          },
+          "interruption_simulations": [
+            {
+              "scenario": "① 浏览器完全关闭",
+              "passed": true,
+              "method": "不提供浏览器标签或聊天记录，仅从登记记录读取 request-id/对话 URL/repository/branch/base_sha/head_sha/next_action，并用 GitHub 实际分支 HEAD 与 task-history 索引核对。",
+              "actual_output": {
+                "request_id": "agent-7x24-p03-registry-20261117-01",
+                "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6afa2e8c-b3e8-83ea-9f82-f5196afa3ed4",
+                "repository": "vileosbot-bot/lapis-rebuild",
+                "branch": "feat/agent-ops-registry-20261117",
+                "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+                "recorded_head_sha": "31f0ed2852c723458a12b8acebca60cb94de9727",
+                "observed_head_sha": "31f0ed2852c723458a12b8acebca60cb94de9727",
+                "head_status": "MATCH",
+                "task_history_index": "docs/agent-ops/task-history/README"
+              }
+            },
+            {
+              "scenario": "② GPT 对话中断",
+              "passed": true,
+              "method": "不提供原对话内容，按 request-id 从持久化登记字段重建任务状态与下一步。",
+              "actual_output": {
+                "request_id": "agent-7x24-p03-registry-20261117-01",
+                "status": "awaiting_review",
+                "next_action": "等待 GitHub Actions workflow run #43774944303（run #74）结束并读取最终 CI 结论；等待总管审查；本 PR 不合并。",
+                "head_status": "MATCH"
+              }
+            },
+            {
+              "scenario": "③ 工人提交后总管未更新登记表",
+              "passed": true,
+              "method": "注入父提交为已登记 HEAD、改动文件为 task_registry.py 的未登记代码提交。",
+              "actual_output": {
+                "observed_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "parent": "31f0ed2852c723458a12b8acebca60cb94de9727",
+                "changed_file": "tools/agent_ops/task_registry.py",
+                "head_status": "HEAD_MISMATCH",
+                "auto_rewrite_head_sha": false
+              }
+            },
+            {
+              "scenario": "④ GitHub HEAD 与登记表不一致",
+              "passed": true,
+              "method": "注入无共同父关系的分支 SHA。",
+              "actual_output": {
+                "observed_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "head_status": "HEAD_MISMATCH",
+                "action": "STOP"
+              }
+            },
+            {
+              "scenario": "⑤ 两个任务同时改同一文件",
+              "passed": true,
+              "method": "构造两个活跃任务，write_files 都包含 docs/agent-ops/task-registry.yml。",
+              "actual_output": {
+                "shared_file": "docs/agent-ops/task-registry.yml",
+                "conflict_errors": [
+                  "shared-file concurrent write: docs/agent-ops/task-registry.yml"
+                ]
+              }
+            }
+          ],
+          "completed_at": "2026-11-16"
+        },
+        "CP3": {
+          "completed": true,
+          "pull_request_number": 21,
+          "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/21",
+          "head_branch": "feat/agent-ops-registry-20261117",
+          "head_sha": "31f0ed2852c723458a12b8acebca60cb94de9727",
+          "base_branch": "main",
+          "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+          "pr_state": "open",
+          "merged": false,
+          "ci_status": "pending",
+          "ci_head_sha": "31f0ed2852c723458a12b8acebca60cb94de9727",
+          "workflow_runs": [
+            {
+              "id": 43774944303,
+              "run_number": 74,
+              "name": "Web and parser validation",
+              "status": "in_progress",
+              "conclusion": null,
+              "jobs_url": "https://api.github.com/repos/vileosbot-bot/lapis-rebuild/actions/runs/43774944303/jobs",
+              "logs_url": "https://api.github.com/repos/vileosbot-bot/lapis-rebuild/actions/runs/43774944303/logs"
+            }
+          ],
+          "check_runs": [
+            {
+              "name": "private-original",
+              "status": "completed",
+              "conclusion": "skipped",
+              "html_url": "https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/43774944303/job/132999039094"
+            },
+            {
+              "name": "synthetic",
+              "status": "in_progress",
+              "conclusion": null,
+              "html_url": "https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/43774944303/job/132999037630"
+            }
+          ],
+          "commit_status": "no combined status contexts",
+          "pending_todos": [
+            "GitHub Actions workflow run #43774944303 (run #74) is in_progress; re-read final result before marking CI success.",
+            "Wait for total-manager review; do not merge PR #21."
+          ]
         }
       },
       "notes": [
         "CP0 与 dispatched 同时完成；三项必填值在状态转换前齐全。",
         "CP1 在任何交付物代码/文档改动前登记，状态由 dispatched 合法转为 in_progress。",
-        "head_sha 记录最后一次已确认的任务代码 HEAD；登记表自更新提交按顶层 head_sha_policy 处理。"
+        "head_sha 记录最后一次已确认的任务代码 HEAD；登记表自更新提交按顶层 head_sha_policy 处理。",
+        "PR #21 已实际创建并读回：Open、未合并；真实链接 https://github.com/vileosbot-bot/lapis-rebuild/pull/21。",
+        "本次按用户明确要求将 P0-3 状态设为 awaiting_review；CI 独立记录为 pending，不代表 PASS；completed 仍要求 CI success。",
+        "CP2 的 13 项测试为 Python in-memory logic harness；本轮未直接从本地 checkout subprocess 执行仓库 CLI，限制已在 CP2.test_execution 明示。"
       ]
     },
     {
