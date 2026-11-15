@@ -238,17 +238,23 @@ export class LabScene extends Phaser.Scene {
     return promise;
   }
 
-  private waitForForegroundTextures():Promise<void>{
-    if(this.foregroundTextureRequests===0)return Promise.resolve();
-    return new Promise(resolve=>this.foregroundTextureWaiters.push(resolve));
+  private backgroundTextureLoadPaused():boolean{
+    return this.foregroundTextureRequests>0||(this.inBattleView&&this.slot==='02'&&this.timedAction>0);
+  }
+
+  private async waitForForegroundTextures():Promise<void>{
+    while(this.backgroundTextureLoadPaused())await new Promise<void>(resolve=>this.foregroundTextureWaiters.push(resolve));
+  }
+
+  private resumeBackgroundTextureLoads():void{
+    if(this.backgroundTextureLoadPaused())return;
+    const waiters=this.foregroundTextureWaiters.splice(0);
+    for(const resolve of waiters)resolve();
   }
 
   private finishForegroundTextureRequest():void{
     this.foregroundTextureRequests=Math.max(0,this.foregroundTextureRequests-1);
-    if(this.foregroundTextureRequests===0){
-      const waiters=this.foregroundTextureWaiters.splice(0);
-      for(const resolve of waiters)resolve();
-    }
+    this.resumeBackgroundTextureLoads();
   }
 
   async ensureTextures(keys:readonly string[],stage='资源',priority:'foreground'|'background'='foreground'):Promise<void>{
@@ -927,11 +933,19 @@ export class LabScene extends Phaser.Scene {
   async playEffect():Promise<void>{
     if(this.effectId===null)return;
     const effect=this.effect();
-    await this.ensureTextures(effect.sequence.map(index=>effectTextureKey(effect.resource_id,index)),`MagicRes ${effect.resource_id}诊断播放`);
+    const effectId=this.effectId;
+    // Playback is logical state: expose it immediately; missing frames render as placeholders while textures load.
     this.effectCursor=0;
     this.effectElapsed=0;
     this.effectPlaying=true;
     this.effectSprite?.setVisible(true);
+    try{
+      await this.ensureTextures(effect.sequence.map(index=>effectTextureKey(effect.resource_id,index)),`MagicRes ${effect.resource_id}诊断播放`);
+    }catch(error){
+      if(this.effectId===effectId)this.effectPlaying=false;
+      throw error;
+    }
+    if(this.effectId===effectId)this.refreshBootstrapTextures();
   }
   async stepEffect():Promise<void>{
     if(this.effectId===null)return;
@@ -1048,6 +1062,7 @@ export class LabScene extends Phaser.Scene {
     if(this.state.phase==='won')this.gold+=this.state.reward;
     const back=this.fieldReturn;
     this.inBattleView=false;
+    this.resumeBackgroundTextureLoads();
     this.fieldReturn=null;
     this.battleEntry=null;
     this.battleFocus=null;
@@ -1281,7 +1296,10 @@ export class LabScene extends Phaser.Scene {
   private advanceTimedAction(dt:number):void{
     if(this.timedAction>0){
       this.timedAction=Math.max(0,this.timedAction-dt);
-      if(this.timedAction<=0)this.setAction('00');
+      if(this.timedAction<=0){
+        void this.setAction('00');
+        this.resumeBackgroundTextureLoads();
+      }
     }
   }
 
