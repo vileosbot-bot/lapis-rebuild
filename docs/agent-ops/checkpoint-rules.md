@@ -51,3 +51,11 @@ Git commit SHA 由提交内容决定。登记表不能在同一提交内写入�
 ## 预算记录
 
 每个任务保留 max_rounds、timeout_minutes、cost_record。未获总管指定的预算值保持 null，不擅自编数字。每次执行记录实际轮数、耗时和可核实成本；达到任一上限时停止并按规则转 dead_letter。
+
+## 登记维护与种子刷新（M4）
+
+- 每个任务必须有 `head_sha_verified_at` 字段。它记录 `head_sha` 最近一次与 GitHub 实际分支状态/提交图核对一致的日期；不能确认时填 `null`，不得用 `last_updated` 代替。
+- 总管每次验收或任务状态变更时，必须重新读取对应 GitHub 分支 HEAD、PR head/base 和必要的提交父子关系；核对后同步刷新 `head_sha`、`head_sha_verified_at`、PR 状态及相关检查点。
+- 若 GitHub HEAD 是登记表单文件的直接子提交，须先确认父提交与唯一 changed file，再按 `head_sha_policy` 处理；不得把未经核实的 SHA 写入登记表。
+- 若登记表 seed 已知过期，`head_sha_verified_at` 必须为 `null`，并记录待刷新原因；不得让旧 SHA 看起来像刚刚核验通过。
+- P0-1 为总管明确指定的本轮例外：当前 seed SHA 暂不更新；待 P0-1 验收完成后，由总管另行通知刷新。此前保持 `head_sha_verified_at=null` 并保留实际观察到的较新 SHA 作为备注，不将其冒充为登记 seed。
