@@ -43,13 +43,13 @@
 
 ## CI 与审查门禁
 
-新任务只有在 CP2 测试通过、CP3 必需 CI 检查为 success 后，才可由 in_progress 转为 awaiting_review。CI 为 failure、pending 或 unknown 时，状态保持 in_progress；可以记录已创建 PR，但不得声称通过，也不得进入审查就绪状态。
+新任务在 CP2 测试通过、CP3 已记录真实 PR URL 和明确 CI 状态（success/failure/pending/unknown）后，可由 in_progress 转为 awaiting_review。awaiting_review 表示等待人工审查；CI 状态必须按实际快照记录，failure/pending/unknown 不得声称通过。只有 CI 为 success 且总管明确验收，才可进入 completed。
 
 P0-1 是导入的既有任务：其 awaiting_review 状态和门禁 FAIL 待查来自总管给定的历史事实。它标记 legacy_import=true，保留原状态但不构成新任务绕过 CI 门禁的先例；必须如实显示 FAIL，不得写成 PASS。
 
 ## 完成门禁
 
-completed 必须同时满足：CP0–CP3 完整、CP2 测试通过、CP3 PR/CI 证据齐全、总管明确验收并留名、不存在未解除的 blocked_by。工人不得自行标记 completed。PR 是否合并是独立事项；本任务只开 PR、不合并。
+completed 必须同时满足：CP0–CP3 完整、CP2 测试通过、CP3 CI 状态为 success、总管明确验收并留名、不存在未解除的 blocked_by。工人不得自行标记 completed。PR 是否合并是独立事项；本任务只开 PR、不合并。
 
 ## 并行与冲突
 
