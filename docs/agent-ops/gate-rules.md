@@ -48,7 +48,7 @@
 - 审查等级（绿/黄/红）及对应下一步；
 - 反向测试 1–9 的逐项结果。
 
-GitHub PR 会收到带固定标记的门禁评论；重复运行更新同一条评论，不连续堆叠。Actions Job Summary 和 web-synthetic-validation artifact 同时保留运行证据。
+GitHub PR 会收到带固定标记的门禁评论；重复运行更新同一条评论，不连续堆叠。评论 API 写入失败或权限不足时，评论状态为 UNKNOWN，PR 门禁不能显示通过；日志保留 HTTP 状态与响应摘要。Actions Job Summary 和 web-synthetic-validation artifact 同时保留运行证据。
 
 ## 4. 敏感扫描边界
 

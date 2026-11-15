@@ -442,7 +442,7 @@ def readback(args: argparse.Namespace) -> int:
         annotation(".github/workflows/web-ci.yml", 1, f"GitHub 独立读回不一致：{exc}")
         print(f"github_readback: FAIL; {exc}")
         return 0
-    except (HTTPError, URLError, TimeoutError, RuntimeError, OSError, json.JSONDecodeError, AttributeError, TypeError) as exc:
+    except (HTTPError, URLError, TimeoutError, RuntimeError, OSError, ValueError, KeyError, json.JSONDecodeError, AttributeError, TypeError) as exc:
         write_json(args.output, {"status": "UNKNOWN", "reason": f"API/读回不可用：{type(exc).__name__}"})
         annotation(".github/workflows/web-ci.yml", 1, "GitHub API 不可用；状态为门禁未知，不得视为通过")
         print(f"github_readback: UNKNOWN; {type(exc).__name__}")
@@ -451,14 +451,15 @@ def readback(args: argparse.Namespace) -> int:
 
 def reverse_tests() -> int:
     tests = [
-        ("1 单元测试失败被拦截", combine_statuses("failure", "success") == "FAIL"),
+        ("1 单元测试失败的 PR 返回阻断退出码", combine_statuses("failure", "success") == "FAIL" and final_exit_code("FAIL") == 1),
         ("2 模拟密钥被扫描", detect_secret("AKIA" + "A" * 16)),
         ("3 格式错误被拦截", bool(format_issues("bad line  \n"))),
         ("4 全通过时放行并正确分为绿灯",
-         overall_status(["PASS"] * 8) == "PASS" and classify_review(
-             [{"filename": "docs/agent-ops/example.md", "status": "modified"}], 10) == "green"),
+         overall_status(["PASS"] * 8) == "PASS" and final_exit_code("PASS") == 0 and
+         classify_review([{"filename": "docs/agent-ops/example.md", "status": "modified"}], 10) == "green" and
+         review_decision("green", "PASS", blind_review="passed", manager_review="not_selected")["merge_allowed"]),
         ("5 超时明确归为失败", normalize_status("timed_out") == "FAIL"),
-        ("6 CI/API 不可用显示未知", normalize_status(None) == "UNKNOWN"),
+        ("6 CI/API 不可用显示未知且不放行", normalize_status(None) == "UNKNOWN" and final_exit_code("UNKNOWN") == 1),
         ("7 红灯缺少 Opus 盲审不得合并",
          not review_decision("red", "PASS", opus_review="missing", manager_review="approved")["merge_allowed"]),
         ("8 绿灯缺少子代理盲审不得标记已审查",
@@ -599,11 +600,25 @@ def post_comment(args: argparse.Namespace) -> int:
         write_json(args.output, {"status": "PASS", "action": action, "comment_id": result.get("id")})
         print(f"pr_comment: PASS; {action}")
         return 0
-    except (HTTPError, URLError, TimeoutError, RuntimeError, OSError, json.JSONDecodeError) as exc:
+    except HTTPError as exc:
+        try:
+            detail = exc.read().decode("utf-8", errors="replace")[:600]
+        except OSError:
+            detail = ""
+        reason = f"GitHub comment API HTTP {exc.code}: {detail}"
+        write_json(args.output, {"status": "UNKNOWN", "reason": reason})
+        annotation(".github/workflows/web-ci.yml", 1, "PR 门禁结果无法写回评论；门禁未知，请查看 API 状态与响应")
+        print(f"pr_comment: UNKNOWN; HTTP {exc.code}; {detail}")
+        return 0
+    except (URLError, TimeoutError, RuntimeError, OSError, json.JSONDecodeError, AttributeError, TypeError) as exc:
         write_json(args.output, {"status": "UNKNOWN", "reason": f"评论写回不可用：{type(exc).__name__}"})
         annotation(".github/workflows/web-ci.yml", 1, "PR 门禁结果无法写回评论；门禁未知")
         print(f"pr_comment: UNKNOWN; {type(exc).__name__}")
         return 0
+
+
+def final_exit_code(overall: str) -> int:
+    return 0 if overall == "PASS" else 1
 
 
 def finalize(args: argparse.Namespace) -> int:
@@ -620,7 +635,7 @@ def finalize(args: argparse.Namespace) -> int:
         with open(step_summary, "a", encoding="utf-8") as handle:
             handle.write("\n" + message + "\n")
     print(message)
-    return 0 if overall == "PASS" else 1
+    return final_exit_code(overall)
 
 
 def main() -> int:

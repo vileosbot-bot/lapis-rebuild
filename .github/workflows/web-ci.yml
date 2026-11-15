@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-      pull-requests: read
+      pull-requests: write
       issues: write
     runs-on: ubuntu-24.04
     timeout-minutes: 75

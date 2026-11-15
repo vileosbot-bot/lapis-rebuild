@@ -41,7 +41,7 @@
 - 绿灯的“总管每 5 个抽 1 个”是抽样验收，不免除子代理盲审。
 - 黄灯必须总管逐项验；红灯必须 Opus 盲审且总管最终决定。
 - 机器脚本输出的是建议等级，不替代人工判断。权限文件变更、删除和上线相关变更优先按红灯。
-- 本轮任务修改 GitHub Actions 权限（增加 PR 只读与 issue comment 写权限），因此预期被判为红灯；不能由本任务执行者自行代替 Opus 审查。
+- 本轮任务修改 GitHub Actions 权限（synthetic gate job 增加 PR 读写与 issue comment 写权限；private-original 仍只读），因此预期被判为红灯；不能由本任务执行者自行代替 Opus 审查。
 
 ## 3. 试运行边界
 
