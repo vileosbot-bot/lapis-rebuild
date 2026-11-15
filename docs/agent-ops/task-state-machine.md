@@ -26,7 +26,7 @@
 |---|---|---|
 | created | dispatched | CP0 同时完成；真实 conversation_url、已存在 branch、base_sha 均齐全；branch/base 已实际读回 |
 | dispatched | in_progress | 总管明确放行；approval_status=granted；CP1 已记录授权范围和计划步骤 |
-| in_progress | awaiting_review | CP2 已记录提交 SHA 和测试结果；CP3 已记录 PR URL、检查状态和待办；新任务必需测试与 CI 均成功 |
+| in_progress | awaiting_review | CP2 测试通过并记录提交 SHA/结果；CP3 记录 PR URL、真实 CI 状态和待办；CI 可为 pending/failure/unknown，但必须如实记录，不得声称 PASS |
 | awaiting_review | completed | CP0–CP3 完整；总管明确验收；记录 accepted_by、accepted_at、acceptance_note |
 | awaiting_review | in_progress | 审查要求返工；记录 changes requested 与下一步，不覆盖历史证据 |
 
@@ -49,7 +49,7 @@ P0-1 是导入的既有任务：其 awaiting_review 状态和门禁 FAIL 待查�
 
 ## 完成门禁
 
-completed 必须同时满足：CP0–CP3 完整、CP2 测试通过、CP3 CI 状态为 success、总管明确验收并留名、不存在未解除的 blocked_by。工人不得自行标记 completed。PR 是否合并是独立事项；本任务只开 PR、不合并。
+completed 必须同时满足：CP0–CP3 完整、CP2 测试通过、CP3 CI 状态为 success、登记表已由总管预先记录 acceptance_status=accepted 与 accepted_by、执行转换时 --accepted-by 与登记值完全一致。当前状态转换器有意不把 blocked_by 为空作为机械完成条件；blocked_by 是流程阻塞元数据，由总管在验收前人工核查并解除或明确裁决。工人不得自行标记 completed。PR 是否合并是独立事项；本任务只开 PR、不合并。
 
 ## 并行与冲突
 
