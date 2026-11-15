@@ -516,7 +516,7 @@ def summarize(args: argparse.Namespace) -> int:
     ]
     if readback_data.get("pr_number"):
         lines.append(f"**PR：** #{readback_data.get('pr_number')}；base={readback_data.get('base_sha')}；head={readback_data.get('head_sha')}")
-        if rows:
+    if rows:
         for item in rows:
             lines.append(f"- {item.get('filename')}（{item.get('status')}，+{item.get('additions', 0)} / -{item.get('deletions', 0)}）")
     else:
