@@ -8,6 +8,8 @@ This tool never edits application code, merges pull requests, or deploys.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import re
@@ -655,33 +657,64 @@ def command_self_test(_args):
             return
         raise AssertionError("dead_letter accepted without exceeded budget evidence")
 
-    def completion_not_preaccepted():
+    def run_check_fixture(task, current_branch, requested_branch):
+        with tempfile.TemporaryDirectory() as directory:
+            registry_path = Path(directory) / "task-registry.yml"
+            save_registry(registry_path, {
+                "schema_version": 1, "registry_repository": "owner/repo",
+                "parallel_limit": 10, "active_statuses": list(ACTIVE), "tasks": [task],
+            })
+            original_git_state = globals()["git_state"]
+            globals()["git_state"] = lambda _root: (current_branch, "1" * 40, None, [])
+            output = io.StringIO()
+            try:
+                args = argparse.Namespace(
+                    registry=str(registry_path), repo_root=directory,
+                    branch=requested_branch, observed_head=None,
+                    observed_parent=None, observed_file=[],
+                )
+                with contextlib.redirect_stdout(output):
+                    result = command_check(args)
+            finally:
+                globals()["git_state"] = original_git_state
+            return result, output.getvalue()
+
+    def transition_fixture(acceptance_status, recorded_by, supplied_by):
         a = sample(status="awaiting_review")
         a["checkpoints"] = {n: {"completed": True} for n in ("CP0", "CP1", "CP2", "CP3")}
         a["checkpoints"]["CP2"].update({"tests_passed": True, "test_results": []})
         a["checkpoints"]["CP3"].update({"ci_status": "success", "pull_request_url": "https://github.com/o/r/pull/1", "pending_todos": []})
         a["pull_request_url"] = "https://github.com/o/r/pull/1"
-        a["acceptance_status"] = "pending"
-        a["accepted_by"] = "total-manager"
-        try:
-            validate_transition(a, "completed", accepted_by="total-manager")
-        except RegistryError:
-            return
-        raise AssertionError("worker supplied acceptance instead of pre-recorded manager acceptance")
+        a["acceptance_status"] = acceptance_status
+        if recorded_by is not None:
+            a["accepted_by"] = recorded_by
+        with tempfile.TemporaryDirectory() as directory:
+            registry_path = Path(directory) / "task-registry.yml"
+            save_registry(registry_path, {
+                "schema_version": 1, "registry_repository": "owner/repo",
+                "parallel_limit": 10, "active_statuses": list(ACTIVE), "tasks": [a],
+            })
+            args = argparse.Namespace(
+                registry=str(registry_path), request_id=a["request_id"], to="completed",
+                release_approved=False, resume_approved=False, retry_approved=False,
+                changes_requested=False, accepted_by=supplied_by, acceptance_note=None,
+                dead_letter_evidence=None,
+            )
+            before = load_registry(registry_path)["tasks"][0]
+            try:
+                command_transition(args)
+            except RegistryError:
+                after = load_registry(registry_path)["tasks"][0]
+                assert after["status"] == "awaiting_review"
+                assert after.get("acceptance_status") == acceptance_status
+                return
+            raise AssertionError("command_transition accepted unapproved completion")
+
+    def completion_not_preaccepted():
+        transition_fixture("pending", "total-manager", "total-manager")
 
     def completion_identity_mismatch():
-        a = sample(status="awaiting_review")
-        a["checkpoints"] = {n: {"completed": True} for n in ("CP0", "CP1", "CP2", "CP3")}
-        a["checkpoints"]["CP2"].update({"tests_passed": True, "test_results": []})
-        a["checkpoints"]["CP3"].update({"ci_status": "success", "pull_request_url": "https://github.com/o/r/pull/1", "pending_todos": []})
-        a["pull_request_url"] = "https://github.com/o/r/pull/1"
-        a["acceptance_status"] = "accepted"
-        a["accepted_by"] = "total-manager"
-        try:
-            validate_transition(a, "completed", accepted_by="random-name")
-        except RegistryError:
-            return
-        raise AssertionError("mismatched --accepted-by was accepted")
+        transition_fixture("accepted", "total-manager", "random-name")
 
     def missing_cp_check_fails():
         a = sample(status="awaiting_review")
@@ -689,17 +722,19 @@ def command_self_test(_args):
             "CP0": {"completed": True}, "CP1": {"completed": True},
             "CP2": {"completed": True, "tests_passed": True, "test_results": []},
         }
-        errors = checkpoint_gate_errors([a])
-        assert errors and any("CP3" in item for item in errors), errors
+        result, output = run_check_fixture(a, "branch-T1", "branch-T1")
+        assert result == 1 and "CHECK: FAIL" in output and "CP3" in output, output
 
     def detached_without_branch_fails():
-        branch, warnings, errors = resolve_check_branch("", None)
-        assert branch is None and errors and "HEAD comparison skipped" in errors[0]
+        a = sample(status="created")
+        result, output = run_check_fixture(a, "", None)
+        assert result != 0 and "CHECK: FAIL" in output and "detached HEAD requires --branch" in output, output
 
     def detached_with_branch_uses_explicit_branch():
-        branch, warnings, errors = resolve_check_branch("", "branch-A")
-        assert branch == "branch-A" and warnings and not errors
-        assert compare_head("1" * 40, "1" * 40, None, []) == "MATCH"
+        a = sample(status="created")
+        result, output = run_check_fixture(a, "", "branch-T1")
+        assert result == 0 and "CHECK: PASS" in output and "HEAD_MATCH" in output, output
+        assert "detached HEAD; using explicit --branch" in output, output
 
     tests = [
         ("duplicate request-id rejected", duplicate),
