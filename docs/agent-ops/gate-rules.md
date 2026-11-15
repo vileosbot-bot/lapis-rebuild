@@ -24,7 +24,7 @@
 | 1 | 单元测试 | Python parser unittest 与 web/package.json 的 npm test | 5 / 10 分钟 | 测试框架输出测试文件、断言位置；无法解析时由门禁汇总给出回退定位 |
 | 2 | 构建 | npm run build，并验证 M7.3 synthetic fixture 构建 | 10 / 8 分钟 | TypeScript/Vite 原生诊断；回退定位 web/vite.config.ts |
 | 3 | 类型检查 | npm run typecheck | 5 分钟 | TypeScript 文件、行、列；回退定位 web/tsconfig.json |
-| 4 | 格式检查 | git diff --check；检查变更文本文件的行尾空白、混合换行和末尾换行 | 3 分钟 | 精确到变更文件和行号 |
+| 4 | 格式检查 | git diff --check 检查新增行行尾空白；检查变更文本文件的混合换行和末尾换行，新文件全量检查行尾空白 | 3 分钟 | 精确到变更文件和行号 |
 | 5 | 静态检查 | 对变更 Python 文件执行 AST 解析；核验 web-ci.yml 的 PR 触发、门禁步骤超时、Action SHA 固定及禁止另建 ci.yml | 3 分钟 | 精确到 Python 文件/行；工作流结构错误定位到 web-ci.yml 对应行 |
 | 6 | 敏感信息扫描 | 扫描 PR 新增行中的常见云密钥、GitHub token、Slack token、私钥块和凭据赋值 | 3 分钟 | 精确到文件和新增行号 |
 | 7 | 截图自检 | 现有 Chromium E2E + production preview 冒烟；确认 canvas 可见、页面无 pageerror/横向溢出，生成并校验 PNG | E2E 25 分钟；截图 5 分钟 | 浏览器错误、失败测试文件/行；截图格式错误定位到截图文件 |

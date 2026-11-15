@@ -77,16 +77,24 @@ def changed_paths(base: str, head: str) -> list[str]:
     return sorted({line.strip() for line in output.splitlines() if line.strip()})
 
 
-def format_issues(content: str) -> list[tuple[int, str]]:
+def newline_issues(content: str) -> list[tuple[int, str]]:
     issues = []
     lines = content.splitlines()
-    for number, line in enumerate(lines, 1):
-        if line.endswith((" ", "\t")):
-            issues.append((number, "行尾存在空格或制表符"))
     if content and not content.endswith("\n"):
         issues.append((max(1, len(lines)), "文件缺少末尾换行"))
-    if "\r" in content.replace("\r\n", ""):
+    normalized = content.replace("\r\n", "")
+    if "\r" in normalized:
         issues.append((1, "文件包含非 CRLF 配对的回车符"))
+    if "\r\n" in content and "\n" in normalized:
+        issues.append((1, "文件混用了 CRLF 与 LF 换行"))
+    return issues
+
+
+def format_issues(content: str) -> list[tuple[int, str]]:
+    issues = newline_issues(content)
+    for number, line in enumerate(content.splitlines(), 1):
+        if line.endswith((" ", "\t")):
+            issues.append((number, "行尾存在空格或制表符"))
     return issues
 
 
@@ -122,15 +130,18 @@ def overall_status(statuses: list[str]) -> str:
 
 def classify_review(files: list[dict], changed_lines: int, diff_text: str = "") -> str:
     red_path = re.compile(
-        r"(^|/)(payments?|billing|wallet|money|finance|economy|currency|gold|balance|price|transaction|delete|deletion|removal|deploy|deployment|release|publish|freeze|permissions?|access-control|auth)(/|[-_.]|$)",
+        r"(^|/)(payments?|billing|wallet|money|finance|economy|currency|gold|balance|price|transaction|delete|deletion|remove|removal|purge|deploy|deployment|release|publish|freeze|permissions?|access-control|auth)(/|[-_.]|$)",
         re.IGNORECASE,
     )
+    red_change = re.compile(
+        r"(?i)(?:\b(?:money|gold|balance|price|cost|wallet|billing|finance|financial|currency|economy|asset|transaction|payment|fee|delete|deletion|remove|removal|purge|truncate|deploy(?:ment)?|release|publish|rollout|freeze|frozen|permission|permissions|access[_-]?control|auth(?:entication|orization)?|token)\b|drop\s+(?:table|database|schema)|钱|余额|金币|价格|成本|资产|财务|计费|支付|交易|删除|移除|上线|部署|发布|冻结|权限)",
+    )
     for item in files:
-        if red_path.search(str(item.get("filename", ""))) or item.get("status") == "removed":
+        if red_path.search(str(item.get("filename", ""))) or item.get("status") in {"removed", "renamed"}:
             return "red"
     for line in diff_text.splitlines():
-        if line.startswith("+") and not line.startswith("+++"):
-            if re.search(r"(?i)\b(?:permissions\s*:|issues\s*:\s*write|contents\s*:\s*write|pull-requests\s*:\s*write|id-token\s*:\s*write)\b", line[1:]):
+        if line.startswith(("+", "-")) and not line.startswith(("+++", "---")):
+            if red_change.search(line[1:]):
                 return "red"
     if changed_lines <= 50 and files:
         safe = {".md", ".txt", ".css", ".scss", ".less"}
@@ -223,12 +234,12 @@ def format_check() -> int:
     except RuntimeError as exc:
         annotation(".github/workflows/web-ci.yml", 1, f"格式检查无法读取 diff：{exc}")
         return 1
-    # New files are checked in full. Modified legacy files are checked on added lines by git diff --check.
+    # git diff --check checks trailing whitespace on added lines; inspect whole changed files for newline consistency.
     for row in status_rows:
         parts = row.split("\t")
-        if not parts or parts[0] != "A" or len(parts) < 2:
+        if len(parts) < 2:
             continue
-        name = parts[-1]
+        status, name = parts[0], parts[-1]
         path = ROOT / name
         if not path.is_file():
             continue
@@ -236,7 +247,8 @@ def format_check() -> int:
             content = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
             continue
-        for number, message in format_issues(content):
+        issues = format_issues(content) if status == "A" else newline_issues(content)
+        for number, message in issues:
             annotation(name, number, message)
             failed = True
     print(f"format_check: {'FAIL' if failed else 'PASS'}")
@@ -453,14 +465,17 @@ def reverse_tests() -> int:
     tests = [
         ("1 单元测试失败的 PR 返回阻断退出码", combine_statuses("failure", "success") == "FAIL" and final_exit_code("FAIL") == 1),
         ("2 模拟密钥被扫描", detect_secret("AKIA" + "A" * 16)),
-        ("3 格式错误被拦截", bool(format_issues("bad line  \n"))),
+        ("3 格式错误与混合换行被拦截",
+         bool(format_issues("bad line  \n")) and bool(newline_issues("first\r\nsecond\n"))),
         ("4 全通过时放行并正确分为绿灯",
          overall_status(["PASS"] * 8) == "PASS" and final_exit_code("PASS") == 0 and
          classify_review([{"filename": "docs/agent-ops/example.md", "status": "modified"}], 10) == "green" and
          review_decision("green", "PASS", blind_review="passed", manager_review="not_selected")["merge_allowed"]),
-        ("5 超时明确归为失败", normalize_status("timed_out") == "FAIL"),
-        ("6 CI/API 不可用显示未知且不放行", normalize_status(None) == "UNKNOWN" and final_exit_code("UNKNOWN") == 1),
-        ("7 红灯缺少 Opus 盲审不得合并",
+        ("5 超时明确归为失败", normalize_status("timed_out") == "FAIL" and final_exit_code("FAIL") == 1),
+        ("6 CI/API 不可用显示未知且不放行", normalize_status(None) == "UNKNOWN" and status_label("UNKNOWN") == "门禁未知" and final_exit_code("UNKNOWN") == 1),
+        ("7 钱/删除变更归红灯且缺少 Opus 不得合并",
+         classify_review([{"filename": "web/src/player-state.ts", "status": "modified"}], 4, "+player.gold += 20") == "red" and
+         classify_review([{"filename": "web/data/catalog.json", "status": "removed"}], 10) == "red" and
          not review_decision("red", "PASS", opus_review="missing", manager_review="approved")["merge_allowed"]),
         ("8 绿灯缺少子代理盲审不得标记已审查",
          not review_decision("green", "PASS", manager_review="not_selected")["reviewed"]),
@@ -496,6 +511,13 @@ def local_file_rows() -> list[dict]:
     return rows
 
 
+STATUS_LABELS = {"PASS": "通过", "FAIL": "未通过", "UNKNOWN": "门禁未知", "NOT_APPLICABLE": "不适用"}
+
+
+def status_label(value: str) -> str:
+    return STATUS_LABELS.get(value, "门禁未知")
+
+
 def summarize(args: argparse.Namespace) -> int:
     is_pr = os.environ.get("IS_PR", "false").lower() == "true"
     readback_data = read_json(args.readback, {})
@@ -525,17 +547,16 @@ def summarize(args: argparse.Namespace) -> int:
         overall = "FAIL"
     elif artifact != "PASS" and overall == "PASS":
         overall = "UNKNOWN"
-    labels = {"PASS": "通过", "FAIL": "未通过", "UNKNOWN": "门禁未知", "NOT_APPLICABLE": "不适用"}
     rows = readback_data.get("changed_files") or local_file_rows()
     level = readback_data.get("review_level", "未判定")
     base_sha = readback_data.get("base_sha") or os.environ.get("GATE_BASE_SHA", "")
     head_sha = readback_data.get("head_sha") or os.environ.get("GATE_HEAD_SHA", "")
     lines = [
-        "<!-- agent-ops-gate -->", f"## 机器门禁结果：{labels.get(overall, '门禁未知')}", "",
+        "<!-- agent-ops-gate -->", f"## 机器门禁结果：{status_label(overall)}", "",
         "| 门禁 | 状态 |", "| --- | --- |",
     ]
     for title, status, _ in gates:
-        lines.append(f"| {title} | {labels.get(status, '门禁未知')} |")
+        lines.append(f"| {title} | {status_label(status)} |")
     lines += [
         f"| 九项反向测试 | {labels.get(reverse, '门禁未知')} |",
         f"| 验证产物上传 | {labels.get(artifact, '门禁未知')} |",
