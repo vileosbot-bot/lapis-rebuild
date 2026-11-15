@@ -16,6 +16,7 @@ export function renderFieldHud(player:PlayerHudState,field:FieldHudState):string
   const questTitle=field.questTitle||'任务';
   const questDetail=field.questDetail||'暂无追踪任务';
   const interaction=field.interactionPrompt?`<button type="button" class="interaction-prompt" data-action="interact" aria-label="${escapeHtml(field.interactionPrompt)}"><span class="keycap" aria-hidden="true">E</span><span class="interaction-label">${escapeHtml(field.interactionPrompt)}</span><span class="touch-hint" aria-hidden="true">轻点交互</span></button>`:'';
+  const wildEncounter=field.wildEncounter?`<div class="wild-encounter-hint" data-ui="wild-encounter">${escapeHtml(field.wildEncounter)}</div>`:'';
   const itemSlots=['A','S','D','F'].map(key=>disabledQuickSlot(key,`物品快捷槽 ${key}，尚未恢复`)).join('');
   const magicSlots=['Z','X','C','V'].map(key=>disabledQuickSlot(key,`魔法快捷槽 ${key}，尚未恢复`)).join('');
   const topCommands=[
@@ -64,6 +65,7 @@ export function renderFieldHud(player:PlayerHudState,field:FieldHudState):string
       <div class="quick-slot-group"><span class="quick-slot-label">MAGIC</span><div class="quick-slot-row">${magicSlots}</div></div>
     </section>
 
+    ${wildEncounter}
     ${interaction}
   </div>`;
 }

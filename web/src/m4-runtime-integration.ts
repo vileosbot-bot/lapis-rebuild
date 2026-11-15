@@ -64,6 +64,12 @@ import {SceneTransitionController} from './world/scene-transition.ts';
 import type {M4RuntimeMode} from './m4-mode.ts';
 import {createCh1WorldPolicy} from './world/ch1-world-policy.ts';
 import type {Ch1WorldPolicy} from './world/ch1-world-policy.ts';
+import {CH1_WILD_ENCOUNTERS,manhattanDistance} from './world/ch1-wild-encounter-catalog.ts';
+import type {Ch1WildEncounterRecord} from './world/ch1-wild-encounter-catalog.ts';
+import {clearCh1WildSuppressionAfterLeavingRange,createCh1WildEncounterState,markCh1WildMapEntered,markCh1WildMapLeft,resolveCh1WildEncounter,validateCh1WildEncounterState} from './world/ch1-wild-encounter-authority.ts';
+import type {Ch1WildEncounterState} from './world/ch1-wild-encounter-authority.ts';
+import {createCh1WildBattlePlan} from './world/ch1-wild-encounter-battle.ts';
+import {settleCh1WildBattle} from './world/ch1-wild-encounter-settlement.ts';
 import {CH1_GIO_TEACHER_VISUAL_PLACEMENT,Ch1WorldAuthority} from './world/ch1-world-authority.ts';
 import type {Ch1NpcDialogueSession,Ch1Quest1SelectionState} from './world/ch1-world-authority.ts';
 import {DEFAULT_RECONSTRUCTION_COMBAT_BALANCE} from './combat/reconstruction-combat-balance.ts';
@@ -126,6 +132,8 @@ type Chapter1StoryBattleContext=Readonly<{
   runtimeVerified:false;
 }>;
 type Chapter1StoryBattleOutcome='won'|'lost'|'retreated';
+type Chapter1WildBattleContext=Readonly<{entityId:number;generation:number;record:Ch1WildEncounterRecord}>;
+type Chapter1WildNearbyView=Readonly<{status:'ambiguous'|'defeated'|'suppressed'|'level-too-low'|'eligible';candidateCount:number;entityId?:number;name?:string;minimumLevel?:number;distance?:number;minimumLevelProvenance:'RECONSTRUCTION_POLICY';provenance:'RECONSTRUCTION_POLICY'}>;
 type Chapter1StoryBattleResolution=Readonly<{
   sourceId:typeof CH1_STORY_ONE_SOURCE.id;
   outcome:Chapter1StoryBattleOutcome;
@@ -237,6 +245,8 @@ export class M4RuntimeIntegration{
   private activeChapter1StoryBattle:Chapter1StoryBattleContext|null=null;
   private chapter1StoryLastResolution:Chapter1StoryBattleResolution|null=null;
   private chapter1StorySuppressedUntilLeaveGate=false;
+  private ch1WildState:Ch1WildEncounterState=createCh1WildEncounterState();
+  private activeCh1WildBattle:Chapter1WildBattleContext|null=null;
   private chapter1StoryOneApproachCells:readonly Cell[]=Object.freeze([]);
   private chapter1StoryOneArchRuntimeCollisionWalkable=false;
   private trainingManagerOpen=false;
@@ -271,7 +281,7 @@ export class M4RuntimeIntegration{
   constructor(scene:LabScene,options:M4RuntimeOptions={}){
     this.scene=scene;
     this.runtimeMode=options.mode??'default';
-    this.chapter1World=this.runtimeMode==='chapter1'?createCh1WorldPolicy(scene.pack):null;
+    this.chapter1World=this.runtimeMode==='chapter1'?createCh1WorldPolicy(scene.pack,{allowSyntheticMapsForTests:typeof navigator!=='undefined'&&navigator.webdriver}):null;
     this.chapter1Authority=this.chapter1World?new Ch1WorldAuthority():null;
     this.chapter1Quest1Selection=this.chapter1Authority?.initialQuest1State()??null;
     if(this.chapter1World){
@@ -371,6 +381,7 @@ export class M4RuntimeIntegration{
         acceptanceOpenShop:(shopId:string)=>this.acceptanceOpenShop(shopId),
         acceptanceBuyShopItem:(shopId:string,itemId:number,transactionId:string)=>this.buyShopItem(shopId,itemId,transactionId),
         acceptanceUsePotion:(itemId:number)=>this.usePotion(itemId),
+        acceptancePrimeWildGrowth:(exp:number)=>this.acceptancePrimeWildGrowth(exp),
       });
     });
   }
@@ -385,6 +396,7 @@ export class M4RuntimeIntegration{
         routes:this.chapter1World.routes.map(route=>({routeId:route.routeId,sourceMapId:route.sourceMapId,targetMapId:route.targetMapId,activationCellCount:route.activationCells.length})),
         initial:{mapId:this.chapter1World.initial.mapId,requestedCell:this.chapter1World.initial.requestedCell,effectiveCell:this.chapter1World.initial.effectiveCell,snapDistanceSquared:this.chapter1World.initial.snapDistanceSquared},
         victoryReturn:{mapId:this.chapter1World.victoryReturn.mapId,cell:this.chapter1World.victoryReturn.effectiveCell},
+        mapEvidence:this.chapter1World.mapEvidence,
         provenance:'RECOVERED_SECONDARY',runtimeVerified:false,
       }:null,
       chapter1StorySource1:this.chapter1World?{
@@ -438,6 +450,12 @@ export class M4RuntimeIntegration{
         triggerSemantics:this.chapter1StoryLastResolution.triggerSemantics,
         evidenceLevel:this.chapter1StoryLastResolution.evidenceLevel,
         runtimeVerified:this.chapter1StoryLastResolution.runtimeVerified,
+      }:null,
+      chapter1Wild:this.chapter1World?{
+        state:this.ch1WildState,
+        activeBattle:this.activeCh1WildBattle?{entityId:this.activeCh1WildBattle.entityId,generation:this.activeCh1WildBattle.generation,name:this.activeCh1WildBattle.record.name,battleZoneId:1020,provenance:'RECONSTRUCTION_POLICY'}:null,
+        nearby:this.chapter1WildNearby(),
+        battleZonePolicy:{battleZoneId:1020,provenance:'RECONSTRUCTION_POLICY'},
       }:null,
       quest:{...this.world.quest},
       shop:{provenance:'RECONSTRUCTION_POLICY',routeStatus:'UNKNOWN',runtimeEnabled:false,candidates:this.shopAuthority.snapshot().candidates.map(row=>({shopId:row.shopId,npcId:row.npcId,mapId:row.mapId,program:row.program}))},
@@ -531,7 +549,8 @@ export class M4RuntimeIntegration{
       this.activeChapter1Dialogue=null;
       this.battleExitConfirm=false;
       const trainingBattleId=this.trainingLaunchPending?this.selectedTrainingBattleId:null;
-      this.prepareReconstructionBattle(trainingBattleId);
+      if(this.activeCh1WildBattle)this.prepareChapter1WildBattle(this.activeCh1WildBattle.record);
+      else this.prepareReconstructionBattle(trainingBattleId);
       const requestedTrainingZone=trainingBattleId===null?null:trainingBattleById(trainingBattleId).battleZoneId;
       const trainingEntry=requestedTrainingZone!==null&&this.scene.pack.maps[String(requestedTrainingZone)]?Object.freeze({
         battleZoneId:requestedTrainingZone,
@@ -976,6 +995,25 @@ export class M4RuntimeIntegration{
     this.render(this.scene.snapshot());
   }
 
+  acceptancePrimeWildGrowth(exp:number):void{
+    if(!navigator.webdriver)throw new Error('M7.3 wild growth fixture is automation-only');
+    if(!this.chapter1World||this.scene.inBattleView||this.scene.route.length)throw new Error('M7.3 wild growth fixture requires a stationary Chapter 1 field');
+    if(!Number.isInteger(exp)||exp<0||exp>499)throw new Error('M7.3 wild growth fixture EXP must be an integer from 0 to 499');
+    if(this.rewards.progression.level!==1||this.rewards.progression.exp!==0)throw new Error('M7.3 wild growth fixture requires a fresh level-1 progression state');
+    const oldLevel=this.rewards.progression.level;
+    const receiptId='m7-3-e2e-growth-fixture';
+    const applied=applyBattleReward(this.rewards,'m7-3-e2e-growth-fixture',receiptId,{gold:0,exp});
+    this.rewards=applied.state;
+    if(applied.applied){
+      this.reconcileM7Attributes(receiptId);
+      this.reconcileM7Skills(oldLevel);
+    }
+    this.syncSceneInventory();
+    this.applyClassProfile(false);
+    this.setNotice('M7.3 acceptance fixture primed EXP '+exp+' below next level threshold through production reward authority.');
+    this.render(this.scene.snapshot());
+  }
+
   acceptanceGrantLevel(targetLevel:number):void{
     if(!navigator.webdriver)throw new Error('M6 acceptance reward fixture is automation-only');
     if(!Number.isInteger(targetLevel)||targetLevel<1||targetLevel>99)throw new Error('Invalid M6 acceptance target level');
@@ -1259,6 +1297,7 @@ export class M4RuntimeIntegration{
 
   private retreatFromBattle():void{
     const storyBattle=this.activeChapter1StoryBattle;
+    const wildBattle=this.activeCh1WildBattle;
     this.clearBattleTargeting(false);
     this.scene.leaveBattle();
     this.applyClassProfile(false);
@@ -1269,7 +1308,19 @@ export class M4RuntimeIntegration{
     this.activeChapter1StoryBattle=null;
     this.trainingLaunchPending=false;
     this.lastSnapshot=null;
-    this.suppressEncounterUntilLeave=!storyBattle;
+    this.suppressEncounterUntilLeave=!storyBattle&&!wildBattle;
+    if(wildBattle){
+      const settlement=settleCh1WildBattle({
+        rewards:this.rewards,
+        wildState:this.ch1WildState,
+        record:wildBattle.record,
+        generation:wildBattle.generation,
+        outcome:'retreated',
+      });
+      this.rewards=settlement.rewards;
+      this.ch1WildState=settlement.wildState;
+    }
+    this.activeCh1WildBattle=null;
     if(storyBattle){
       const returnCell=storyBattle.gateCell;
       this.chapter1StorySuppressedUntilLeaveGate=true;
@@ -1464,7 +1515,8 @@ export class M4RuntimeIntegration{
     if(phase==='safe'){this.setNotice('战斗状态尚未初始化');return;}
     this.battleExitConfirm=false;
     const storyBattle=this.activeChapter1StoryBattle;
-    if(phase==='lost'&&!storyBattle)this.suppressEncounterUntilLeave=true;
+    const wildBattle=this.activeCh1WildBattle;
+    if(phase==='lost'&&!storyBattle&&!wildBattle)this.suppressEncounterUntilLeave=true;
     let returnState:WorldState|null=null;
     if(storyBattle){
       // boss_victory=true remains source metadata. This offline policy returns
@@ -1493,6 +1545,22 @@ export class M4RuntimeIntegration{
         evidenceLevel:'RECOVERED_SECONDARY',
         runtimeVerified:false,
       });
+    }else if(wildBattle){
+      const oldLevel=this.rewards.progression.level;
+      const settlement=settleCh1WildBattle({
+        rewards:this.rewards,
+        wildState:this.ch1WildState,
+        record:wildBattle.record,
+        generation:wildBattle.generation,
+        outcome:phase==='won'?'won':'lost',
+      });
+      this.rewards=settlement.rewards;
+      this.ch1WildState=settlement.wildState;
+      if(settlement.applied&&settlement.receiptId)this.reconcileM7Attributes(settlement.receiptId);
+      this.reconcileM7Skills(oldLevel);
+      this.setNotice(phase==='won'
+        ?'野外胜利：金币 +'+wildBattle.record.reward.gold+'，EXP +'+wildBattle.record.reward.exp+'，便宜药草 ×1 / RECONSTRUCTION_POLICY'
+        :'野外战斗失败：未结算金币、EXP 或掉落 / RECONSTRUCTION_POLICY');
     }else if(this.pendingEncounter){
       const outcome=phase==='won'?'won':'lost';
       const resolution=this.worldAuthority.resolveBattle(this.world,{battleZoneId:this.scene.state.battleZoneId??-1,outcome});
@@ -1505,10 +1573,12 @@ export class M4RuntimeIntegration{
     this.clearBattleTargeting(false);
     this.scene.leaveBattle();
     this.scene.gold=this.rewards.gold;
+    if(wildBattle){this.syncSceneInventory();this.applyClassProfile(false);}
     if(returnState)this.applyWorldState(returnState);else this.world={...this.world,world:this.currentWorldState()};
     this.pendingEncounter=null;
     this.activeTrainingBattleId=null;
     this.activeChapter1StoryBattle=null;
+    this.activeCh1WildBattle=null;
     this.trainingLaunchPending=false;
     this.lastSnapshot=null;
     this.render(this.scene.snapshot());
@@ -1732,6 +1802,11 @@ export class M4RuntimeIntegration{
     });
   }
 
+  private prepareChapter1WildBattle(record:Ch1WildEncounterRecord):void{
+    const plan=createCh1WildBattlePlan(record,this.scene.character,Math.max(1,this.rewards.progression.level),this.combatEquipment());
+    this.scene.setReconstructionBattleSetup(plan.setup);
+  }
+
   private applyClassProfile(resetVitals:boolean):void{
     if(!M6_CHARACTER_IDS.includes(this.scene.character))return;
     const profile=battleProfileForClass(this.scene.character);
@@ -1804,7 +1879,7 @@ export class M4RuntimeIntegration{
     return{
       kind:SAVE_KIND,version:CURRENT_SAVE_VERSION,pack:this.scene.pack.digest,character:this.scene.character,mapId:this.scene.mapId,
       x:this.scene.anchor.x,y:this.scene.anchor.y,gold:this.rewards.gold,inventory:this.rewards.inventory,
-      quest:{questId:this.world.quest.questId,stage:this.world.quest.stage,ch1ShopState:this.shopState} as JsonValue,
+      quest:{questId:this.world.quest.questId,stage:this.world.quest.stage,ch1ShopState:this.shopState,...(this.chapter1World?{ch1WildState:this.ch1WildState as unknown as JsonValue}:{})} as JsonValue,
       questFlags:{...this.rewards.questFlags},progression:{...this.rewards.progression},rewardReceipts:[...this.rewards.rewardReceipts],m6,
       m7:createM7SaveExtension(this.scene.character,this.m7Level(),this.m7Skills,{hp:this.scene.state.hp,mp:this.scene.state.mp},this.attributeState),savedAt:new Date().toISOString(),
     };
@@ -1839,6 +1914,8 @@ export class M4RuntimeIntegration{
     if(this.chapter1World&&!this.chapter1World.mapIds.includes(save.mapId as 1000|1020|1030|1060))throw new Error('Chapter 1 save map is outside the route graph: '+save.mapId);
     const questRaw=save.quest&&typeof save.quest==='object'&&!Array.isArray(save.quest)?save.quest as Record<string,JsonValue>:null;
     this.shopState=questRaw?.ch1ShopState===undefined?createShopRuntimeState():validateShopRuntimeState(questRaw.ch1ShopState);
+    this.ch1WildState=questRaw?.ch1WildState===undefined?createCh1WildEncounterState():validateCh1WildEncounterState(questRaw.ch1WildState);
+    this.activeCh1WildBattle=null;
     const quest=parseM4Quest(save.quest,this.worldAuthority.content.questId);
     this.rewards={gold:save.gold,inventory:save.inventory,progression:save.progression,questFlags:save.questFlags,rewardReceipts:save.rewardReceipts};
     this.m6Equipment=save.m6.equipment;
@@ -1879,7 +1956,7 @@ export class M4RuntimeIntegration{
     }
     if(!snapshot.inBattleView){
       this.world={...this.world,world:this.currentWorldState()};
-      if(this.handleM5Spatial()||this.handleChapter1Spatial()||this.handleChapter1StoryGate(snapshot))return;
+      if(this.handleM5Spatial()||this.handleChapter1Spatial()||this.handleChapter1StoryGate(snapshot)||this.handleChapter1WildEncounter(snapshot))return;
     }
     this.lastSnapshot=snapshot;
     this.render(snapshot);
@@ -1930,6 +2007,8 @@ export class M4RuntimeIntegration{
     const next={mapId:committed.mapId,x:committed.cell[0],y:committed.cell[1]};
     this.activeDialogue=null;
     this.activeChapter1Dialogue=null;
+    if(actor.mapId===1020&&committed.mapId!==1020)this.ch1WildState=markCh1WildMapLeft(this.ch1WildState);
+    else if(actor.mapId!==1020&&committed.mapId===1020)this.ch1WildState=markCh1WildMapEntered(this.ch1WildState);
     this.scene.setMap(committed.mapId);
     const [x,y]=referenceCellToScreen(committed.cell);
     this.scene.anchor={x,y};
@@ -1941,6 +2020,75 @@ export class M4RuntimeIntegration{
     this.setNotice((route?route.routeId:'第一章路线')+'：已切换至 '+committed.mapId+' / RECOVERED_SECONDARY / runtimeVerified=false');
     const mapSelector=document.getElementById('map') as HTMLSelectElement|null;
     if(mapSelector)mapSelector.value=String(committed.mapId);
+    this.lastSnapshot=null;
+    this.render(this.scene.snapshot());
+    return true;
+  }
+
+  private chapter1WildNearby():Chapter1WildNearbyView|null{
+    if(!this.chapter1World||this.scene.mapId!==1020||this.scene.inBattleView)return null;
+    const cell=nearestAnchor(this.scene.anchor.x,this.scene.anchor.y);
+    const nearby=CH1_WILD_ENCOUNTERS
+      .map(record=>({record,distance:manhattanDistance(cell,record.cell)}))
+      .filter(row=>row.distance<4)
+      .sort((a,b)=>a.distance-b.distance||a.record.entityId-b.record.entityId);
+    if(!nearby.length)return null;
+    const defeated=new Set(this.ch1WildState.defeatedEntityIds);
+    const available=nearby.filter(row=>!defeated.has(row.record.entityId));
+    if(available.length>1)return Object.freeze({status:'ambiguous',candidateCount:available.length,minimumLevelProvenance:'RECONSTRUCTION_POLICY',provenance:'RECONSTRUCTION_POLICY'});
+    const chosen=(available[0]??nearby[0]);
+    const record=chosen.record;
+    const status:Chapter1WildNearbyView['status']=available.length===0
+      ?'defeated'
+      :this.ch1WildState.suppressedEntityId===record.entityId
+        ?'suppressed'
+        :this.rewards.progression.level<record.minimumLevel
+          ?'level-too-low'
+          :'eligible';
+    return Object.freeze({
+      status,
+      candidateCount:available.length,
+      entityId:record.entityId,
+      name:record.name,
+      minimumLevel:record.minimumLevel,
+      distance:chosen.distance,
+      minimumLevelProvenance:'RECONSTRUCTION_POLICY',
+      provenance:'RECONSTRUCTION_POLICY',
+    });
+  }
+
+  private handleChapter1WildEncounter(snapshot:Snapshot):boolean{
+    if(!this.chapter1World||this.scene.inBattleView||snapshot.inBattleView||snapshot.mapId!==1020)return false;
+    const actor=this.currentWorldState();
+    const playerCell:Cell=[actor.x,actor.y];
+    this.ch1WildState=clearCh1WildSuppressionAfterLeavingRange(this.ch1WildState,playerCell);
+    const previous=this.lastSnapshot;
+    if(!previous||previous.inBattleView||previous.mapId!==1020||previous.routeLength<=0||snapshot.routeLength!==0)return false;
+    if(this.scene.route.length>0||this.pendingEncounter||this.activeTrainingBattleId!==null||this.activeChapter1StoryBattle||this.activeCh1WildBattle)return false;
+    const resolved=resolveCh1WildEncounter({
+      mapId:actor.mapId,
+      playerCell,
+      playerLevel:this.rewards.progression.level,
+      state:this.ch1WildState,
+    });
+    if(resolved.status!=='eligible'||!resolved.candidate)return false;
+    const record=resolved.candidate;
+    const generation=this.ch1WildState.spawnGeneration;
+    this.activeCh1WildBattle=Object.freeze({entityId:record.entityId,generation,record});
+    const entry:BattleEntry=Object.freeze({
+      battleZoneId:1020,
+      provenance:'RECONSTRUCTION_POLICY',
+      authority:'offline-reconstruction',
+    });
+    this.setNotice('野外遭遇：'+record.name+' / entity '+record.entityId+' / 距离 '+resolved.distance+' / battleZone 1020 / RECONSTRUCTION_POLICY');
+    this.scene.enterBattle(entry);
+    if(!this.scene.inBattleView||this.scene.state.battleZoneId!==1020||this.scene.state.enemies.length!==1){
+      this.activeCh1WildBattle=null;
+      this.scene.setReconstructionBattleSetup(undefined);
+      this.setNotice('野外遭遇 battleZone 1020 入口未能启动；没有回退到其他战斗区。');
+      this.render(this.scene.snapshot());
+      return true;
+    }
     this.lastSnapshot=null;
     this.render(this.scene.snapshot());
     return true;
@@ -2071,7 +2219,14 @@ export class M4RuntimeIntegration{
       exp:expHud.exp,expMax:expHud.expMax,atk:presentationStats.atk,def:presentationStats.def,attributePoints:this.attributeState.unspentPoints,gold:this.rewards.gold,
     };
     const quest=this.chapter1Quest1Selection?chapter1Quest1Hud(this.chapter1Quest1Selection):questHud(this.world.quest.stage);
-    const field:FieldHudState={mapId:snapshot.mapId,mapName:snapshot.mapName,...quest,interactionPrompt:this.nearestInteraction(snapshot)};
+    const wildNearby=this.chapter1WildNearby();
+    const wildStatusLabel:Record<Chapter1WildNearbyView['status'],string>={ambiguous:'多个目标同时接近，暂不触发',defeated:'已击败',suppressed:'战斗结束后需离开范围才能再次挑战','level-too-low':'等级不足',eligible:'可挑战'};
+    const wildEncounter=wildNearby
+      ?wildNearby.status==='ambiguous'
+        ?'附近有 '+wildNearby.candidateCount+' 个野怪候选，暂不触发 / RECONSTRUCTION_POLICY'
+        :'野外遭遇：'+wildNearby.name+' · 等级要求 Lv.'+wildNearby.minimumLevel+' · 距离 '+wildNearby.distance+' 格 · '+wildStatusLabel[wildNearby.status]+' / RECONSTRUCTION_POLICY'
+      :undefined;
+    const field:FieldHudState={mapId:snapshot.mapId,mapName:snapshot.mapName,...quest,interactionPrompt:this.nearestInteraction(snapshot),wildEncounter};
     let hudHtml:string;
     if(snapshot.inBattleView){
       const target=snapshot.enemies.find(enemy=>enemy.id===snapshot.target&&enemy.hp>0);
