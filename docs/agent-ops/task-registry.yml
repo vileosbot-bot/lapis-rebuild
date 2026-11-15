@@ -70,8 +70,11 @@
       "notes": [
         "PR #20 实际读回：Open、未合并，head 2041c630ba7d0f858d7bbc78e6071ce171751e22，base main@5fbf1679367142b358b8d6ac3a0f288dc33d24b2。",
         "PR #20 六个文件均由 GitHub changed-files 实际读回；本任务不写这些路径。",
-        "历史任务导入；未从旧对话推测或补造缺失检查点。"
-      ]
+        "历史任务导入；未从旧对话推测或补造缺失检查点。",
+        "M4 维护例外：本轮 GitHub 实际观察到该分支 HEAD 已前进至 176c9ce3385c9d908b07e206197b1d21e1dfac23；按总管裁决本次不改 seed head_sha=2041c630ba7d0f858d7bbc78e6071ce171751e22，head_sha_verified_at=null，待 P0-1 验收完成后由总管通知刷新。",
+        "head_sha_verified_at 未填：历史种子缺少本字段的可核实时间戳，待下一次总管验收/状态变更时实际读回并刷新。"
+      ],
+      "head_sha_verified_at": null
     },
     {
       "task_key": "P0-2",
@@ -111,8 +114,10 @@
       "notes": [
         "GitHub 实际读回 main HEAD：7627ef30d3011ad9634d11564ad88a7b1de68435。",
         "GitHub 实际读回首次 README 提交 9e08afcc3ce674888b27e7a96c79b452e1dc99b5 的 parents=[]，确认首批提交起点无父提交，因此 base_sha 留空。",
-        "历史任务导入；总管已验收状态来自用户明确提供，不补造旧检查点细节。"
-      ]
+        "历史任务导入；总管已验收状态来自用户明确提供，不补造旧检查点细节。",
+        "head_sha_verified_at 未填：历史种子缺少本字段的可核实时间戳，待下一次总管验收/状态变更时实际读回并刷新。"
+      ],
+      "head_sha_verified_at": null
     },
     {
       "task_key": "P0-3",
@@ -383,8 +388,10 @@
         "PR #21 已实际创建并读回：Open、未合并；真实链接 https://github.com/vileosbot-bot/lapis-rebuild/pull/21。",
         "本次按用户明确要求将 P0-3 状态设为 awaiting_review；CI 独立记录为 pending，不代表 PASS；completed 仍要求 CI success。",
         "CP2 的 13 项测试为 Python in-memory logic harness；本轮未直接从本地 checkout subprocess 执行仓库 CLI，限制已在 CP2.test_execution 明示。",
-        "CP3 第二次读回：PR #21 head 1cfbdf78a1ecd89fd8438916d9f30c9df473590d；Actions run #43775105074（run #75）in_progress，synthetic queued，CI pending。"
-      ]
+        "CP3 第二次读回：PR #21 head 1cfbdf78a1ecd89fd8438916d9f30c9df473590d；Actions run #43775105074（run #75）in_progress，synthetic queued，CI pending。",
+        "2026-11-16 核对：head_sha 1cfbdf78a1ecd89fd8438916d9f30c9df473590d 是登记提交 8b6b19a48835244e7c12b74c7cb3cf956a062be5 的直接父提交；该登记提交只修改 task-registry.yml，因此 head_sha 仍是已核实的任务代码 HEAD。"
+      ],
+      "head_sha_verified_at": "2026-11-16"
     },
     {
       "task_key": "P1-4",
@@ -421,8 +428,10 @@
       "acceptance_status": "pending",
       "checkpoints": {},
       "notes": [
-        "request-id 按总管指示保留占位值，不参与重复编号检测。"
-      ]
+        "request-id 按总管指示保留占位值，不参与重复编号检测。",
+        "head_sha_verified_at=null：尚未派活，尚无可验证分支 SHA。"
+      ],
+      "head_sha_verified_at": null
     },
     {
       "task_key": "P1-5",
@@ -459,8 +468,11 @@
       "acceptance_status": "pending",
       "checkpoints": {},
       "notes": [
-        "request-id 按总管指示保留占位值，不参与重复编号检测。"
-      ]
+        "request-id 按总管指示保留占位值，不参与重复编号检测。",
+        "head_sha_verified_at=null：尚未派活，尚无可验证分支 SHA。"
+      ],
+      "head_sha_verified_at": null
     }
-  ]
+  ],
+  "head_sha_verified_at_policy": "每个任务必须包含 head_sha_verified_at。该时间只表示登记表当前 head_sha 与 GitHub 实际分支状态/提交图完成核对的日期；无法确认、SHA 已知过期或时间来源不明时填 null，不得用更新时间冒充验证时间。总管每次验收或任务状态变更时，必须重新读取对应 GitHub 分支 HEAD、PR head/base 和必要提交图，核对后刷新 head_sha 与 head_sha_verified_at。P0-1 的现有 seed head_sha 本次按总管裁决保持不变；虽然本轮观察到其 GitHub 实际 HEAD 已前进至 176c9ce3385c9d908b07e206197b1d21e1dfac23，head_sha_verified_at 保持 null，待 P0-1 验收完成后由总管另行通知刷新。"
 }
