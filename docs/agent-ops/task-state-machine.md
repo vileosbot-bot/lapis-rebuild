@@ -27,7 +27,7 @@
 | created | dispatched | CP0 同时完成；真实 conversation_url、已存在 branch、base_sha 均齐全；branch/base 已实际读回 |
 | dispatched | in_progress | 总管明确放行；approval_status=granted；CP1 已记录授权范围和计划步骤 |
 | in_progress | awaiting_review | CP2 测试通过并记录提交 SHA/结果；CP3 记录 PR URL、真实 CI 状态和待办；CI 可为 pending/failure/unknown，但必须如实记录，不得声称 PASS |
-| awaiting_review | completed | CP0–CP3 完整；总管明确验收；记录 accepted_by、accepted_at、acceptance_note |
+| awaiting_review | completed | CP0–CP3 完整；CI success；总管先在登记表写入 acceptance_status=accepted 和 accepted_by；执行时 --accepted-by 必须完全匹配登记值 |
 | awaiting_review | in_progress | 审查要求返工；记录 changes requested 与下一步，不覆盖历史证据 |
 
 正常路径不得跳步。不得从 created 直接进入 in_progress，不得从 in_progress 直接 completed，不得缺少 CP2/CP3 就进入 awaiting_review。
