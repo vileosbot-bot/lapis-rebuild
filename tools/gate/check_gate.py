@@ -69,7 +69,7 @@ def diff_refs() -> tuple[str, str]:
 
 
 def changed_paths(base: str, head: str) -> list[str]:
-    output = git("diff", "--name-only", "--diff-filter=ACMRT", f"{base}...{head}")
+    output = git("diff", "--name-only", "--diff-filter=ACDMRT", f"{base}...{head}")
     return sorted({line.strip() for line in output.splitlines() if line.strip()})
 
 
@@ -150,8 +150,9 @@ def review_decision(level: str, gate_status: str, blind_review: str = "missing",
     return {"reviewed": passed, "merge_allowed": passed and manager_ok, "reason": "绿灯必须先完成子代理盲审"}
 
 
-def ledger_matches(merged: set[int], ledger: set[int]) -> bool:
-    return merged == ledger
+def ledger_matches(merged: set[int], ledger_rows: list[int]) -> bool:
+    ledger_numbers = set(ledger_rows)
+    return merged == ledger_numbers and len(ledger_rows) == len(ledger_numbers)
 
 
 def annotate_log(log_text: str, fallback_file: str, fallback_line: int) -> None:
@@ -357,14 +358,14 @@ def paged_api(url: str, token: str) -> list[dict]:
         page += 1
 
 
-def parse_ledger(path: Path) -> set[int]:
-    result = set()
+def parse_ledger(path: Path) -> list[int]:
+    rows = []
     pattern = re.compile(r"^\|\s*#(\d+)\s*\|\s*\d{4}-\d{2}-\d{2}T[^|]+\|\s*[0-9a-f]{40}\s*\|")
     for line in path.read_text(encoding="utf-8").splitlines():
         match = pattern.match(line)
         if match:
-            result.add(int(match.group(1)))
-    return result
+            rows.append(int(match.group(1)))
+    return rows
 
 
 def readback(args: argparse.Namespace) -> int:
@@ -396,11 +397,13 @@ def readback(args: argparse.Namespace) -> int:
             raise ValueError(f"PR changed files 与本地 diff 不一致：API={sorted(api_names)} local={sorted(local_names)}")
         merged = paged_api(f"{root}/pulls?state=closed", token)
         merged_numbers = {int(x["number"]) for x in merged if x.get("merged_at")}
-        ledger_numbers = parse_ledger(ROOT / "docs/agent-ops/review-ledger.md")
-        if not ledger_matches(merged_numbers, ledger_numbers):
+        ledger_rows = parse_ledger(ROOT / "docs/agent-ops/review-ledger.md")
+        ledger_numbers = set(ledger_rows)
+        if not ledger_matches(merged_numbers, ledger_rows):
             raise ValueError(
-                f"审查台账不一致：merged={len(merged_numbers)} ledger={len(ledger_numbers)} "
-                f"missing={sorted(merged_numbers-ledger_numbers)} extra={sorted(ledger_numbers-merged_numbers)}"
+                f"审查台账不一致：merged={len(merged_numbers)} ledger_rows={len(ledger_rows)} "
+                f"ledger_unique={len(ledger_numbers)} missing={sorted(merged_numbers-ledger_numbers)} "
+                f"extra={sorted(ledger_numbers-merged_numbers)}"
             )
         changed_lines = sum(int(x.get("additions", 0)) + int(x.get("deletions", 0)) for x in files)
         diff_text = git("diff", "--unified=0", f"{base}...{head}")
@@ -414,7 +417,7 @@ def readback(args: argparse.Namespace) -> int:
                 "additions": int(x.get("additions", 0)), "deletions": int(x.get("deletions", 0))
             } for x in files], key=lambda x: str(x["filename"])),
             "changed_lines": changed_lines, "review_level": level,
-            "merged_pr_count": len(merged_numbers), "review_ledger_count": len(ledger_numbers),
+            "merged_pr_count": len(merged_numbers), "review_ledger_count": len(ledger_rows),
             "review_ledger_matches": True,
         }
         write_json(args.output, payload)
@@ -446,8 +449,10 @@ def reverse_tests() -> int:
          not review_decision("red", "PASS", opus_review="missing", manager_review="approved")["merge_allowed"]),
         ("8 绿灯缺少子代理盲审不得标记已审查",
          not review_decision("green", "PASS", manager_review="not_selected")["reviewed"]),
-        ("9 台账 PR 集合与合并 PR 集合一致性校验",
-         ledger_matches({1, 2, 3}, {1, 2, 3}) and not ledger_matches({1, 2}, {1, 2, 3})),
+        ("9 台账 PR 集合/行数与合并 PR 集合一致性校验",
+         ledger_matches({1, 2, 3}, [1, 2, 3]) and
+         not ledger_matches({1, 2, 3}, [1, 2, 2, 3]) and
+         not ledger_matches({1, 2}, [1, 2, 3])),
     ]
     failed = 0
     for name, passed in tests:
@@ -498,7 +503,9 @@ def summarize(args: argparse.Namespace) -> int:
     reverse = normalize_status(os.environ.get("GATE_SELF_TEST"))
     artifact = normalize_status(os.environ.get("GATE_SYNTHETIC_ARTIFACT"))
     overall = overall_status([x[1] for x in gates] + [reverse])
-    if artifact != "PASS" and overall == "PASS":
+    if artifact == "FAIL":
+        overall = "FAIL"
+    elif artifact != "PASS" and overall == "PASS":
         overall = "UNKNOWN"
     labels = {"PASS": "通过", "FAIL": "未通过", "UNKNOWN": "门禁未知", "NOT_APPLICABLE": "不适用"}
     rows = readback_data.get("changed_files") or local_file_rows()
