@@ -125,10 +125,10 @@
       "repository": "vileosbot-bot/lapis-rebuild",
       "branch": "feat/agent-ops-registry-20261117",
       "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
-      "head_sha": "31f0ed2852c723458a12b8acebca60cb94de9727",
+      "head_sha": "1cfbdf78a1ecd89fd8438916d9f30c9df473590d",
       "status": "awaiting_review",
-      "progress": "CP0–CP3 已记录；PR #21 已由 GitHub 实际创建并读回为 Open、未合并；CI 对最新 PR head 仍为 pending，未标记为 success。",
-      "next_action": "等待 GitHub Actions workflow run #43774944303（run #74）结束并读取最终 CI 结论；等待总管审查；本 PR 不合并。",
+      "progress": "CP0–CP3 已记录；PR #21 Open、未合并；CP3 快照针对 PR head 1cfbdf78；CI pending。",
+      "next_action": "复核本次 registry-only 更新后的 PR 最新 head/checks；等待 GitHub Actions 完成与总管审查；不合并。",
       "deadline": "2026-11-17T12:00:00+08:00",
       "risk_level": "high",
       "approval_required": true,
@@ -336,22 +336,22 @@
           "pull_request_number": 21,
           "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/21",
           "head_branch": "feat/agent-ops-registry-20261117",
-          "head_sha": "31f0ed2852c723458a12b8acebca60cb94de9727",
+          "head_sha": "1cfbdf78a1ecd89fd8438916d9f30c9df473590d",
           "base_branch": "main",
           "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
           "pr_state": "open",
           "merged": false,
           "ci_status": "pending",
-          "ci_head_sha": "31f0ed2852c723458a12b8acebca60cb94de9727",
+          "ci_head_sha": "1cfbdf78a1ecd89fd8438916d9f30c9df473590d",
           "workflow_runs": [
             {
-              "id": 43774944303,
-              "run_number": 74,
+              "id": 43775105074,
+              "run_number": 75,
               "name": "Web and parser validation",
               "status": "in_progress",
               "conclusion": null,
-              "jobs_url": "https://api.github.com/repos/vileosbot-bot/lapis-rebuild/actions/runs/43774944303/jobs",
-              "logs_url": "https://api.github.com/repos/vileosbot-bot/lapis-rebuild/actions/runs/43774944303/logs"
+              "jobs_url": "https://api.github.com/repos/vileosbot-bot/lapis-rebuild/actions/runs/43775105074/jobs",
+              "logs_url": "https://api.github.com/repos/vileosbot-bot/lapis-rebuild/actions/runs/43775105074/logs"
             }
           ],
           "check_runs": [
@@ -359,19 +359,20 @@
               "name": "private-original",
               "status": "completed",
               "conclusion": "skipped",
-              "html_url": "https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/43774944303/job/132999039094"
+              "html_url": "https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/43775105074/job/132999615866"
             },
             {
               "name": "synthetic",
-              "status": "in_progress",
+              "status": "queued",
               "conclusion": null,
-              "html_url": "https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/43774944303/job/132999037630"
+              "html_url": "https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/43775105074/job/132999614661"
             }
           ],
           "commit_status": "no combined status contexts",
           "pending_todos": [
-            "GitHub Actions workflow run #43774944303 (run #74) is in_progress; re-read final result before marking CI success.",
-            "Wait for total-manager review; do not merge PR #21."
+            "CP3 快照针对 GitHub 实际 PR head 1cfbdf78a1ecd89fd8438916d9f30c9df473590d；workflow run #43775105074（run #75）仍 in_progress，不能标记 CI success。",
+            "本次登记表更新本身会产生新的 registry-only PR head；最终 PR head 的最新 checks 以最终报告的 GitHub 读回为准。",
+            "等待总管审查；本 PR 只开不合并。"
           ]
         }
       },
@@ -381,7 +382,8 @@
         "head_sha 记录最后一次已确认的任务代码 HEAD；登记表自更新提交按顶层 head_sha_policy 处理。",
         "PR #21 已实际创建并读回：Open、未合并；真实链接 https://github.com/vileosbot-bot/lapis-rebuild/pull/21。",
         "本次按用户明确要求将 P0-3 状态设为 awaiting_review；CI 独立记录为 pending，不代表 PASS；completed 仍要求 CI success。",
-        "CP2 的 13 项测试为 Python in-memory logic harness；本轮未直接从本地 checkout subprocess 执行仓库 CLI，限制已在 CP2.test_execution 明示。"
+        "CP2 的 13 项测试为 Python in-memory logic harness；本轮未直接从本地 checkout subprocess 执行仓库 CLI，限制已在 CP2.test_execution 明示。",
+        "CP3 第二次读回：PR #21 head 1cfbdf78a1ecd89fd8438916d9f30c9df473590d；Actions run #43775105074（run #75）in_progress，synthetic queued，CI pending。"
       ]
     },
     {
