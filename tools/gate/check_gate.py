@@ -484,6 +484,13 @@ def normalize_timestamp(value: str) -> str:
     return parsed.astimezone(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def timestamps_equal(left: str, right: str) -> bool:
+    try:
+        return normalize_timestamp(left) == normalize_timestamp(right)
+    except (TypeError, ValueError):
+        return False
+
+
 def ledger_matches(merged: dict[int, tuple[str, str]], ledger_rows: list[dict]) -> bool:
     ledger_by_number = {}
     for row in ledger_rows:
@@ -543,13 +550,14 @@ def readback(args: argparse.Namespace) -> int:
             ledger_numbers = set(ledger_by_number)
             mismatched = sorted(
                 n for n in merged_numbers & ledger_numbers
-                if normalize_timestamp(merged[n][0]) != normalize_timestamp(ledger_by_number[n]["merged_at"])
+                if not timestamps_equal(merged[n][0], ledger_by_number[n]["merged_at"])
                 or merged[n][1].lower() != ledger_by_number[n]["merge_sha"].lower()
             )
+            duplicate_rows = len(ledger_rows) - len(ledger_by_number)
             raise ReadbackMismatch(
                 f"审查台账不一致（base=main）：merged={len(merged)} ledger_rows={len(ledger_rows)} "
-                f"missing={sorted(merged_numbers-ledger_numbers)} extra={sorted(ledger_numbers-merged_numbers)} "
-                f"sha_or_merged_at_mismatch={mismatched}"
+                f"duplicate_rows={duplicate_rows} missing={sorted(merged_numbers-ledger_numbers)} "
+                f"extra={sorted(ledger_numbers-merged_numbers)} sha_or_merged_at_mismatch={mismatched}"
             )
         changed_lines = sum(int(x.get("additions", 0)) + int(x.get("deletions", 0)) for x in files)
         diff_text = git("diff", "--unified=0", f"{base}...{head}")
