@@ -209,7 +209,7 @@ jobs:
           sha256sum test-results/agent-gate-homepage.png | tee test-results/agent-gate-homepage.sha256
       - name: GitHub independent PR readback
         id: gate-readback
-        if: always() && github.event_name == 'pull_request'
+        if: always() && !cancelled() && github.event_name == 'pull_request'
         timeout-minutes: 3
         continue-on-error: true
         env:
@@ -253,6 +253,7 @@ jobs:
         continue-on-error: true
         env:
           IS_PR: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+          PR_NUMBER: ${{ github.event.pull_request.number || 'unknown' }}
           GATE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.event.repository.default_branch }}
           GATE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GATE_DEPS: ${{ steps.deps.outcome }}
@@ -276,7 +277,7 @@ jobs:
         run: python3 tools/gate/check_gate.py summarize --output "$RUNNER_TEMP/agent-ops-gate/summary.md" --json-output "$RUNNER_TEMP/agent-ops-gate/summary.json" --readback "$RUNNER_TEMP/agent-ops-gate/readback.json"
       - name: Write machine gate result back to PR
         id: gate-comment
-        if: always() && github.event_name == 'pull_request'
+        if: always() && !cancelled() && github.event_name == 'pull_request'
         timeout-minutes: 3
         continue-on-error: true
         env:
