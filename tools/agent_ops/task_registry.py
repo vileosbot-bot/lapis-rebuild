@@ -32,7 +32,7 @@ REQUIRED = (
     "task_key", "request_id", "task_name", "conversation_url", "workspace",
     "model", "mode", "repository", "branch", "base_sha", "head_sha",
     "status", "progress", "next_action", "deadline", "risk_level",
-    "approval_required", "last_updated", "cost_budget", "conflict_group",
+    "approval_required", "last_updated", "head_sha_verified_at", "cost_budget", "conflict_group",
     "shared_files", "depends_on", "blocked_by", "checkpoints",
 )
 TRANSITIONS = {
@@ -95,6 +95,8 @@ def validate_task(task: dict[str, Any]) -> list[str]:
         errors.append(f"illegal status: {task['status']}")
     if not isinstance(task["approval_required"], bool):
         errors.append("approval_required must be boolean")
+    if task["head_sha_verified_at"] is not None and not isinstance(task["head_sha_verified_at"], str):
+        errors.append("head_sha_verified_at must be an ISO date string or null")
     budget = task["cost_budget"]
     if not isinstance(budget, dict):
         errors.append("cost_budget must be an object")
@@ -571,6 +573,7 @@ def command_self_test(_args):
             "base_sha": "1" * 40, "head_sha": "1" * 40, "status": status,
             "progress": "test", "next_action": "continue", "deadline": None,
             "risk_level": "medium", "approval_required": True, "last_updated": "2026-11-16",
+            "head_sha_verified_at": None,
             "cost_budget": {"max_rounds": None, "timeout_minutes": None, "cost_record": []},
             "conflict_group": None, "shared_files": [], "write_files": [],
             "depends_on": [], "blocked_by": [], "checkpoints": {},
@@ -585,6 +588,11 @@ def command_self_test(_args):
         a = sample()
         del a["task_name"]
         assert any("missing required field: task_name" in e for e in validate_task(a))
+
+    def missing_head_sha_verified_at():
+        a = sample()
+        del a["head_sha_verified_at"]
+        assert any("missing required field: head_sha_verified_at" in e for e in validate_task(a))
 
     def illegal():
         try:
@@ -679,6 +687,37 @@ def command_self_test(_args):
                 globals()["git_state"] = original_git_state
             return result, output.getvalue()
 
+    def transition_cli_exit_code(acceptance_status, recorded_by, supplied_by):
+        a = sample(status="awaiting_review")
+        a["checkpoints"] = {n: {"completed": True} for n in ("CP0", "CP1", "CP2", "CP3")}
+        a["checkpoints"]["CP2"].update({"tests_passed": True, "test_results": []})
+        a["checkpoints"]["CP3"].update({"ci_status": "success", "pull_request_url": "https://github.com/o/r/pull/1", "pending_todos": []})
+        a["pull_request_url"] = "https://github.com/o/r/pull/1"
+        a["acceptance_status"] = acceptance_status
+        a["accepted_by"] = recorded_by
+        with tempfile.TemporaryDirectory() as directory:
+            registry_path = Path(directory) / "task-registry.yml"
+            save_registry(registry_path, {
+                "schema_version": 1, "registry_repository": "owner/repo",
+                "parallel_limit": 10, "active_statuses": list(ACTIVE), "tasks": [a],
+            })
+            command = [sys.executable, __file__, "transition", "--registry", str(registry_path),
+                       "--request-id", a["request_id"], "--to", "completed"]
+            if supplied_by is not None:
+                command.extend(["--accepted-by", supplied_by])
+            result = subprocess.run(command, text=True, capture_output=True, check=False)
+            assert result.returncode == 2, (result.returncode, result.stdout, result.stderr)
+            assert "REJECTED:" in result.stderr, result.stderr
+            after = load_registry(registry_path)["tasks"][0]
+            assert after["status"] == "awaiting_review"
+            assert after["acceptance_status"] == acceptance_status
+
+    def completion_cli_missing_acceptance_flag_exit_2():
+        transition_cli_exit_code("accepted", "total-manager", None)
+
+    def completion_cli_mismatched_identity_exit_2():
+        transition_cli_exit_code("accepted", "total-manager", "random-name")
+
     def transition_fixture(acceptance_status, recorded_by, supplied_by):
         a = sample(status="awaiting_review")
         a["checkpoints"] = {n: {"completed": True} for n in ("CP0", "CP1", "CP2", "CP3")}
@@ -739,6 +778,7 @@ def command_self_test(_args):
     tests = [
         ("duplicate request-id rejected", duplicate),
         ("missing required field rejected", missing),
+        ("missing head_sha_verified_at rejected", missing_head_sha_verified_at),
         ("illegal status transition rejected", illegal),
         ("11th active task rejected", eleventh),
         ("actual HEAD mismatch flagged", head_mismatch),
@@ -752,6 +792,8 @@ def command_self_test(_args):
         ("dead-letter requires exceeded budget evidence", dead_letter_guard),
         ("completion rejected without pre-recorded manager acceptance", completion_not_preaccepted),
         ("completion rejects mismatched --accepted-by identity", completion_identity_mismatch),
+        ("CLI without --accepted-by exits 2", completion_cli_missing_acceptance_flag_exit_2),
+        ("CLI with mismatched --accepted-by exits 2", completion_cli_mismatched_identity_exit_2),
         ("missing CP3 in awaiting_review makes check FAIL", missing_cp_check_fails),
         ("detached HEAD without --branch cannot PASS", detached_without_branch_fails),
         ("detached HEAD with --branch is associated without false mismatch", detached_with_branch_uses_explicit_branch),
