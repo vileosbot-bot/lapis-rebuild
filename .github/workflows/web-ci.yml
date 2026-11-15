@@ -310,9 +310,10 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           SYNTHETIC_RESULT: ${{ needs.synthetic.result }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          current_head="$(curl --fail --silent --show-error "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" | jq -r '.head.sha')"
+          current_head="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" | jq -r '.head.sha')"
           if [ "$current_head" != "$EXPECTED_HEAD_SHA" ]; then
             echo "stale=true" >> "$GITHUB_OUTPUT"
             echo "Stale workflow run for head $EXPECTED_HEAD_SHA; current PR head is $current_head. Skip comment writeback."

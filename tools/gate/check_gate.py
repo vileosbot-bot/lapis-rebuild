@@ -198,6 +198,243 @@ def review_decision(level: str, gate_status: str, blind_review: str = "missing",
 
 
 
+def annotate_log(log_text: str, fallback_file: str, fallback_line: int) -> None:
+    patterns = (
+        re.compile(r'File "([^"]+)", line (\d+)'),
+        re.compile(r"([A-Za-z0-9_./-]+\.(?:py|ts|tsx|js|mjs|json|yml|yaml|css|html|md)):(\d+)(?::\d+)?"),
+        re.compile(r"([A-Za-z0-9_./-]+\.(?:py|ts|tsx|js|mjs|json|yml|yaml|css|html|md))\((\d+),\d+\)"),
+    )
+    found = set()
+    for pattern in patterns:
+        for match in pattern.finditer(log_text):
+            path = match.group(1).replace(str(ROOT) + "/", "")
+            found.add((path, int(match.group(2))))
+    if found:
+        for path, line in sorted(found)[:20]:
+            annotation(path, line, "门禁命令失败；请查看对应步骤日志")
+    else:
+        annotation(fallback_file, fallback_line, "门禁命令失败但工具未提供源码行号；回退定位，请查看日志")
+
+
+def command_run(args: argparse.Namespace) -> int:
+    command = list(args.command)
+    if command and command[0] == "--":
+        command = command[1:]
+    if not command:
+        print("missing command after --", file=sys.stderr)
+        return 2
+    log_path = Path(args.log)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("w", encoding="utf-8") as log:
+        process = subprocess.Popen(
+            command, cwd=ROOT / args.cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, errors="replace"
+        )
+        assert process.stdout is not None
+        for line in process.stdout:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+            log.write(line)
+        code = process.wait()
+    if code:
+        annotate_log(log_path.read_text(encoding="utf-8", errors="replace"), args.fallback_file, args.fallback_line)
+    return code
+
+
+def format_check(root: Path = ROOT, base: str | None = None, head: str | None = None) -> int:
+    if base is None or head is None:
+        base, head = diff_refs()
+    root = Path(root)
+    failed = False
+    try:
+        check = subprocess.run(
+            ["git", "diff", "--check", f"{base}...{head}"],
+            cwd=root, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False
+        )
+        if check.returncode not in {0, 2}:
+            raise RuntimeError(check.stderr.strip() or f"git diff --check exited {check.returncode}")
+        if check.stdout.strip():
+            for line in check.stdout.splitlines():
+                match = re.match(r"(.+?):(\d+):\s*(.*)", line)
+                if match:
+                    annotation(match.group(1), int(match.group(2)), match.group(3))
+                else:
+                    annotation(".github/workflows/web-ci.yml", 1, line)
+                failed = True
+        elif check.returncode == 2:
+            annotation(".github/workflows/web-ci.yml", 1, check.stderr.strip() or "git diff --check returned 2 without detail")
+            failed = True
+        status_rows = git_at(root, "diff", "--name-status", f"{base}...{head}").splitlines()
+    except RuntimeError as exc:
+        annotation(".github/workflows/web-ci.yml", 1, f"格式检查无法读取 diff：{exc}")
+        return 1
+    for row in status_rows:
+        parts = row.split("\t")
+        if len(parts) < 2:
+            continue
+        status, name = parts[0], parts[-1]
+        path = root / name
+        if not path.is_file():
+            continue
+        try:
+            content = path.read_bytes().decode("utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        issues = format_issues(content) if status == "A" else newline_issues(content)
+        for number, message in issues:
+            annotation(name, number, message)
+            failed = True
+    print(f"format_check: {'FAIL' if failed else 'PASS'}")
+    return int(failed)
+
+
+def static_check() -> int:
+    base, head = diff_refs()
+    try:
+        paths = changed_paths(base, head)
+    except RuntimeError as exc:
+        annotation(".github/workflows/web-ci.yml", 1, f"无法计算静态检查范围：{exc}")
+        return 1
+    failed = False
+    for name in paths:
+        if name.endswith(".py") and (ROOT / name).is_file():
+            try:
+                ast.parse((ROOT / name).read_text(encoding="utf-8"), filename=name)
+            except SyntaxError as exc:
+                annotation(name, exc.lineno or 1, f"Python AST 解析失败：{exc.msg}")
+                failed = True
+    workflow_path = ROOT / ".github/workflows/web-ci.yml"
+    if workflow_path.exists():
+        workflow = workflow_path.read_text(encoding="utf-8")
+        required = (
+            "pull_request:", "branches: [main]",
+            "id: parser-unit", "id: deps", "id: typecheck", "id: web-unit", "id: build",
+            "id: playwright-install", "id: standalone-preview", "id: chromium-e2e",
+            "id: s41-e2e", "id: m73-fixture", "id: m73-build", "id: m73-e2e",
+            "id: gate-format", "id: gate-static", "id: gate-secrets", "id: gate-screenshot",
+            "id: gate-readback", "id: gate-self-test", "id: synthetic-artifact", "id: gate-summary",
+            "id: gate-summary-artifact", "gate-comment:", "needs: synthetic",
+            "if: always() && github.event_name == 'pull_request'",
+            "id: gate-comment-download", "id: gate-comment-prepare", "id: gate-comment-write", "id: gate-finalize",
+        )
+        lines = workflow.splitlines()
+        for token in required:
+            if token not in workflow:
+                annotation(".github/workflows/web-ci.yml", 1, f"工作流缺少必需结构：{token}")
+                failed = True
+        for number, line in enumerate(lines, 1):
+            match = re.match(r"^\s*uses:\s*([^\s#]+)", line)
+            if match:
+                action = match.group(1)
+                if "@" not in action or not re.fullmatch(r"[0-9a-fA-F]{40}", action.rsplit("@", 1)[-1]):
+                    annotation(".github/workflows/web-ci.yml", number, f"Action 未固定到完整 40 位 SHA：{action}")
+                    failed = True
+        step_ids = [token.split(": ", 1)[1] for token in required if token.startswith("id: ")]
+        for step_id in step_ids:
+            indexes = [i for i, line in enumerate(lines) if line.strip() == f"id: {step_id}"]
+            if indexes:
+                index = indexes[0]
+                start = index
+                while start > 0 and not re.match(r"^\s{6}- ", lines[start]):
+                    start -= 1
+                end = index + 1
+                while end < len(lines) and not re.match(r"^\s{6}- ", lines[end]):
+                    end += 1
+                if not any("timeout-minutes:" in line for line in lines[start:end]):
+                    annotation(".github/workflows/web-ci.yml", index + 1, f"{step_id} 缺少单项超时")
+                    failed = True
+        synthetic = workflow.split("  synthetic:\n", 1)[1].split("\n  gate-comment:", 1)[0] if "  synthetic:\n" in workflow and "\n  gate-comment:" in workflow else ""
+        comment = workflow.split("  gate-comment:\n", 1)[1].split("\n  private-original:", 1)[0] if "  gate-comment:\n" in workflow and "\n  private-original:" in workflow else ""
+        top_permissions = workflow.split("permissions:\n", 1)[1].split("\nconcurrency:", 1)[0] if "permissions:\n" in workflow else ""
+        if "permissions:\n      contents: read" not in synthetic or "actions: read" in synthetic or "pull-requests: write" in synthetic or "issues: write" in synthetic:
+            annotation(".github/workflows/web-ci.yml", 1, "synthetic job 必须仅有 contents: read")
+            failed = True
+        if "permissions:\n      issues: write" not in comment or "pull-requests: write" in comment or "actions: read" in comment:
+            annotation(".github/workflows/web-ci.yml", 1, "gate-comment job 必须仅有 issues: write")
+            failed = True
+        if "actions: read" in top_permissions:
+            annotation(".github/workflows/web-ci.yml", 1, "顶层 permissions 不应授予未使用的 actions: read")
+            failed = True
+    if (ROOT / ".github/workflows/ci.yml").exists():
+        annotation(".github/workflows/ci.yml", 1, "检测到禁止另建的 ci.yml")
+        failed = True
+    print(f"static_check: {'FAIL' if failed else 'PASS'}")
+    return int(failed)
+
+
+def secret_scan(root: Path = ROOT, base: str | None = None, head: str | None = None) -> int:
+    if base is None or head is None:
+        base, head = diff_refs()
+    root = Path(root)
+    try:
+        patch = git_at(root, "log", "-p", "--format=", "--no-ext-diff", "--unified=0", f"{base}..{head}")
+    except RuntimeError as exc:
+        annotation(".github/workflows/web-ci.yml", 1, f"无法读取提交历史 diff：{exc}")
+        return 1
+    filename = ".github/workflows/web-ci.yml"
+    new_line = 1
+    failed = False
+    for line in patch.splitlines():
+        if line.startswith("+++ b/"):
+            filename = line[6:]
+        elif line.startswith("@@"):
+            match = re.search(r"\+(\d+)(?:,\d+)?", line)
+            if match:
+                new_line = int(match.group(1))
+        elif line.startswith("+") and not line.startswith("+++"):
+            added = line[1:]
+            # Exact allowlist for synthetic detector fixtures already committed in this PR's own test history.
+            if is_safe_test_fixture_line(filename, added):
+                new_line += 1
+                continue
+            if detect_secret(added):
+                annotation(filename, new_line, "提交历史新增行疑似包含密钥/凭据，禁止提交")
+                failed = True
+            new_line += 1
+    print(f"secret_scan: {'FAIL' if failed else 'PASS'}")
+    return int(failed)
+
+
+def screenshot_check(path_text: str) -> int:
+    try:
+        data = (ROOT / path_text).read_bytes()
+    except OSError:
+        annotation(path_text, 1, "截图文件不存在或不可读")
+        return 1
+    if len(data) < 512 or data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
+        annotation(path_text, 1, "截图不是有效 PNG 或文件过小")
+        return 1
+    width, height = struct.unpack(">II", data[16:24])
+    if width < 640 or height < 360:
+        annotation(path_text, 1, f"截图尺寸异常：{width}x{height}")
+        return 1
+    print(f"screenshot_check: PASS; bytes={len(data)}; dimensions={width}x{height}")
+    return 0
+
+
+def api_json(url: str, token: str, body: dict | None = None, method: str = "GET") -> object:
+    data = json.dumps(body).encode("utf-8") if body is not None else None
+    request = Request(url, data=data, method=method, headers={
+        "Accept": "application/vnd.github+json", "Authorization": f"Bearer {token}",
+        "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json",
+        "User-Agent": "lapis-agent-ops-gate",
+    })
+    with urlopen(request, timeout=20) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def paged_api(url: str, token: str) -> list[dict]:
+    output = []
+    page = 1
+    while True:
+        sep = "&" if "?" in url else "?"
+        batch = api_json(f"{url}{sep}per_page=100&page={page}", token)
+        if not isinstance(batch, list):
+            raise RuntimeError("GitHub API did not return a list")
+        output.extend(x for x in batch if isinstance(x, dict))
+        if len(batch) < 100:
+            return output
+        page += 1
 
 
 def parse_ledger_text(content: str) -> list[dict]:
