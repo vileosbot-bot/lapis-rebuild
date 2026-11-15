@@ -41,7 +41,7 @@
 - 绿灯的“总管每 5 个抽 1 个”是抽样验收，不免除子代理盲审。
 - 黄灯必须总管逐项验；红灯必须 Opus 盲审且总管最终决定。
 - 机器脚本以文件路径和 diff 变更行关键词提示红灯，包括钱/资产、删除、部署/发布、冻结、支付、权限/认证；.github/workflows/** 或 tools/gate/** 自身变更也强制红灯，并在评论标注“本 PR 修改了门禁自身，结果不可信”。这是保守启发式，可能误判或漏判，不替代人工语义审查。权限文件变更、删除和上线相关变更优先按红灯。
-- 本轮任务修改 GitHub Actions 权限（synthetic gate job 增加 PR 读写与 issue comment 写权限；private-original 仍只读），因此预期被判为红灯；不能由本任务执行者自行代替 Opus 审查。
+- 本轮任务修改 GitHub Actions 权限（synthetic job 仅 contents:read；独立 gate-comment job 仅 issues:write；private-original job 保留其所需的只读 actions:read），因此预期被判为红灯；不能由本任务执行者自行代替 Opus 审查。
 
 机器脚本中的 review_decision() 目前仅是函数级策略判断，未接入 workflow，也不会生成 BLOCKED 状态；实际审查流程仍由负责人依据本阶梯人工执行。
 
