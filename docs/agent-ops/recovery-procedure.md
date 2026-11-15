@@ -19,6 +19,8 @@
 
 - 代码事实以 GitHub 实际 repository/branch/HEAD/PR/CI 为准。
 - 流程事实以 task-registry.yml 的状态、检查点、审批、风险、预算和 next_action 为准。
+- `head_sha_verified_at` 表示 `head_sha` 最近一次与 GitHub 实际状态核对一致的日期；为 null 或已知过期时，不得把登记 SHA 当作当前已核验 HEAD。先检查 GitHub 提交图，再由总管按维护规则刷新。
+- 总管每次验收或状态变更时，须刷新相关任务的 `head_sha`、`head_sha_verified_at`、PR head/base 与检查点证据；P0-1 在本次专项裁决下暂缓刷新，待其验收完成后另行通知。
 - task-history 只提供已完成任务的历史证据，不覆盖当前登记表。
 - GitHub HEAD 与登记表不一致时，先调查提交图和变更文件；不立即改代码，不重复执行提交，不自动更新 head_sha。
 - 只有确认新提交属于登记表自身的单文件登记提交时，才可按 head_sha_policy 识别为 REGISTRY_ONLY。
