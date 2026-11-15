@@ -94,7 +94,7 @@ def read_json(path: str | Path, default: dict | None = None) -> dict:
 
 def git_at(root: Path, *args: str) -> str:
     result = subprocess.run(
-        ["git", *args], cwd=Path(root), text=True,
+        ["git", *args], cwd=Path(root), text=True, encoding="utf-8", errors="replace",
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False
     )
     if result.returncode:
