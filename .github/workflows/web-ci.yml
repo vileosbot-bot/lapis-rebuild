@@ -28,6 +28,18 @@ jobs:
         timeout-minutes: 5
         continue-on-error: true
         run: python3 tools/gate/check_gate.py run --log "$RUNNER_TEMP/agent-ops-gate/parser-unit.log" --fallback-file .github/workflows/web-ci.yml --fallback-line 1 -- python3 -m unittest discover -s tests/parsers -v
+      - name: Run nine reverse tests
+        id: gate-self-test
+        if: always()
+        timeout-minutes: 3
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/agent-ops-gate"
+          set +e
+          python3 tools/gate/check_gate.py self-test > "$RUNNER_TEMP/agent-ops-gate/reverse-tests.log" 2>&1
+          status=$?
+          cat "$RUNNER_TEMP/agent-ops-gate/reverse-tests.log"
+          exit "$status"
       - name: Generate synthetic web fixture
         id: synthetic-pack
         timeout-minutes: 5
@@ -218,18 +230,6 @@ jobs:
           GATE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           GATE_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: python3 tools/gate/check_gate.py readback --output "$RUNNER_TEMP/agent-ops-gate/readback.json"
-      - name: Run nine reverse tests
-        id: gate-self-test
-        if: always()
-        timeout-minutes: 3
-        continue-on-error: true
-        run: |
-          mkdir -p "$RUNNER_TEMP/agent-ops-gate"
-          set +e
-          python3 tools/gate/check_gate.py self-test > "$RUNNER_TEMP/agent-ops-gate/reverse-tests.log" 2>&1
-          status=$?
-          cat "$RUNNER_TEMP/agent-ops-gate/reverse-tests.log"
-          exit "$status"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         id: synthetic-artifact
         if: always()
