@@ -38,7 +38,7 @@
 
 Git commit SHA 由提交内容决定。登记表不能在同一提交内写入该提交自身 SHA。head_sha 表示本次登记表更新提交之前，最近一次从 GitHub 实际核实的分支 HEAD；它可以包含此前的登记表元数据提交。每次写入登记表检查点时，先把 head_sha 设为该次登记提交的父提交 SHA，不得猜测或写入尚未生成的自身 SHA。
 
-检查器只允许一种登记滞后：当前 HEAD 是登记表记录的 head_sha 的直接子提交，且该提交唯一改动文件为 docs/agent-ops/task-registry.yml。此时标记 REGISTRY_ONLY。下一次登记表更新前，先从 GitHub 实际读取当前 HEAD，并将该 SHA 作为新登记提交的父提交记录。若 HEAD 不是直接子提交，或该提交还改动其他文件，必须标记 HEAD_MISMATCH/UNREGISTERED_COMMIT 并停止写入，调查后由操作者更新登记表。脚本不得自动把 head_sha 改成当前 HEAD。
+检查器只允许一种登记滞后：当前 HEAD 是登记表记录的 head_sha 的直接子提交，且该提交唯一改动文件为 docs/agent-ops/task-registry.yml。此时标记 REGISTRY_ONLY。下一次登记表更新前，先从 GitHub 实际读取当前 HEAD，并将该 SHA 作为新登记提交的父提交记录。若 HEAD 不是直接子提交，或该提交还改动其他文件，必须标记 HEAD_MISMATCH 并停止写入，调查后由操作者更新登记表。脚本不得自动把 head_sha 改成当前 HEAD。
 
 ## 缺失检查点告警
 
