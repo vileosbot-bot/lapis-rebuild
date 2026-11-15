@@ -44,7 +44,7 @@
 若工人已提交但总管未更新登记表：
 - 读取 GitHub 当前 HEAD、父提交、提交信息和 changed files；
 - 与登记表最后确认的 head_sha 比较；
-- 若是任务代码提交，标记 UNREGISTERED_COMMIT，暂停后续写入；
+- 若是任务代码提交，标记 HEAD_MISMATCH，暂停后续写入；
 - 若是登记表单文件的直接子提交，标记 REGISTRY_ONLY；
 - 由总管核对后更新检查点；不得重复 cherry-pick、重复提交或重做已经完成的步骤。
 
