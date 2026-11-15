@@ -52,7 +52,7 @@ PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 a
 
 ## 4. 敏感扫描边界
 
-扫描使用 git log -p base..head 逐个检查提交历史中的新增行；即使密钥在后续提交中被删除，早先提交仍会被扫描。规则覆盖常见 AWS Access Key、GitHub classic/fine-grained token、Slack token、PGP PRIVATE KEY BLOCK、ENCRYPTED/DSA 等 PEM 私钥头，以及带引号和无引号的高风险凭据赋值（例如 .env 的 API_KEY=...）。由于本 PR 早期提交曾把四个合成检测样例明文写入 check_gate.py，扫描器仅对该文件中的四条精确整行样例设置窄范围测试夹具豁免（不按子串豁免）；临时 Git 仓库测试仍验证这些样例会被实际扫描器拦截，其他文件/其他值不豁免。它是防误提交的启发式扫描，不等于完整 DLP，也不能保证识别任意编码、拆分或未知厂商密钥。命中即 FAIL；不命中只表示本规则未发现，不表示文件绝对无敏感信息。
+扫描使用 git log -p base..head 逐个检查提交历史中的新增行；即使密钥在后续提交中被删除，早先提交仍会被扫描。规则覆盖常见 AWS Access Key、GitHub classic/fine-grained token、Slack token、PEM 私钥头，以及带引号和无引号的高风险凭据赋值。唯一一次性历史误报排除精确限定为完整提交 SHA `e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9`，且只适用于该提交 `tools/gate/check_gate.py` patch 中四条经核实的合成示例：PGP 私钥块头标记一条、加密私钥头标记一条、DSA 私钥头标记一条、API_KEY 无引号赋值合成值一条。核实经过：逐行检查该 SHA 的 GitHub commit patch，并由总管在本地复现；确认四条均为测试样例、不是实际凭据，不存在泄露风险。代码按完整 SHA、文件路径及四条原始新增行的 SHA-256 精确匹配；其他提交即使出现相同四条内容仍须 FAIL。不得再增加任何排除项；任何新增排除必须先取得总管明确批准。它是防误提交的启发式扫描，不等于完整 DLP，也不能保证识别任意编码、拆分或未知厂商密钥。命中即 FAIL；不命中只表示本规则未发现，不表示文件绝对无敏感信息。
 
 ## 5. 截图自检边界
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import json
 import io
 import os
@@ -24,16 +25,33 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class ReadbackMismatch(ValueError):
     """A successful GitHub API read returned facts that contradict the PR event."""
-SAFE_TEST_FIXTURE_LINES = {
-    '"-----BEGIN PGP PRIVATE KEY BLOCK-----",',
-    '"-----BEGIN ENCRYPTED PRIVATE KEY-----",',
-    '"-----BEGIN DSA PRIVATE KEY-----",',
-    '"API_KEY=synthetic-test-secret-value-12345",',
-}
+# One-time manager-approved historical false-positive exclusion.
+# Full commit SHA: e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9.
+# GitHub patch and manager local reproduction verified exactly four synthetic examples in
+# tools/gate/check_gate.py: a PGP private-key block header, an encrypted private-key header,
+# a DSA private-key header, and one unquoted API_KEY assignment with a synthetic placeholder.
+# They are test examples, not credentials. Match the full commit SHA, exact path and exact
+# added-line SHA-256; every other commit and line remains scanned. Never add another exclusion
+# without explicit manager approval.
+APPROVED_HISTORICAL_FIXTURE_COMMIT = "e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9"
+APPROVED_HISTORICAL_FIXTURE_PATH = "tools/gate/check_gate.py"
+APPROVED_HISTORICAL_FIXTURE_LINE_SHA256 = frozenset({
+    "dc1668e57aa2c6fe5327254bc73d21543d2580303f3933eedd944ec46d331429",
+    "02f58620bbca5af6179609332567aed3984c83d5f29b0b1b1cb6a777ee7c3e6c",
+    "2fd2afdff79dc195f154f14e10c9a9db88750a09fcc9e1ae0aeaefd87f3750ad",
+    "108d5bc5dec2be87c33b95d6cbd501b0dad945c3f1874515057ea1075cea0d67",
+})
 
 
-def is_safe_test_fixture_line(filename: str, added_line: str) -> bool:
-    return filename == "tools/gate/check_gate.py" and added_line.strip() in SAFE_TEST_FIXTURE_LINES
+def is_approved_historical_fixture(commit_sha: str, filename: str, added_line: str) -> bool:
+    return (
+        commit_sha == APPROVED_HISTORICAL_FIXTURE_COMMIT
+        and filename == APPROVED_HISTORICAL_FIXTURE_PATH
+        and hashlib.sha256(added_line.encode("utf-8")).hexdigest()
+        in APPROVED_HISTORICAL_FIXTURE_LINE_SHA256
+    )
+
+
 SECRET_PATTERNS = (
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b"),
@@ -367,15 +385,24 @@ def secret_scan(root: Path = ROOT, base: str | None = None, head: str | None = N
         base, head = diff_refs()
     root = Path(root)
     try:
-        patch = git_at(root, "log", "-p", "--format=", "--no-ext-diff", "--unified=0", f"{base}..{head}")
+        patch = git_at(root, "log", "-p", "--format=commit:%H", "--no-ext-diff", "--unified=0", f"{base}..{head}")
     except RuntimeError as exc:
         annotation(".github/workflows/web-ci.yml", 1, f"无法读取提交历史 diff：{exc}")
         return 1
+    current_commit = ""
     filename = ".github/workflows/web-ci.yml"
     new_line = 1
     failed = False
+    approved_commit_seen = False
+    excluded_counts = {digest: 0 for digest in APPROVED_HISTORICAL_FIXTURE_LINE_SHA256}
     for line in patch.splitlines():
-        if line.startswith("+++ b/"):
+        if line.startswith("commit:"):
+            current_commit = line[len("commit:"):].strip()
+            if current_commit == APPROVED_HISTORICAL_FIXTURE_COMMIT:
+                approved_commit_seen = True
+            filename = ".github/workflows/web-ci.yml"
+            new_line = 1
+        elif line.startswith("+++ b/"):
             filename = line[6:]
         elif line.startswith("@@"):
             match = re.search(r"\+(\d+)(?:,\d+)?", line)
@@ -383,15 +410,25 @@ def secret_scan(root: Path = ROOT, base: str | None = None, head: str | None = N
                 new_line = int(match.group(1))
         elif line.startswith("+") and not line.startswith("+++"):
             added = line[1:]
-            # Exact allowlist for synthetic detector fixtures already committed in this PR's own test history.
-            if is_safe_test_fixture_line(filename, added):
+            digest = hashlib.sha256(added.encode("utf-8")).hexdigest()
+            if is_approved_historical_fixture(current_commit, filename, added):
+                excluded_counts[digest] += 1
                 new_line += 1
                 continue
             if detect_secret(added):
                 annotation(filename, new_line, "提交历史新增行疑似包含密钥/凭据，禁止提交")
                 failed = True
             new_line += 1
+    if approved_commit_seen:
+        if any(count != 1 for count in excluded_counts.values()):
+            annotation(
+                APPROVED_HISTORICAL_FIXTURE_PATH, 1,
+                "一次性历史误报排除未精确命中预期的四条样例；拒绝通过"
+            )
+            failed = True
     print(f"secret_scan: {'FAIL' if failed else 'PASS'}")
+    if approved_commit_seen:
+        print(f"historical_fixture_exclusion: exact_sha={APPROVED_HISTORICAL_FIXTURE_COMMIT}; excluded_lines={sum(excluded_counts.values())}/4")
     return int(failed)
 
 
@@ -638,7 +675,7 @@ def test_secret_scan_commit_history() -> bool:
         git_at(repo, "add", "credentials.env")
         git_at(repo, "commit", "--quiet", "-m", "baseline")
         base = git_at(repo, "rev-parse", "HEAD").strip()
-        credential = "API" + "_KEY=" + "synthetic-test-secret-value-12345"
+        credential = "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345")
         target.write_text("MODE=test\n" + credential + "\n", encoding="utf-8")
         git_at(repo, "add", "credentials.env")
         git_at(repo, "commit", "--quiet", "-m", "add temporary test credential")
@@ -649,6 +686,54 @@ def test_secret_scan_commit_history() -> bool:
         with redirect_stdout(output):
             result = secret_scan(root=repo, base=base, head="HEAD")
         return result == 1 and "credentials.env" in output.getvalue() and "line=2" in output.getvalue()
+
+
+def test_historical_exception_scope() -> bool:
+    # Build the same four synthetic examples dynamically; never store literal key-like samples.
+    samples = [
+        "-----BEGIN " + "PGP PRIVATE KEY BLOCK" + "-----",
+        "-----BEGIN " + "ENCRYPTED PRIVATE KEY" + "-----",
+        "-----BEGIN " + "DSA PRIVATE KEY" + "-----",
+        "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345"),
+    ]
+    patch_lines = [
+        "    '" + '"' + samples[0] + '",' + "'",
+        "    '" + '"' + samples[1] + '",' + "'",
+        "    '" + '"' + samples[2] + '",' + "'",
+        "    '" + '"' + samples[3] + '",' + "'",
+    ]
+    exact_sha = APPROVED_HISTORICAL_FIXTURE_COMMIT
+    other_sha = "f" * 40
+    scope_checks = (
+        all(is_approved_historical_fixture(exact_sha, APPROVED_HISTORICAL_FIXTURE_PATH, line) for line in patch_lines)
+        and not any(is_approved_historical_fixture(other_sha, APPROVED_HISTORICAL_FIXTURE_PATH, line) for line in patch_lines)
+        and not any(is_approved_historical_fixture(exact_sha[:12], APPROVED_HISTORICAL_FIXTURE_PATH, line) for line in patch_lines)
+        and not any(is_approved_historical_fixture(exact_sha, "other/path.py", line) for line in patch_lines)
+    )
+    with tempfile.TemporaryDirectory(prefix="lapis-gate-history-scope-") as directory:
+        repo = Path(directory)
+        init_test_repo(repo)
+        target = repo / "tools" / "gate" / "check_gate.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        baseline = repo / "README.md"
+        baseline.write_text("baseline\\n", encoding="utf-8")
+        git_at(repo, "add", "README.md")
+        git_at(repo, "commit", "--quiet", "-m", "baseline")
+        base = git_at(repo, "rev-parse", "HEAD").strip()
+        target.write_text("\n".join(samples) + "\n", encoding="utf-8")
+        git_at(repo, "add", "tools/gate/check_gate.py")
+        git_at(repo, "commit", "--quiet", "-m", "same examples in a different commit")
+        other_commit = git_at(repo, "rev-parse", "HEAD").strip()
+        output = io.StringIO()
+        with redirect_stdout(output):
+            result = secret_scan(root=repo, base=base, head="HEAD")
+        actual_lines = output.getvalue().count("提交历史新增行疑似包含密钥/凭据")
+        return (
+            scope_checks
+            and other_commit != APPROVED_HISTORICAL_FIXTURE_COMMIT
+            and result == 1
+            and actual_lines == 4
+        )
 
 
 def reverse_tests() -> int:
@@ -667,21 +752,18 @@ def reverse_tests() -> int:
     parsed_ledger = parse_ledger_text(ledger_sample)
     bot_comment = {"id": 2, "user": {"login": "github-actions[bot]"}, "body": "<!-- agent-ops-gate -->"}
     human_comment = {"id": 1, "user": {"login": "reviewer"}, "body": "<!-- agent-ops-gate -->"}
-    fixture_line = '"' + "-----BEGIN " + "PGP PRIVATE KEY BLOCK" + "-----" + '",'
     secret_samples = (
         "AKIA" + "A" * 16,
         "-----BEGIN " + "PGP PRIVATE KEY BLOCK" + "-----",
         "-----BEGIN " + "ENCRYPTED PRIVATE KEY" + "-----",
         "-----BEGIN " + "DSA PRIVATE KEY" + "-----",
-        "API" + "_KEY=" + "synthetic-test-secret-value-12345",
+        "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345"),
     )
     tests = [
         ("1 单元测试失败的 PR 返回阻断退出码", combine_statuses("failure", "success") == "FAIL" and final_exit_code("FAIL") == 1),
         ("2 PGP/ENCRYPTED/DSA/无引号凭据及逐提交扫描均拦截",
-         all(detect_secret(value) for value in secret_samples) and test_secret_scan_commit_history() and
-         is_safe_test_fixture_line("tools/gate/check_gate.py", fixture_line) and
-         not is_safe_test_fixture_line("tools/gate/check_gate.py", "prefix " + fixture_line) and
-         not is_safe_test_fixture_line("web/src/config.py", fixture_line)),
+         all(detect_secret(value) for value in secret_samples) and
+         test_secret_scan_commit_history() and test_historical_exception_scope()),
         ("3 真实文件 format_check 检出混合换行并输出行号", test_format_check_real_file()),
         ("4 全通过时放行并正确分为绿灯",
          overall_status(["PASS"] * 8) == "PASS" and final_exit_code("PASS") == 0 and
