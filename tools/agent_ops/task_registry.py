@@ -138,6 +138,18 @@ def conflict_errors(tasks: list[dict[str, Any]]) -> list[str]:
     return errors
 
 
+def dependency_errors(data: dict[str, Any], task: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for dependency in task.get("depends_on", []):
+        matches = [item for item in data.get("tasks", [])
+                   if item.get("request_id") == dependency or item.get("task_key") == dependency]
+        if len(matches) != 1:
+            errors.append(f"dependency not uniquely registered: {dependency}")
+        elif matches[0].get("status") != "completed":
+            errors.append(f"dependency not completed: {dependency}")
+    return errors
+
+
 def registry_errors(data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     if data.get("schema_version") != 1:
@@ -165,6 +177,9 @@ def registry_errors(data: dict[str, Any]) -> list[str]:
             ids.add(rid)
     errors.extend(capacity_errors(data.get("tasks", []), 10))
     errors.extend(conflict_errors(data.get("tasks", [])))
+    for task in data.get("tasks", []):
+        if task.get("status") in ACTIVE:
+            errors.extend(dependency_errors(data, task))
     return errors
 
 
@@ -253,6 +268,15 @@ def validate_transition(task: dict[str, Any], target: str, *, release=False, res
         raise RegistryError("resume approval required")
     elif current == "failed" and target == "in_progress" and not retry:
         raise RegistryError("retry approval required")
+    elif target == "dead_letter":
+        evidence = task.get("dead_letter_evidence", {})
+        kind = evidence.get("limit_type")
+        limit = task.get("cost_budget", {}).get(kind)
+        actual = evidence.get("actual_value")
+        if kind not in {"max_rounds", "timeout_minutes"} or limit is None:
+            raise RegistryError("dead_letter requires a configured max_rounds or timeout_minutes limit")
+        if not isinstance(actual, (int, float)) or actual <= limit or not evidence.get("evidence"):
+            raise RegistryError("dead_letter requires actual_value > limit and supporting evidence")
     elif target == "completed":
         if not accepted_by:
             raise RegistryError("total-manager acceptance required")
@@ -404,6 +428,9 @@ def command_checkpoint(args):
     elif name == "CP1":
         if task.get("status") != "dispatched":
             raise RegistryError("CP1 requires dispatched status")
+        dep_errors = dependency_errors(data, task)
+        if dep_errors:
+            raise RegistryError("; ".join(dep_errors))
         cps["CP1"] = payload
         validate_transition(task, "in_progress", release=True)
         task["status"] = "in_progress"
@@ -445,6 +472,14 @@ def command_transition(args):
     path = Path(args.registry)
     data = load_registry(path)
     task = find_task(data, args.request_id)
+    if args.to == "in_progress":
+        dep_errors = dependency_errors(data, task)
+        if dep_errors:
+            raise RegistryError("; ".join(dep_errors))
+    if args.to == "dead_letter":
+        if not args.dead_letter_evidence:
+            raise RegistryError("dead_letter requires --dead-letter-evidence JSON")
+        task["dead_letter_evidence"] = json.loads(args.dead_letter_evidence)
     if args.to == "completed":
         if not args.accepted_by:
             raise RegistryError("completed requires --accepted-by")
@@ -577,6 +612,17 @@ def command_self_test(_args):
 
     def registry_only():
         assert compare_head("1" * 40, "2" * 40, "1" * 40, [REGISTRY_REL]) == "REGISTRY_ONLY"
+    def dependency_blocked():
+        a = sample(status="in_progress")
+        a["depends_on"] = ["missing-upstream"]
+        assert dependency_errors({"tasks": [a]}, a)
+    def dead_letter_guard():
+        a = sample(status="failed")
+        try:
+            validate_transition(a, "dead_letter")
+        except RegistryError:
+            return
+        raise AssertionError("dead_letter accepted without exceeded budget evidence")
 
     tests = [
         ("duplicate request-id rejected", duplicate),
@@ -590,6 +636,8 @@ def command_self_test(_args):
         ("unaccepted task cannot complete", unaccepted),
         ("CI failure cannot enter awaiting_review", ci_failure),
         ("registry-only metadata commit recognized", registry_only),
+        ("uncompleted dependency blocks start", dependency_blocked),
+        ("dead-letter requires exceeded budget evidence", dead_letter_guard),
     ]
     for name, fn in tests:
         run(name, fn)
@@ -664,6 +712,7 @@ def build_parser():
     p.add_argument("--changes-requested", action="store_true")
     p.add_argument("--accepted-by")
     p.add_argument("--acceptance-note")
+    p.add_argument("--dead-letter-evidence")
     p.set_defaults(func=command_transition)
 
     p = sub.add_parser("recover")
