@@ -25,17 +25,17 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class ReadbackMismatch(ValueError):
     """A successful GitHub API read returned facts that contradict the PR event."""
-# Three one-time manager-approved historical false-positive exclusions.
-# 1) Full SHA e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9: four lines in this file,
-#    using the outer-single-quoted representation of one PGP header, one ENCRYPTED
-#    header, one DSA header and one unquoted API_KEY assignment with a synthetic value.
-# 2) Full SHA 0522d7944d395674213f0b63e7feec2dc291be50: four lines in this file,
-#    using four-space indentation and double-quoted representations of the same examples.
-# 3) Full SHA 779084fa369c5efbdf84d168d7b5892eef00b0c0: four lines in this file,
-#    using eight-space indentation and double-quoted representations of the same examples.
-# Verification: the manager inspected each full GitHub commit patch and reproduced the
-# findings locally. All twelve lines are synthetic detector fixtures, not real credentials;
-# no credential was exposed and no credential rotation is required.
+# Four one-time manager-approved historical false-positive exclusions.
+# 1) Full SHA e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9: four synthetic detector lines.
+# 2) Full SHA 0522d7944d395674213f0b63e7feec2dc291be50: the same four lines, alternate quoting.
+# 3) Full SHA 779084fa369c5efbdf84d168d7b5892eef00b0c0: the same four lines, eight-space indentation.
+# 4) Full SHA f90c4ce2bc44997743bdd032543382b25cf1a1a4: one DB_PASSWORD assignment sample
+#    inside test_secret_scan_commit_history; its raw added-line SHA-256 is recorded below.
+# The manager inspected the full fourth commit patch and independently verified that line
+# SHA-256 65ec8d91f00e3cd64d4f831f5d31299273d7fa1da3f0a1c0de800c784bd2a7a4 matches exactly.
+# The fourth line is a synthetic test fixture, not a real credential; no credential was
+# exposed and no credential rotation is required. The current self-test constructs the same
+# text dynamically and verifies that it is still detected in any unapproved commit.
 # Exclusion requires the exact full commit SHA, this exact file path and the SHA-256 of
 # the complete raw added line. Other commits containing identical text remain scanned.
 # Do not add any further exclusion without explicit manager approval.
@@ -58,6 +58,9 @@ APPROVED_HISTORICAL_FIXTURE_LINE_SHA256_BY_COMMIT = {
         "4baf23ead2728907e9b9553d70a059015872ffd17988d6a4353bd47830be1cf3",
         "76afa013e252cf272dff87511ae796013ac00e6dc635bf835ec9fce246ca6049",
         "76f4e5c3a67498d36e50488e15cd7c70f9da93db53b54007505004f824934353",
+    }),
+    "f90c4ce2bc44997743bdd032543382b25cf1a1a4": frozenset({
+        "65ec8d91f00e3cd64d4f831f5d31299273d7fa1da3f0a1c0de800c784bd2a7a4",
     }),
 }
 
@@ -370,6 +373,41 @@ def test_permission_blocks_reject_extra_write_permissions() -> bool:
     )
 
 
+def has_gate_finalize_step(workflow: str) -> bool:
+    lines = workflow.splitlines()
+    starts = [
+        index for index, line in enumerate(lines)
+        if line == "      - name: Finalize machine gate status"
+    ]
+    if len(starts) != 1:
+        return False
+    start = starts[0]
+    end = next(
+        (index for index in range(start + 1, len(lines)) if re.match(r"^      - ", lines[index])),
+        len(lines),
+    )
+    block = lines[start:end]
+    return (
+        "        id: gate-finalize" in block
+        and "        if: always()" in block
+        and "        timeout-minutes: 1" in block
+    )
+
+
+def test_gate_finalize_step_presence() -> bool:
+    workflow_path = ROOT / ".github/workflows/web-ci.yml"
+    try:
+        workflow = workflow_path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    marker = "      - name: Finalize machine gate status\n        id: gate-finalize\n"
+    return (
+        has_gate_finalize_step(workflow)
+        and marker in workflow
+        and not has_gate_finalize_step(workflow.replace(marker, "", 1))
+    )
+
+
 def static_check() -> int:
     base, head = diff_refs()
     try:
@@ -395,7 +433,8 @@ def static_check() -> int:
             "id: s41-e2e", "id: m73-fixture", "id: m73-build", "id: m73-e2e",
             "id: gate-format", "id: gate-static", "id: gate-secrets", "id: gate-screenshot",
             "id: gate-readback", "id: gate-self-test", "id: synthetic-artifact", "id: gate-summary",
-            "id: gate-summary-artifact", "id: synthetic-gate-enforce", "gate-comment:", "needs: synthetic",
+            "id: gate-summary-artifact", "id: synthetic-gate-enforce", "id: gate-finalize",
+            "gate-comment:", "needs: synthetic",
             "if: always() && github.event_name == 'pull_request'",
             "id: gate-comment-download", "id: gate-comment-prepare", "id: gate-comment-write",
             "SUMMARY_JSON: ${{ runner.temp }}/agent-ops-gate/summary.json",
@@ -749,7 +788,7 @@ def test_secret_scan_commit_history() -> bool:
         base = git_at(repo, "rev-parse", "HEAD").strip()
         credential = "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345")
         db_credential = "DB" + "_PASSWORD=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345")
-        target.write_text("MODE=test\n" + credential + "\n" + db_password + "\n", encoding="utf-8")
+        target.write_text("MODE=test\n" + credential + "\n" + db_credential + "\n", encoding="utf-8")
         git_at(repo, "add", "credentials.env")
         git_at(repo, "commit", "--quiet", "-m", "add temporary test credential")
         target.write_text("MODE=test\n", encoding="utf-8")
@@ -765,13 +804,22 @@ def test_secret_scan_commit_history() -> bool:
 
 
 def test_historical_exception_scope() -> bool:
-    # Recreate each historical patch line from dynamic detector samples; do not store key-like literals.
+    # Recreate the first three approved commits' four synthetic patch lines dynamically.
     samples = [
         "-----BEGIN " + "PGP PRIVATE KEY BLOCK" + "-----",
         "-----BEGIN " + "ENCRYPTED PRIVATE KEY" + "-----",
         "-----BEGIN " + "DSA PRIVATE KEY" + "-----",
         "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345"),
     ]
+    db_password_sample = "DB" + "_PASSWORD=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345")
+    # Reconstruct the exact raw source line approved in f90c4ce2 without storing the
+    # credential-like token contiguously in this source file.
+    db_password_fixture_line = (
+        "        db_password = " + '"DB' + '_PASSWORD="' +
+        " + " + '("synthetic-' + ' " + "test-' + ' " + "secret-' + ' " + "value-' + ' " + "12345")'
+    )
+    fourth_sha = "f90c4ce2bc44997743bdd032543382b25cf1a1a4"
+    fourth_line_sha256 = "65ec8d91f00e3cd64d4f831f5d31299273d7fa1da3f0a1c0de800c784bd2a7a4"
     line_sets = {
         "e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9": [
             "    '" + '"' + sample + '",' + "'," for sample in samples
@@ -782,11 +830,31 @@ def test_historical_exception_scope() -> bool:
         "779084fa369c5efbdf84d168d7b5892eef00b0c0": [
             "        " + '"' + sample + '",' for sample in samples
         ],
+        fourth_sha: [db_password_fixture_line],
     }
-    expected_scope = all(
-        len(set(lines)) == 4
-        and all(is_approved_historical_fixture(sha, APPROVED_HISTORICAL_FIXTURE_PATH, line) for line in lines)
-        for sha, lines in line_sets.items()
+    expected_commits = {
+        "e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9",
+        "0522d7944d395674213f0b63e7feec2dc291be50",
+        "779084fa369c5efbdf84d168d7b5892eef00b0c0",
+        fourth_sha,
+    }
+    expected_counts = {
+        "e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9": 4,
+        "0522d7944d395674213f0b63e7feec2dc291be50": 4,
+        "779084fa369c5efbdf84d168d7b5892eef00b0c0": 4,
+        fourth_sha: 1,
+    }
+    expected_scope = (
+        set(APPROVED_HISTORICAL_FIXTURE_LINE_SHA256_BY_COMMIT) == expected_commits
+        and set(line_sets) == expected_commits
+        and all(
+            len(lines) == expected_counts[sha]
+            and len(set(lines)) == expected_counts[sha]
+            and all(is_approved_historical_fixture(sha, APPROVED_HISTORICAL_FIXTURE_PATH, line) for line in lines)
+            for sha, lines in line_sets.items()
+        )
+        and len(APPROVED_HISTORICAL_FIXTURE_LINE_SHA256_BY_COMMIT[fourth_sha]) == 1
+        and hashlib.sha256(db_password_fixture_line.encode("utf-8")).hexdigest() == fourth_line_sha256
     )
     wrong_sha_checks = all(
         not is_approved_historical_fixture("f" * 40, APPROVED_HISTORICAL_FIXTURE_PATH, line)
@@ -810,10 +878,12 @@ def test_historical_exception_scope() -> bool:
         git_at(repo, "add", "README.md")
         git_at(repo, "commit", "--quiet", "-m", "baseline")
         base = git_at(repo, "rev-parse", "HEAD").strip()
-        target = repo / "tools" / "gate" / "check_gate.py"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text("\n".join(samples) + "\n", encoding="utf-8")
-        git_at(repo, "add", "tools/gate/check_gate.py")
+        target = repo / "credentials.env"
+        target.write_text("\n".join(samples + [db_password_sample]) + "\n", encoding="utf-8")
+        fixture = repo / "tools" / "gate" / "check_gate.py"
+        fixture.parent.mkdir(parents=True, exist_ok=True)
+        fixture.write_text(db_password_fixture_line + "\n", encoding="utf-8")
+        git_at(repo, "add", "credentials.env", "tools/gate/check_gate.py")
         git_at(repo, "commit", "--quiet", "-m", "same examples in a non-approved commit")
         other_commit = git_at(repo, "rev-parse", "HEAD").strip()
         output = io.StringIO()
@@ -825,9 +895,11 @@ def test_historical_exception_scope() -> bool:
             and wrong_sha_checks
             and cross_commit_checks
             and other_commit not in line_sets
+            and not is_approved_historical_fixture(other_commit, APPROVED_HISTORICAL_FIXTURE_PATH, db_password_fixture_line)
             and result == 1
-            and actual_lines == 4
+            and actual_lines == 6
         )
+
 
 
 def reverse_tests() -> int:
@@ -864,13 +936,14 @@ def reverse_tests() -> int:
          review_decision("green", "PASS", blind_review="passed", manager_review="not_selected")["merge_allowed"]),
         ("5 超时明确归为失败", normalize_status("timed_out") == "FAIL" and final_exit_code("FAIL") == 1),
         ("6 CI/API 不可用显示未知且不放行", normalize_status(None) == "UNKNOWN" and status_label("UNKNOWN") == "门禁未知" and final_exit_code("UNKNOWN") == 1),
-        ("7 高风险分类/Opus 门禁及权限精确断言（拒绝 id-token:write、packages:write、contents:write）",
+        ("7 高风险分类/权限精确断言及 gate-finalize 步骤（拒绝额外写权限与缺失步骤）",
          classify_review([{"filename": "web/src/player-state.ts", "status": "modified"}], 4, "+player.gold += 20") == "red" and
          classify_review([{"filename": "web/data/catalog.json", "status": "removed"}], 10) == "red" and
          classify_review([{"filename": ".github/workflows/web-ci.yml", "status": "modified"}], 10) == "red" and
          classify_review([{"filename": "tools/gate/check_gate.py", "status": "modified"}], 10) == "red" and
          not review_decision("red", "PASS", opus_review="missing", manager_review="approved")["merge_allowed"] and
-         test_permission_blocks_reject_extra_write_permissions()),
+         test_permission_blocks_reject_extra_write_permissions() and
+         test_gate_finalize_step_presence()),
         ("8 绿灯缺少子代理盲审不得标记已审查（仅验证策略函数）",
          not review_decision("green", "PASS", manager_review="not_selected")["reviewed"]),
         ("9 台账忽略代码块/HTML 注释并逐项核对 PR/SHA/merged_at",

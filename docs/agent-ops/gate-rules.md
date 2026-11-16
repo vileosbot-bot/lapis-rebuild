@@ -27,7 +27,7 @@ workflow 触发集合：push（分支 `codex/**`、`feat/ch1-m73-wild-encounters
 | 2 | 构建 | npm run build，并验证 M7.3 synthetic fixture 构建 | 10 / 8 分钟 | TypeScript/Vite 原生诊断；回退定位 web/vite.config.ts |
 | 3 | 类型检查 | npm run typecheck | 5 分钟 | TypeScript 文件、行、列；回退定位 web/tsconfig.json |
 | 4 | 格式检查 | git diff --check 检查新增行行尾空白；检查变更文本文件的混合换行和末尾换行，新文件全量检查行尾空白 | 3 分钟 | 精确到变更文件和行号 |
-| 5 | 静态检查 | 对变更 Python 文件执行 AST 解析；核验 web-ci.yml 的 PR 触发、门禁步骤超时、Action SHA 固定及禁止另建 ci.yml | 3 分钟 | 精确到 Python 文件/行；工作流结构错误定位到 web-ci.yml 对应行 |
+| 5 | 静态检查 | 对变更 Python 文件执行 AST 解析；核验 web-ci.yml 的 PR 触发、门禁步骤超时、Action SHA 固定、gate-finalize 步骤存在及禁止另建 ci.yml | 3 分钟 | 精确到 Python 文件/行；工作流结构错误定位到 web-ci.yml 对应行 |
 | 6 | 敏感信息扫描 | 扫描 PR 新增行中的常见云密钥、GitHub token、Slack token、私钥块和凭据赋值 | 3 分钟 | 精确到文件和新增行号 |
 | 7 | 截图与 E2E | 单一聚合行：截图、Chromium E2E、M7.3 E2E、S41 E2E、Playwright 安装、独立预览、M7.3 夹具七项；确认 canvas 可见、页面无 pageerror/横向溢出并校验 PNG | E2E 25 分钟；截图 5 分钟 | 评论在该行下方逐项列出七个子状态；浏览器错误、失败测试文件/行及截图格式错误定位到具体文件 |
 | 8 | GitHub 独立读回 | 用 Actions token 从 GitHub API 读回 PR head/base、PR 文件清单、合并 PR 集合及审查台账；与本次 checkout 的 Git diff 对照 | 3 分钟 | 不一致为 FAIL；API 不可用为 UNKNOWN，绝不当作 PASS |
@@ -59,13 +59,14 @@ PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 a
 
 扫描使用 `git log -p base..head` 逐个检查提交历史中的新增行；即使密钥在后续提交中被删除，早先提交仍会被扫描。规则覆盖常见 AWS Access Key、GitHub classic/fine-grained token、Slack token、PEM 私钥头，以及带引号和无引号的高风险凭据赋值。
 
-经总管批准，当前仅有三笔一次性历史误报排除，且每笔都必须同时匹配完整提交 SHA、文件路径 `tools/gate/check_gate.py` 和原始新增行 SHA-256：
+经总管批准，当前仅有四笔一次性历史误报排除，且每笔都必须同时匹配完整提交 SHA、文件路径 `tools/gate/check_gate.py` 和原始新增行 SHA-256：
 
 1. `e4a4b5d9db8e095251d817ea9c0c2c0dd7ab16a9`：四条合成示例，分别为 PGP 私钥块头标记、ENCRYPTED 私钥头标记、DSA 私钥头标记、API_KEY 无引号赋值合成值；该提交使用外层单引号包裹的样例行写法。
 2. `0522d7944d395674213f0b63e7feec2dc291be50`：同一批四条合成示例，使用四空格缩进及双引号样例行写法。
 3. `779084fa369c5efbdf84d168d7b5892eef00b0c0`：同一批四条合成示例，使用八空格缩进及双引号样例行写法。
+4. `f90c4ce2bc44997743bdd032543382b25cf1a1a4`：`test_secret_scan_commit_history` 内一条 DB_PASSWORD 合成赋值样例；原始新增行 SHA-256：`65ec8d91f00e3cd64d4f831f5d31299273d7fa1da3f0a1c0de800c784bd2a7a4`。
 
-核实经过：总管逐笔检查三笔完整 SHA 对应的 GitHub commit patch，并在本地复跑逐提交扫描，核对每笔恰好四条命中。十二条均为合成测试夹具，不是真实凭据，没有泄露风险，不需要轮换凭据。实现以完整 SHA、精确文件路径和每条原始新增行的 SHA-256 三重匹配；短 SHA、其他路径、其他提交中即使出现相同文字也不得排除，必须继续 FAIL。排除清单当前固定为上述三笔；任何新增排除都必须先取得总管明确批准，未经批准不得增加。
+核实经过：前三笔由总管逐笔检查完整 GitHub commit patch 并复跑逐提交扫描，每笔恰好四条命中；第 4 笔由总管核对完整提交 SHA、文件路径和原始新增行 SHA-256，确认该行位于 `test_secret_scan_commit_history`，是合成测试样例而非真实凭据。当前 HEAD 的对应测试文本已改为动态拼接；反向测试重建原始新增行并断言其 SHA-256 精确等于上述值。前三笔共十二条、第 4 笔一条，合计十三条合成测试夹具；均非真实凭据，没有泄露风险，不需要轮换凭据。实现以完整 SHA、精确文件路径和每条原始新增行的 SHA-256 三重匹配；短 SHA、其他路径、其他提交中即使出现相同文字也不得排除，必须继续 FAIL。排除清单固定为上述四笔；任何新增排除都必须先取得总管明确批准，未经批准不得增加。
 
 它是防误提交的启发式扫描，不等于完整 DLP，也不能保证识别任意编码、拆分或未知厂商密钥。命中即 FAIL；不命中只表示本规则未发现，不表示文件绝对无敏感信息。
 
@@ -94,11 +95,11 @@ PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 a
 | 4 | 八项全部通过且变更仅为少量文档 | 总体 PASS，建议等级为绿灯 |
 | 5 | 单项超时 | 超时归 FAIL，不能被当作跳过或通过 |
 | 6 | CI/API 不可用或结果缺失 | 状态 UNKNOWN，显示“门禁未知” |
-| 7 | 红灯 PR 没有 Opus 盲审 | 函数级 review_decision() 返回 merge_allowed=false；workflow 不自动执行 Opus 检查 |
+| 7 | 红灯 PR 没有 Opus 盲审、权限集合有额外写权限或 workflow 缺少 gate-finalize | 函数级 review_decision() 返回 merge_allowed=false；精确权限断言拒绝额外权限；workflow 必须存在唯一的 Finalize machine gate status 步骤且含 id: gate-finalize、if: always()、1 分钟超时 |
 | 8 | 绿灯 PR 没有子代理盲审 | reviewed=false，不得标记“已审查通过”；本项只调用 review_decision() 策略函数 |
 | 9 | 审查台账 PR 集合/行数与已合并 PR 集合不一致 | 校验失败；一致才通过 |
 
-第 8 项只验证 review_decision() 的策略函数，不调用评论写回代码，也不测试 GitHub 评论 API；PR 评论实际由 web-ci.yml 的独立 gate-comment job 使用 gh api 实现。第 7 项同样只验证红灯/Opus 缺失时的函数级策略。它们不代表 workflow 已接入 Opus/子代理盲审，更不是 GitHub branch protection 技术锁。试运行阶段仍由负责人遵守不得合并/不得标记审查通过的规则。Python 中未被 workflow 调用的 find_bot_comment/post_comment/finalize 函数及对应 CLI 子命令已删除。
+第 8 项只验证 review_decision() 的策略函数，不调用评论写回代码，也不测试 GitHub 评论 API；PR 评论实际由 web-ci.yml 的独立 gate-comment job 使用 gh api 实现。第 7 项同时验证红灯/Opus 缺失策略、额外写权限反向断言，以及实际 workflow 中唯一的 `Finalize machine gate status` 步骤（`id: gate-finalize`、`if: always()`、1 分钟超时）存在；静态检查函数 `static_check()` 也要求该步骤 ID 存在并检查其超时。它们不代表 workflow 已接入 Opus/子代理盲审，更不是 GitHub branch protection 技术锁。试运行阶段仍由负责人遵守不得合并/不得标记审查通过的规则。Python 中未被 workflow 调用的 find_bot_comment/post_comment/finalize 函数及对应 CLI 子命令已删除。
 
 
 ## 8. 试运行调优清单（暂缓）
@@ -106,7 +107,7 @@ PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 a
 以下事项明确留待后续处理，本 PR 不改游戏代码或既有 E2E 测试：
 
 - M7.3 金币断言是既有测试写法问题：`web/e2e/ch1-wild-encounters.spec.ts` 第 263/265 行检查胜利后的玩家总金币绝对值 40，而新角色初始金币为 20,000；奖励 40 后总额 20,040。应另行把测试改为奖励增量/胜利前后差值断言；本 PR 不修改游戏逻辑、该测试或结算代码。
-- main 的 web-ci.yml 在 Chromium E2E 失败后会跳过后续步骤；跨运行基线比较必须把 SKIPPED/NOT_RUN 与实际 PASS/FAIL 分开，不得把跳过当通过。
+- main 的 `.github/workflows/web-ci.yml` 在 Chromium E2E 失败后会跳过后续步骤；基线文件中 Chromium 步骤位于第 50 行，M7.3 synthetic fixture、preview build、E2E 分别位于第 62、66、69 行。main 的 Chromium 步骤没有 `continue-on-error`，后续步骤默认受失败传播影响；跨运行基线比较必须把 SKIPPED/NOT_RUN 与实际 PASS/FAIL 分开，不得把跳过当通过。
 - 凭据规则的已知误报：把 `api_key` 赋值为 `settings.API_KEY_VALUE` 的代码表达式可能被无引号分支误报。误报按 fail-safe 处理，本 PR 不放宽规则。
 - API 读 PR head 失败时，prepare 步骤会因 set -e 退出，后续无法写回“门禁未知”；需研究读不到 head 时使用事件中的 PR/base/head 安全写回 UNKNOWN 的方式。
 - `git log -p` 默认不输出 merge commit 的 diff；后续评估使用 `--cc` 或 `-m` 补足合并提交扫描。
@@ -119,4 +120,4 @@ PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 a
 
 - PR #20 的 base..head compare 只包含六个文件：本 workflow、check_gate.py 和四份 agent-ops 文档；没有 `web/e2e/`、`web/src/` 游戏测试或逻辑文件。
 - main@5fbf1679 与 PR #20 HEAD 上，`web/e2e/ch1-wild-encounters.spec.ts`、`web/src/m4-runtime-integration.ts`、`web/src/world/ch1-wild-encounter-settlement.ts` 的 Git blob SHA 分别相同：`24e98fac94f3090457f1f887cbbed8915d158694`、`83d3833908092de568e8f0afc5b36b87f818a770`、`ca598126936088596f9aab02bb62760326f84071`。测试第 263 行取得胜利后的完整玩家状态，第 265 行断言 `won.gold == 40`；M4 runtime 第 163 行新角色初始金币为 20,000；结算代码第 43 行奖励金币为 40。20,000 + 40 = 20,040，问题是测试用总余额绝对值断言，不是奖励结算错误。
-- Run #43772129471（PR #20 HEAD 176c9ce3）Chromium 九项失败，与 PR #21 Run #43777684072 的 Chromium 九项失败按测试名一致。后者 M7.3 E2E 为 SKIPPED，前者 M7.3 E2E 为 FAIL；main workflow 的 Chromium 步骤失败会跳过后续 M7.3 步骤，而 PR workflow 的 continue-on-error 与 M7.3 独立条件允许继续执行。按上述相同源文件证据，M7.3 是 main 已存在的测试写法问题，不是 PR #20 引入的新失败。SKIPPED 不代表 PASS。
+- Run #43772129471（PR #20 HEAD 176c9ce3）Chromium 九项失败，与 PR #21 Run #43777684072 的 Chromium 九项失败按测试名一致。main@5fbf1679 的 `.github/workflows/web-ci.yml` 中 Chromium 步骤为第 50 行，M7.3 fixture/build/E2E 分别为第 62/66/69 行；Chromium 步骤没有 `continue-on-error`，失败后续步骤跳过。PR workflow 中 Chromium 步骤位于第 105–113 行并设置 `continue-on-error: true`，M7.3 E2E 位于第 139–151 行且只依赖 M7.3 build 与 Playwright 安装，因此 Chromium 失败后仍会执行。PR #21 Run #43777684072 的 M7.3 E2E 为 SKIPPED，PR #20 Run #43772129471 的 M7.3 E2E 为 FAIL；两种状态是执行路径不同，不是 PASS/FAIL 基线差异。按相同源文件 Blob SHA 证据，M7.3 是 main 已存在的测试写法问题，不是 PR #20 引入的新失败。SKIPPED 不代表 PASS。
