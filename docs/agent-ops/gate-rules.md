@@ -51,7 +51,7 @@ workflow 触发集合：push（分支 `codex/**`、`feat/ch1-m73-wild-encounters
 - “截图与 E2E”聚合行及其七个子状态；
 - PR 的 base/head SHA 与 GitHub API 读回结果；
 - 审查等级（绿/黄/红）及对应下一步；
-- 九项反向测试的汇总状态。逐项输出只保留在 Actions 日志与 artifact，不写入 PR 评论。
+- 九项反向测试的汇总状态。逐项输出只保留在 Actions 日志与 artifact，不写入 PR 评论；PR 评论展示八项聚合状态，并在“截图与 E2E”行下方列出七个子状态。
 
 PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 artifact 传递 summary.md；该 job 仅授予 issues:write，不 checkout、不执行 PR 脚本。synthetic job 只读（contents:read），不授予 actions:read 或写权限；静态检查对两个 job 的 permissions 映射做精确集合比较，任何额外权限（包括额外 write）均失败。评论只更新作者为 github-actions[bot] 且包含固定标记的评论；不接管人工评论。评论 job 使用 if: always()，即使 synthetic job 超时或失败也会在缺少 artifact 时写回“门禁未知”，避免遗留旧的“通过”评论。被新提交取代的旧 head 运行会先读回当前 PR head 并跳过写回。若读回不可用，仍用事件中的 PR 编号/base/head 标识“门禁未知”。评论 API 写入失败或权限不足时，评论 job 失败，PR 门禁不能显示通过。Actions Job Summary 和 web-synthetic-validation artifact 同时保留运行证据。
 
@@ -120,10 +120,3 @@ PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 a
 - PR #20 的 base..head compare 只包含六个文件：本 workflow、check_gate.py 和四份 agent-ops 文档；没有 `web/e2e/`、`web/src/` 游戏测试或逻辑文件。
 - main@5fbf1679 与 PR #20 HEAD 上，`web/e2e/ch1-wild-encounters.spec.ts`、`web/src/m4-runtime-integration.ts`、`web/src/world/ch1-wild-encounter-settlement.ts` 的 Git blob SHA 分别相同：`24e98fac94f3090457f1f887cbbed8915d158694`、`83d3833908092de568e8f0afc5b36b87f818a770`、`ca598126936088596f9aab02bb62760326f84071`。测试第 263 行取得胜利后的完整玩家状态，第 265 行断言 `won.gold == 40`；M4 runtime 第 163 行新角色初始金币为 20,000；结算代码第 43 行奖励金币为 40。20,000 + 40 = 20,040，问题是测试用总余额绝对值断言，不是奖励结算错误。
 - Run #43772129471（PR #20 HEAD 176c9ce3）Chromium 九项失败，与 PR #21 Run #43777684072 的 Chromium 九项失败按测试名一致。后者 M7.3 E2E 为 SKIPPED，前者 M7.3 E2E 为 FAIL；main workflow 的 Chromium 步骤失败会跳过后续 M7.3 步骤，而 PR workflow 的 continue-on-error 与 M7.3 独立条件允许继续执行。按上述相同源文件证据，M7.3 是 main 已存在的测试写法问题，不是 PR #20 引入的新失败。SKIPPED 不代表 PASS。
-
-
-以下事项属于低优先级调优，本轮不修：
-- 第 10 项：S41 条件跳过与状态映射；NOT_APPLICABLE 的统一口径；synthetic-pack 是否单独计入门禁状态；artifact 完整性校验。
-- 第 11 项：截图对象/页面选择的语义边界；GitHub annotation 消息转义与边界字符测试。
-- 长期自证改进：门禁脚本应从可信 base SHA 取回并运行，而不是执行 PR 自己修改的 workflow/check_gate.py。本轮仅强制标红并警告，不实施可信脚本加载器。
-- 台账耦合改进：当前全局对账在其他 PR 合并、台账尚未同步时会使读回失败；本轮接受该行为，后续设计增量同步或冻结比较基准。

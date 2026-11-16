@@ -334,9 +334,9 @@ def has_exact_job_permissions(job_block: str, expected: set[tuple[str, str]]) ->
     for line in lines[headers[0] + 1:]:
         if not line.strip():
             continue
-        if re.match(r"^    \\S", line):
+        if re.match(r"^    \S", line):
             break
-        match = re.fullmatch(r"      ([A-Za-z][A-Za-z0-9-]*):\\s*(read|write|none)\\s*", line)
+        match = re.fullmatch(r"      ([A-Za-z][A-Za-z0-9-]*):\s*(read|write|none)\s*", line)
         if not match:
             return False
         entries.append((match.group(1), match.group(2)))
@@ -353,13 +353,13 @@ def test_permission_blocks_reject_extra_write_permissions() -> bool:
     runs-on: ubuntu-24.04
 """
     synthetic_with_id_token = synthetic.replace(
-        "      contents: read\\n", "      contents: read\\n      id-token: write\\n"
+        "      contents: read\n", "      contents: read\n      id-token: write\n"
     )
     synthetic_with_packages = synthetic.replace(
-        "      contents: read\\n", "      contents: read\\n      packages: write\\n"
+        "      contents: read\n", "      contents: read\n      packages: write\n"
     )
     comment_with_contents = comment.replace(
-        "      issues: write\\n", "      issues: write\\n      contents: write\\n"
+        "      issues: write\n", "      issues: write\n      contents: write\n"
     )
     return (
         has_exact_job_permissions(synthetic, {("contents", "read")})

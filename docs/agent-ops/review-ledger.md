@@ -37,7 +37,7 @@ GitHub 读回口径：以 pulls?state=closed&base=main 返回的已合并 PR 为
 ## P0-1 当前试运行快照（PR #20 未合并，不计入上方合并台账）
 
 - PR：[#20](https://github.com/vileosbot-bot/lapis-rebuild/pull/20)，状态 Open，未合并。
-- base：`5fbf1679367142b358b8d6ac3a0f288dc33d24b2`；本次核验 HEAD：`176c9ce3385c9d908b07e206197b1d21e1dfac23`。
+- base：`5fbf1679367142b358b8d6ac3a0f288dc33d24b2`；Run #43772129471 对应 HEAD：`176c9ce3385c9d908b07e206197b1d21e1dfac23`。
 - CI：Run [#43772129471](https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/43772129471)，结论 failure；Chromium 9 项失败，M7.3 金币断言另有 1 项失败。
 - 基线解释：PR #20 的六文件 diff 不触及游戏/E2E 文件；main 与 PR head 的 M7.3 测试、初始金币定义和奖励结算文件 blob SHA 相同。M7.3 断言比较总金币绝对值 40，而 20,000 初始金币加 40 奖励为 20,040。main workflow 在 Chromium 失败后跳过 M7.3，PR workflow 继续执行；SKIPPED 不等于 PASS。该 M7.3 问题记为既有测试写法问题，另行修复。
 - 本快照不是合并记录，不新增 PR 表格行；PR #20 仍须 Opus 盲审与总管验收后才能讨论合并。
