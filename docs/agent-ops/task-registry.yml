@@ -1,0 +1,502 @@
+{
+  "schema_version": 1,
+  "project": "佣兵传说单机",
+  "registry_repository": "vileosbot-bot/lapis-rebuild",
+  "parallel_limit": 10,
+  "active_statuses": [
+    "in_progress",
+    "awaiting_review"
+  ],
+  "non_active_statuses": [
+    "created",
+    "dispatched",
+    "blocked",
+    "paused",
+    "completed",
+    "cancelled",
+    "failed",
+    "dead_letter"
+  ],
+  "head_sha_policy": "head_sha 是最近一次被检查点确认的任务代码 HEAD。登记表自身的纯登记提交不写入自身 SHA；检查器允许当前分支 HEAD 是 head_sha 的直接子提交，且该提交唯一变更文件为 docs/agent-ops/task-registry.yml。其他未登记提交或 HEAD 不一致必须告警，不得自动修复。",
+  "tasks": [
+    {
+      "task_key": "P0-1",
+      "request_id": "agent-7x24-p01-gate-20261116-01",
+      "task_name": "P0-1 门禁",
+      "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6af9f1ee-cb44-83e9-b2f2-caf567e2c87b",
+      "workspace": "0718 (EN) Business",
+      "model": "GPT-6",
+      "mode": "Chat",
+      "repository": "vileosbot-bot/lapis-rebuild",
+      "branch": "feat/agent-ops-gate-20261116",
+      "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+      "head_sha": "808a1b9c79a1efe8afec337349651d4b07991151",
+      "status": "completed",
+      "progress": "已完成。总管验收通过；PR #20 已合并，合并提交 5458ee096f89d3a34e555f2de5f56e183c176e64。",
+      "next_action": "无；已完成。",
+      "deadline": null,
+      "risk_level": "high",
+      "approval_required": true,
+      "approval_status": "granted",
+      "last_updated": "2026-11-16",
+      "cost_budget": {
+        "max_rounds": null,
+        "timeout_minutes": null,
+        "cost_record": []
+      },
+      "conflict_group": "agent-ops",
+      "shared_files": [],
+      "write_files": [
+        ".github/workflows/web-ci.yml",
+        "docs/agent-ops/blind-review.md",
+        "docs/agent-ops/gate-rules.md",
+        "docs/agent-ops/review-ladder.md",
+        "docs/agent-ops/review-ledger.md",
+        "tools/gate/check_gate.py"
+      ],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/20",
+      "legacy_import": true,
+      "acceptance_status": "accepted",
+      "accepted_by": "总管",
+      "acceptance_basis": "Opus 再审有保留同意（2026-11-16）+ 总管独立重验 self-test 9/9、secrets PASS（四笔排除 4/4、4/4、4/4、1/1）+ 基线比对：CI 失败仅为既有 10 项（Chromium 9 + M7.3 1），无新增失败；合并提交 5458ee096f89d3a34e555f2de5f56e183c176e64",
+      "checkpoints": {
+        "CP0": {
+          "completed": true,
+          "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6af9f1ee-cb44-83e9-b2f2-caf567e2c87b",
+          "branch": "feat/agent-ops-gate-20261116",
+          "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2"
+        }
+      },
+      "notes": [
+        "PR #20 实际读回：Open、未合并，head 2041c630ba7d0f858d7bbc78e6071ce171751e22，base main@5fbf1679367142b358b8d6ac3a0f288dc33d24b2。",
+        "PR #20 六个文件均由 GitHub changed-files 实际读回；本任务不写这些路径。",
+        "历史任务导入；未从旧对话推测或补造缺失检查点。",
+        "M4 维护例外：本轮 GitHub 实际观察到该分支 HEAD 已前进至 176c9ce3385c9d908b07e206197b1d21e1dfac23；按总管裁决本次不改 seed head_sha=2041c630ba7d0f858d7bbc78e6071ce171751e22，head_sha_verified_at=null，待 P0-1 验收完成后由总管通知刷新。",
+        "head_sha_verified_at 未填：历史种子缺少本字段的可核实时间戳，待下一次总管验收/状态变更时实际读回并刷新。",
+        "2026-11-16 总管验收：Opus 再审有保留同意 + 总管独立重验 self-test 9/9、secrets PASS；PR #20 已合并，合并提交 5458ee096f89d3a34e555f2de5f56e183c176e64；状态转为 completed。"
+      ],
+      "head_sha_verified_at": "2026-11-16"
+    },
+    {
+      "task_key": "P0-2",
+      "request_id": "agent-7x24-p02-memory-20261116-01",
+      "task_name": "P0-2 记忆库",
+      "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6af9f1ec-c3ec-83ea-bfbe-faf881bfb8f7",
+      "workspace": "0718 (EN) Business",
+      "model": "GPT-6",
+      "mode": "Chat",
+      "repository": "vileosbot-bot/agent-memory",
+      "branch": "main",
+      "base_sha": "",
+      "base_sha_note": "新库建库，首批提交无父提交",
+      "head_sha": "772accb49902c6f1407437ab252fb8c41d1a302a",
+      "status": "completed",
+      "progress": "总管已验收；私有记忆库已建立并完成首批文件提交；agent-memory PR #1 已合并，合并提交 772accb49902c6f1407437ab252fb8c41d1a302a；GitHub 实际读回 main HEAD 与登记值一致。",
+      "next_action": "无；已完成。",
+      "deadline": null,
+      "risk_level": "medium",
+      "approval_required": true,
+      "approval_status": "granted",
+      "last_updated": "2026-11-16",
+      "cost_budget": {
+        "max_rounds": null,
+        "timeout_minutes": null,
+        "cost_record": []
+      },
+      "conflict_group": null,
+      "shared_files": [],
+      "write_files": [],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": null,
+      "legacy_import": true,
+      "acceptance_status": "accepted",
+      "accepted_by": "总管",
+      "acceptance_basis": "总管独立验收通过（脚本 test-mode 与 self-test 通过、真实包上传并读回验证、T11 故障模拟通过、T10 演练通过）；合并提交 772accb49902c6f1407437ab252fb8c41d1a302a",
+      "checkpoints": {},
+      "notes": [
+        "GitHub 实际读回 main HEAD：7627ef30d3011ad9634d11564ad88a7b1de68435。",
+        "GitHub 实际读回首次 README 提交 9e08afcc3ce674888b27e7a96c79b452e1dc99b5 的 parents=[]，确认首批提交起点无父提交，因此 base_sha 留空。",
+        "历史任务导入；总管已验收状态来自用户明确提供，不补造旧检查点细节。",
+        "head_sha_verified_at 未填：历史种子缺少本字段的可核实时间戳，待下一次总管验收/状态变更时实际读回并刷新。",
+        "2026-11-16 核对：agent-memory main HEAD 已为合并提交 772accb49902c6f1407437ab252fb8c41d1a302a（PR #1，父提交 7627ef30… + 7e3f577…）；head_sha 已刷新。"
+      ],
+      "head_sha_verified_at": "2026-11-16"
+    },
+    {
+      "task_key": "P0-3",
+      "request_id": "agent-7x24-p03-registry-20261117-01",
+      "task_name": "P0-3 登记表",
+      "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6afa2e8c-b3e8-83ea-9f82-f5196afa3ed4",
+      "workspace": "0718 (EN) Business",
+      "model": "GPT-6",
+      "mode": "Chat",
+      "repository": "vileosbot-bot/lapis-rebuild",
+      "branch": "feat/agent-ops-registry-20261117",
+      "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+      "head_sha": "ed719902fd3b9aadb1f5ffe4980499ac84527e45",
+      "status": "completed",
+      "progress": "已完成。总管验收通过；M1–M5 已修，M6 为已知限制；self-test 21/21、simulate 5/5；PR #21 已合并，合并提交 1f4bff63eaccb727337fd4ddc81785bb40325c28。",
+      "next_action": "无；已完成。",
+      "deadline": "2026-11-17T12:00:00+08:00",
+      "risk_level": "high",
+      "approval_required": true,
+      "approval_status": "granted",
+      "last_updated": "2026-11-16",
+      "cost_budget": {
+        "max_rounds": null,
+        "timeout_minutes": null,
+        "cost_record": []
+      },
+      "conflict_group": "agent-ops",
+      "shared_files": [],
+      "write_files": [
+        "docs/agent-ops/task-registry.yml",
+        "docs/agent-ops/task-state-machine.md",
+        "docs/agent-ops/checkpoint-rules.md",
+        "docs/agent-ops/recovery-procedure.md",
+        "tools/agent_ops/task_registry.py",
+        "docs/agent-ops/task-history/README"
+      ],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/21",
+      "legacy_import": false,
+      "acceptance_status": "accepted",
+      "accepted_by": "总管",
+      "acceptance_basis": "总管独立重验 self-test 21/21、simulate 5/5、M1–M5 抽查通过 + CI 基线比对：Run #88 失败仅为既有 9 项 Chromium（与基线逐项一致），M7.3 为既有问题被跳过，无新增失败；合并提交 1f4bff63eaccb727337fd4ddc81785bb40325c28",
+      "checkpoints": {
+        "CP0": {
+          "completed": true,
+          "conversation_url": "https://chatgpt.com/g/g-p-6aedea1aaa4c819184df2b97375a9e15-yong-bing-chuan-shuo-dan-ji/c/6afa2e8c-b3e8-83ea-9f82-f5196afa3ed4",
+          "branch": "feat/agent-ops-registry-20261117",
+          "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+          "head_sha_at_checkpoint": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+          "source": "用户在本对话明确提供真实链接；分支与 SHA 由 GitHub 实际读回。"
+        },
+        "CP1": {
+          "completed": true,
+          "recorded_before_artifact_changes": true,
+          "authorization_scope": [
+            "只在 feat/agent-ops-registry-20261117 新建登记表、状态机、检查点、恢复流程、登记检查脚本、历史 README 六项交付物。",
+            "不改 PR #20 分支及其六个文件；不改游戏逻辑、测试用例、测试数据。",
+            "不动投资系统仓库、agent-memory 记忆库和 04:00 备份配置；不写 main、不合并 PR。",
+            "并行活跃上限保持 10；不迁 Docker、不挂 VPS、不购买新平台。"
+          ],
+          "plan_steps": [
+            "实现合法状态转换、审批门禁、并行名额和文件冲突检查。",
+            "实现 CP0-CP3 检查点字段与关键阶段缺失告警。",
+            "实现登记、检查、状态转换和恢复信息生成 CLI；脚本只读写登记数据，不执行代码改动、合并或部署。",
+            "运行九项登记/检查验收和五种中断恢复模拟。",
+            "记录 CP2 的实际提交与测试证据，CP3 只开 PR 并核验检查状态。"
+          ],
+          "release_status": "granted",
+          "release_source": "用户在本对话明确放行。"
+        },
+        "CP2": {
+          "completed": true,
+          "head_sha": "ed719902fd3b9aadb1f5ffe4980499ac84527e45",
+          "commit_sha": "ed719902fd3b9aadb1f5ffe4980499ac84527e45",
+          "latest_commit_message": "registry(2026-11-17): require HEAD verification timestamps and test CLI rejection codes\n\nrequest-id: agent-7x24-p03-registry-20261117-01\n来源：总管 P0-3 盲审裁决 M1、M4\n原因：新登记任务必须提供 head_sha_verified_at（可为 null）；补真实 CLI subprocess 自测，确认缺少 --accepted-by 或身份不匹配均以退出码 2 拒绝。",
+          "changed_files": [
+            "docs/agent-ops/task-registry.yml",
+            "docs/agent-ops/task-state-machine.md",
+            "docs/agent-ops/checkpoint-rules.md",
+            "docs/agent-ops/recovery-procedure.md",
+            "tools/agent_ops/task_registry.py",
+            "docs/agent-ops/task-history/README"
+          ],
+          "tests_passed": true,
+          "test_summary": "21/21 PASS; Python py_compile PASS",
+          "test_execution": {
+            "method": "从 GitHub raw URL 按 commit SHA 拉取 tools/agent_ops/task_registry.py 与 task-registry.yml，在隔离 Python 执行环境中 py_compile，并以 subprocess 运行 self-test 与 simulate CLI。",
+            "script_commit_sha": "ed719902fd3b9aadb1f5ffe4980499ac84527e45",
+            "script_blob_sha": "3dd3061ad9aa81cb2a02a090c03dd50cc062d0b3",
+            "python_version": "3.11",
+            "execution_note": "不是用户笔记本本地 checkout；运行的是 GitHub 实际提交版本的原始文件，未使用浏览器会话或用户凭据。"
+          },
+          "test_results": [
+            {
+              "name": "duplicate request-id rejected",
+              "status": "PASS"
+            },
+            {
+              "name": "missing required field rejected",
+              "status": "PASS"
+            },
+            {
+              "name": "missing head_sha_verified_at rejected",
+              "status": "PASS"
+            },
+            {
+              "name": "illegal status transition rejected",
+              "status": "PASS"
+            },
+            {
+              "name": "11th active task rejected",
+              "status": "PASS"
+            },
+            {
+              "name": "actual HEAD mismatch flagged",
+              "status": "PASS"
+            },
+            {
+              "name": "missing key checkpoint warned",
+              "status": "PASS"
+            },
+            {
+              "name": "recovery emits URL and SHA",
+              "status": "PASS"
+            },
+            {
+              "name": "same-branch concurrent write blocked",
+              "status": "PASS"
+            },
+            {
+              "name": "unaccepted task cannot complete",
+              "status": "PASS"
+            },
+            {
+              "name": "CI failure is recorded honestly and cannot complete",
+              "status": "PASS"
+            },
+            {
+              "name": "registry-only metadata commit recognized",
+              "status": "PASS"
+            },
+            {
+              "name": "uncompleted dependency blocks start",
+              "status": "PASS"
+            },
+            {
+              "name": "dead-letter requires exceeded budget evidence",
+              "status": "PASS"
+            },
+            {
+              "name": "completion rejected without pre-recorded manager acceptance",
+              "status": "PASS"
+            },
+            {
+              "name": "completion rejects mismatched --accepted-by identity",
+              "status": "PASS"
+            },
+            {
+              "name": "CLI without --accepted-by exits 2",
+              "status": "PASS"
+            },
+            {
+              "name": "CLI with mismatched --accepted-by exits 2",
+              "status": "PASS"
+            },
+            {
+              "name": "missing CP3 in awaiting_review makes check FAIL",
+              "status": "PASS"
+            },
+            {
+              "name": "detached HEAD without --branch cannot PASS",
+              "status": "PASS"
+            },
+            {
+              "name": "detached HEAD with --branch is associated without false mismatch",
+              "status": "PASS"
+            }
+          ],
+          "interruption_simulations": [
+            {
+              "scenario": "① 浏览器完全关闭",
+              "passed": true,
+              "observed_head": "1cfbdf78a1ecd89fd8438916d9f30c9df473590d",
+              "method": "不提供浏览器标签或聊天记录；仅从 task-registry 取 request-id/真实 conversation URL/repository/branch/base/head/next_action，并由 GitHub 状态作为代码事实。",
+              "actual_output": "PASS: browser closed - registry + observed GitHub HEAD + history index only；recovery head_status=MATCH。"
+            },
+            {
+              "scenario": "② GPT 对话中断",
+              "passed": true,
+              "observed_head": "1cfbdf78a1ecd89fd8438916d9f30c9df473590d",
+              "method": "不提供原对话内容，按 request-id 从登记表恢复 status、next_action、真实链接和 SHA。",
+              "actual_output": "PASS: GPT conversation interrupted - request-id/next_action recovered; head_status=MATCH。"
+            },
+            {
+              "scenario": "③ 工人提交后总管未更新登记表",
+              "passed": true,
+              "method": "注入父提交为登记 head、改动文件为 tools/agent_ops/task_registry.py 的未登记代码提交。",
+              "actual_output": "PASS: worker commit not yet registered - detected HEAD_MISMATCH; no auto-update。"
+            },
+            {
+              "scenario": "④ GitHub HEAD 与登记表不一致",
+              "passed": true,
+              "method": "注入无共同父关系的不同 SHA。",
+              "actual_output": "PASS: GitHub HEAD mismatch - detected HEAD_MISMATCH; stop and investigate。"
+            },
+            {
+              "scenario": "⑤ 两个任务同时改同一文件",
+              "passed": true,
+              "method": "构造两个活跃任务，write_files 都声明 docs/agent-ops/task-registry.yml。",
+              "actual_output": "PASS: two tasks write same file - shared path rejected。"
+            }
+          ],
+          "observed_head_runs": [
+            {
+              "observed_head": "1cfbdf78a1ecd89fd8438916d9f30c9df473590d",
+              "recovery_head_status": "MATCH",
+              "simulation_result": "5/5 PASS",
+              "exit_code": 0
+            },
+            {
+              "observed_head": "ed719902fd3b9aadb1f5ffe4980499ac84527e45",
+              "recovery_head_status": "HEAD_MISMATCH",
+              "simulation_result": "5/5 PASS",
+              "exit_code": 0
+            }
+          ],
+          "completed_at": "2026-11-16"
+        },
+        "CP3": {
+          "completed": true,
+          "pull_request_number": 21,
+          "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/21",
+          "head_branch": "feat/agent-ops-registry-20261117",
+          "head_sha": "ed719902fd3b9aadb1f5ffe4980499ac84527e45",
+          "base_branch": "main",
+          "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
+          "pr_state": "open",
+          "merged": false,
+          "ci_status": "pending",
+          "ci_head_sha": "ed719902fd3b9aadb1f5ffe4980499ac84527e45",
+          "workflow_runs": [
+            {
+              "id": 43777396785,
+              "run_number": 87,
+              "name": "Web and parser validation",
+              "status": "in_progress",
+              "conclusion": null,
+              "jobs_url": "https://api.github.com/repos/vileosbot-bot/lapis-rebuild/actions/runs/43777396785/jobs",
+              "logs_url": "https://api.github.com/repos/vileosbot-bot/lapis-rebuild/actions/runs/43777396785/logs"
+            }
+          ],
+          "check_runs": [
+            {
+              "name": "private-original",
+              "status": "completed",
+              "conclusion": "skipped",
+              "html_url": "https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/43777396785/job/133006783037"
+            },
+            {
+              "name": "synthetic",
+              "status": "in_progress",
+              "conclusion": null,
+              "html_url": "https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/43777396785/job/133006781760"
+            }
+          ],
+          "commit_status": "no combined status contexts",
+          "pending_todos": [
+            "Workflow run #43777396785（run #87）针对 CP2 代码 HEAD ed719902fd3b9aadb1f5ffe4980499ac84527e45，当前 in_progress；不可标记为 success。",
+            "登记表提交后会产生 registry-only 新 PR head；应在最终读回时再次核对该 head 的 CI 状态。",
+            "等待总管独立重验 M1–M6；PR #21 只开不合并。"
+          ]
+        }
+      },
+      "notes": [
+        "CP0 与 dispatched 同时完成；三项必填值在状态转换前齐全。",
+        "CP1 在任何交付物代码/文档改动前登记，状态由 dispatched 合法转为 in_progress。",
+        "head_sha 记录最后一次已确认的任务代码 HEAD；登记表自更新提交按顶层 head_sha_policy 处理。",
+        "PR #21 已实际创建并读回：Open、未合并；真实链接 https://github.com/vileosbot-bot/lapis-rebuild/pull/21。",
+        "本次按用户明确要求将 P0-3 状态设为 awaiting_review；CI 独立记录为 pending，不代表 PASS；completed 仍要求 CI success。",
+        "CP2 的 13 项测试为 Python in-memory logic harness；本轮未直接从本地 checkout subprocess 执行仓库 CLI，限制已在 CP2.test_execution 明示。",
+        "CP3 第二次读回：PR #21 head 1cfbdf78a1ecd89fd8438916d9f30c9df473590d；Actions run #43775105074（run #75）in_progress，synthetic queued，CI pending。",
+        "2026-11-16 核对：head_sha 1cfbdf78a1ecd89fd8438916d9f30c9df473590d 是登记提交 8b6b19a48835244e7c12b74c7cb3cf956a062be5 的直接父提交；该登记提交只修改 task-registry.yml，因此 head_sha 仍是已核实的任务代码 HEAD。",
+        "M1：completed 必须先由总管在登记表预写 acceptance_status=accepted 与 accepted_by；工人提供的 --accepted-by 必须精确匹配；CLI 缺失/不匹配均退出码 2。",
+        "M2：check 对 dispatched/in_progress/awaiting_review/completed 状态缺失必需 CP 报 ERROR/CHECK FAIL；legacy_import 豁免保留。",
+        "M3：detached HEAD 无 --branch 时 CHECK FAIL；显式 --branch 时用于任务关联并继续比对 HEAD，不因空分支名误报。",
+        "M4：每条任务有 head_sha_verified_at；总管每次验收/状态变更刷新相关种子。P0-1 seed 暂按裁决保留旧 SHA，核验时间 null。",
+        "M5：状态机 CI/完成门禁与代码一致；blocked_by 不作为脚本机械完成门禁，文档说明由总管人工核查；异常标签统一 HEAD_MISMATCH。",
+        "M6：write_files 声明式交集检查不与 Git changed files 交叉核对，已在 checkpoint-rules.md 的已知限制中记录。",
+        "2026-11-16 总管验收：独立重验 self-test 21/21、simulate 5/5、M1–M5 抽查通过；CI 基线比对：Run #88（43777684072）synthetic failed，13 分 22 秒，失败仅为既有 9 项 Chromium（与基线逐项一致），M7.3 为既有问题被跳过，无新增失败；PR #21 已合并，合并提交 1f4bff63eaccb727337fd4ddc81785bb40325c28；状态转为 completed。（CP3 为送审时快照，ci_status 保持 pending 不动；最终 CI 结论记于此条。）"
+      ],
+      "head_sha_verified_at": "2026-11-16"
+    },
+    {
+      "task_key": "P1-4",
+      "request_id": "待派活时填",
+      "task_name": "P1-4 成本上限",
+      "conversation_url": null,
+      "workspace": null,
+      "model": null,
+      "mode": null,
+      "repository": null,
+      "branch": null,
+      "base_sha": null,
+      "head_sha": null,
+      "status": "created",
+      "progress": "已登记待派活；尚未派出。",
+      "next_action": "周三由总管派活时补 request-id、真实对话链接、工作空间、模型、仓库、分支和基线。",
+      "deadline": null,
+      "risk_level": "待派活时填",
+      "approval_required": true,
+      "approval_status": "pending",
+      "last_updated": "2026-11-16",
+      "cost_budget": {
+        "max_rounds": null,
+        "timeout_minutes": null,
+        "cost_record": []
+      },
+      "conflict_group": null,
+      "shared_files": [],
+      "write_files": [],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": null,
+      "legacy_import": false,
+      "acceptance_status": "pending",
+      "checkpoints": {},
+      "notes": [
+        "request-id 按总管指示保留占位值，不参与重复编号检测。",
+        "head_sha_verified_at=null：尚未派活，尚无可验证分支 SHA。"
+      ],
+      "head_sha_verified_at": null
+    },
+    {
+      "task_key": "P1-5",
+      "request_id": "待派活时填",
+      "task_name": "P1-5 巡检",
+      "conversation_url": null,
+      "workspace": null,
+      "model": null,
+      "mode": null,
+      "repository": null,
+      "branch": null,
+      "base_sha": null,
+      "head_sha": null,
+      "status": "created",
+      "progress": "已登记待派活；尚未派出。",
+      "next_action": "周三由总管派活时补 request-id、真实对话链接、工作空间、模型、仓库、分支和基线。",
+      "deadline": null,
+      "risk_level": "待派活时填",
+      "approval_required": true,
+      "approval_status": "pending",
+      "last_updated": "2026-11-16",
+      "cost_budget": {
+        "max_rounds": null,
+        "timeout_minutes": null,
+        "cost_record": []
+      },
+      "conflict_group": null,
+      "shared_files": [],
+      "write_files": [],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": null,
+      "legacy_import": false,
+      "acceptance_status": "pending",
+      "checkpoints": {},
+      "notes": [
+        "request-id 按总管指示保留占位值，不参与重复编号检测。",
+        "head_sha_verified_at=null：尚未派活，尚无可验证分支 SHA。"
+      ],
+      "head_sha_verified_at": null
+    }
+  ],
+  "head_sha_verified_at_policy": "每个任务必须包含 head_sha_verified_at。该时间只表示登记表当前 head_sha 与 GitHub 实际分支状态/提交图完成核对的日期；无法确认、SHA 已知过期或时间来源不明时填 null，不得用更新时间冒充验证时间。总管每次验收或任务状态变更时，必须重新读取对应 GitHub 分支 HEAD、PR head/base 和必要提交图，核对后刷新 head_sha 与 head_sha_verified_at。P0-1 的 seed head_sha 已于 2026-11-16 按总管裁决刷新为 808a1b9c79a1efe8afec337349651d4b07991151（验收完成，head_sha_verified_at 已填）。"
+}
