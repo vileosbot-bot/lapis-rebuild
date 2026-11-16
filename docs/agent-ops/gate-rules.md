@@ -53,7 +53,7 @@ workflow 触发集合：push（分支 `codex/**`、`feat/ch1-m73-wild-encounters
 - 审查等级（绿/黄/红）及对应下一步；
 - 九项反向测试的汇总状态。逐项输出只保留在 Actions 日志与 artifact，不写入 PR 评论；PR 评论展示八项聚合状态，并在“截图与 E2E”行下方列出七个子状态。
 
-PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 artifact 传递 summary.md；该 job 仅授予 issues:write，不 checkout、不执行 PR 脚本。synthetic job 只读（contents:read），不授予 actions:read 或写权限；静态检查对两个 job 的 permissions 映射做精确集合比较，任何额外权限（包括额外 write）均失败。评论只更新作者为 github-actions[bot] 且包含固定标记的评论；不接管人工评论。评论 job 使用 if: always()，即使 synthetic job 超时或失败也会在缺少 artifact 时写回“门禁未知”，避免遗留旧的“通过”评论。被新提交取代的旧 head 运行会先读回当前 PR head 并跳过写回。若读回不可用，仍用事件中的 PR 编号/base/head 标识“门禁未知”。评论 API 写入失败或权限不足时，评论 job 失败，PR 门禁不能显示通过。Actions Job Summary 和 web-synthetic-validation artifact 同时保留运行证据。
+PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 artifact 传递 summary.md；该 job 仅授予 issues:write，不 checkout、不执行 PR 脚本。synthetic job 只读（contents:read），不授予 actions:read 或写权限；静态检查对两个 job 的 permissions 映射做精确集合比较，任何额外权限（包括额外 write）均失败。评论只更新作者为 github-actions[bot] 且包含固定标记的评论；不接管人工评论。评论 job 使用 if: always()，当 synthetic job 超时、失败或未上传 summary artifact 时，在成功读回当前 PR head 的前提下写回“门禁未知”，避免遗留旧的“通过”评论。被新提交取代的旧 head 运行会先读回当前 PR head 并跳过写回。若读取当前 PR head 的 GitHub API 请求本身失败，prepare 步骤会因 set -e 退出，写回步骤被跳过、finalize 失败，可能遗留旧评论；此情形列入试运行调优清单，后续需补足安全 fallback。评论 API 写入失败或权限不足时，评论 job 失败，PR 门禁不能显示通过。Actions Job Summary 和 web-synthetic-validation artifact 同时保留运行证据。
 
 ## 4. 敏感扫描边界
 
