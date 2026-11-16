@@ -748,7 +748,7 @@ def test_secret_scan_commit_history() -> bool:
         git_at(repo, "commit", "--quiet", "-m", "baseline")
         base = git_at(repo, "rev-parse", "HEAD").strip()
         credential = "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345")
-        db_password = "DB_PASSWORD=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345")
+        db_credential = "DB" + "_PASSWORD=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345")
         target.write_text("MODE=test\n" + credential + "\n" + db_password + "\n", encoding="utf-8")
         git_at(repo, "add", "credentials.env")
         git_at(repo, "commit", "--quiet", "-m", "add temporary test credential")
@@ -850,7 +850,7 @@ def reverse_tests() -> int:
         "-----BEGIN " + "ENCRYPTED PRIVATE KEY" + "-----",
         "-----BEGIN " + "DSA PRIVATE KEY" + "-----",
         "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345"),
-        "DB_PASSWORD=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345"),
+        "DB" + "_PASSWORD=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345"),
     )
     tests = [
         ("1 单元测试失败的 PR 返回阻断退出码", combine_statuses("failure", "success") == "FAIL" and final_exit_code("FAIL") == 1),
