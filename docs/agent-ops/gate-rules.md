@@ -84,7 +84,7 @@ PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 a
 
 ## 7. 九项反向测试
 
-由 check_gate.py self-test 在 PR CI 中运行。九项测试是函数级/临时 Git 仓库级反向测试，不是九个独立 GitHub 测试 PR；逐项输出保存在 Actions 日志与 artifact，PR 评论只显示汇总状态。review_decision() 目前仅是函数级策略判断，未接入 workflow，也不会生成 BLOCKED 状态；审查等级与盲审要求仍须由人工按审查阶梯执行。
+由 check_gate.py self-test 在 PR CI 中运行。九项测试是函数级/临时 Git 仓库级反向测试，不是九个独立 GitHub 测试 PR；逐项输出保存在 Actions 日志与 artifact。PR 评论显示八项聚合状态，并在“截图与 E2E”行下方列出七个子状态。review_decision() 目前仅是函数级策略判断，未接入 workflow，也不会生成 BLOCKED 状态；审查等级与盲审要求仍须由人工按审查阶梯执行。
 
 | # | 反向场景 | 必须得到的结果 |
 | --- | --- | --- |
