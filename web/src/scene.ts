@@ -73,7 +73,10 @@ export class LabScene extends Phaser.Scene {
   showCollision=false;
   showBounds=false;
   inBattleView=false;
-  battlePaused=false;
+  private _battlePaused=false;
+  private battleClockLastAt:number|null=null;
+  private battleEntryPending=false;
+  private readonly handleBattleVisibilityChange=()=>{this.battleClockLastAt=null;};
   private battleFocus:{x:number;y:number;width:number;height:number}|null=null;
   private effectOrigin:{x:number;y:number}|null=null;
   anchor={x:768,y:384};
@@ -130,6 +133,12 @@ export class LabScene extends Phaser.Scene {
   private backgroundTextureLoadStarted=false;
   private foregroundTextureRequests=0;
   private foregroundTextureWaiters:(()=>void)[]=[];
+
+  get battlePaused():boolean{return this._battlePaused;}
+  set battlePaused(paused:boolean){
+    if(paused!==this._battlePaused)this.battleClockLastAt=null;
+    this._battlePaused=paused;
+  }
 
   constructor(pack:LoadedPack, notice:(message:string)=>void){
     super('lab');
@@ -239,7 +248,8 @@ export class LabScene extends Phaser.Scene {
   }
 
   private backgroundTextureLoadPaused():boolean{
-    return this.foregroundTextureRequests>0||(this.inBattleView&&this.slot==='02'&&this.timedAction>0);
+    // Keep the 3,200-image background queue off the main thread's combat window; resume only after leaving battle.
+    return this.foregroundTextureRequests>0||this.battleEntryPending||this.inBattleView;
   }
 
   private async waitForForegroundTextures():Promise<void>{
@@ -418,7 +428,12 @@ export class LabScene extends Phaser.Scene {
       this.moveTo(world.x,world.y);
     });
     this.input.on('wheel',(_p:unknown,_o:unknown,_x:number,dy:number)=>{if(this.viewport)this.viewport.handleWheel(dy);else this.zoom(dy>0?.9:1.1);});
-    this.events.once('shutdown',()=>this.scale.removeAllListeners('resize'));
+    document.addEventListener('visibilitychange',this.handleBattleVisibilityChange);
+    this.events.once('shutdown',()=>{
+      document.removeEventListener('visibilitychange',this.handleBattleVisibilityChange);
+      this.battleClockLastAt=null;
+      this.scale.removeAllListeners('resize');
+    });
     this.notice(this.pack.manifest.provenance?.kind==='synthetic'
       ?'合成测试样本已加载。不是原版美术。'
       :'真实地图、角色和诊断特效已加载。当前为非战斗地图；战斗入口通过显式 authority/battle-entry 边界。');
@@ -1031,11 +1046,20 @@ export class LabScene extends Phaser.Scene {
       return firstFrame===undefined?[]:[textureKey(String(id),'00',firstFrame)];
     });
     const playerKeys=this.characterTextureKeys(this.character,['00']);
-    await this.ensureTextures([mapTextureKey(entry.battleZoneId),...playerKeys,...enemyKeys],`battleZone ${entry.battleZoneId}战斗资源`);
+    this.battleEntryPending=true;
+    try{
+      await this.ensureTextures([mapTextureKey(entry.battleZoneId),...playerKeys,...enemyKeys],`battleZone ${entry.battleZoneId}战斗资源`);
+    }catch(error){
+      this.battleEntryPending=false;
+      this.resumeBackgroundTextureLoads();
+      throw error;
+    }
     const camera=this.cameras.main,center=camera.getWorldPoint(this.scale.width/2,this.scale.height/2);
     this.fieldReturn={mapId:this.mapId,anchor:{...this.anchor},direction:this.direction,camera:{x:center.x,y:center.y,zoom:camera.zoom}};
     this.battleEntry=entry;
     this.inBattleView=true;
+    this.battleEntryPending=false;
+    this.battleClockLastAt=null;
     this.battlePaused=false;
     this.mapId=entry.battleZoneId;
     this.mapImage.setTexture(mapTextureKey(this.mapId));
@@ -1062,6 +1086,7 @@ export class LabScene extends Phaser.Scene {
     if(this.state.phase==='won')this.gold+=this.state.reward;
     const back=this.fieldReturn;
     this.inBattleView=false;
+    this.battleClockLastAt=null;
     this.resumeBackgroundTextureLoads();
     this.fieldReturn=null;
     this.battleEntry=null;
@@ -1360,10 +1385,17 @@ export class LabScene extends Phaser.Scene {
   update(time:number,delta:number){
     if(!this.sprite)return;
     const cameraDt=Math.min(delta,100);
-    const battlePaused=this.inBattleView&&(this.battlePaused||document.hidden);
-    const dt=battlePaused?0:cameraDt;
-    // Battle/action clocks consume elapsed game time, not the render/camera delta capped at 100ms.
-    const battleDt=battlePaused?0:Math.max(0,delta);
+    const battleClockActive=this.inBattleView&&!this.battlePaused&&!document.hidden;
+    let battleDt=0;
+    if(battleClockActive){
+      const now=performance.now();
+      if(this.battleClockLastAt!==null)battleDt=Math.max(0,now-this.battleClockLastAt);
+      this.battleClockLastAt=now;
+    }else{
+      // Reset the baseline so paused/hidden time is never accumulated on resume.
+      this.battleClockLastAt=null;
+    }
+    const dt=this.inBattleView&&(this.battlePaused||document.hidden)?0:cameraDt;
     this.advanceRouteMovement(dt);
     if(this.inBattleView)this.updateBattleCamera(cameraDt);
     else if(this.cameraFollowEnabled)this.viewport?.follow(this.anchor,dt);
