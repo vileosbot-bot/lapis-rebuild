@@ -27,7 +27,7 @@
 | created | dispatched | CP0 同时完成；真实 conversation_url、已存在 branch、base_sha 均齐全；branch/base 已实际读回 |
 | dispatched | in_progress | 总管明确放行；approval_status=granted；CP1 已记录授权范围和计划步骤 |
 | in_progress | awaiting_review | CP2 测试通过并记录提交 SHA/结果；CP3 记录 PR URL、真实 CI 状态和待办；CI 可为 pending/failure/unknown，但必须如实记录，不得声称 PASS |
-| awaiting_review | completed | CP0–CP3 完整；CI success；总管先在登记表写入 acceptance_status=accepted 和 accepted_by；执行时 --accepted-by 必须完全匹配登记值 |
+| awaiting_review | completed | CP0–CP3 完整（历史导入任务 legacy_import=true 豁免）；CI success，或总管基线比对验收（已记入非空 acceptance_basis）；总管先用 accept 命令在登记表写入 acceptance_status=accepted、accepted_by 和 acceptance_basis；执行时 --accepted-by 必须完全匹配登记值 |
 | awaiting_review | in_progress | 审查要求返工；记录 changes requested 与下一步，不覆盖历史证据 |
 
 正常路径不得跳步。不得从 created 直接进入 in_progress，不得从 in_progress 直接 completed，不得缺少 CP2/CP3 就进入 awaiting_review。
@@ -43,13 +43,13 @@
 
 ## CI 与审查门禁
 
-新任务在 CP2 测试通过、CP3 已记录真实 PR URL 和明确 CI 状态（success/failure/pending/unknown）后，可由 in_progress 转为 awaiting_review。awaiting_review 表示等待人工审查；CI 状态必须按实际快照记录，failure/pending/unknown 不得声称通过。只有 CI 为 success 且总管明确验收，才可进入 completed。
+新任务在 CP2 测试通过、CP3 已记录真实 PR URL 和明确 CI 状态（success/failure/pending/unknown）后，可由 in_progress 转为 awaiting_review。awaiting_review 表示等待人工审查；CI 状态必须按实际快照记录，failure/pending/unknown 不得声称通过。只有 CI 为 success，或总管基线比对验收（已记入非空 acceptance_basis，须写明与基线比无新增失败的证据），且总管明确验收，才可进入 completed。
 
 P0-1 是导入的既有任务：其 awaiting_review 状态和门禁 FAIL 待查来自总管给定的历史事实。它标记 legacy_import=true，保留原状态但不构成新任务绕过 CI 门禁的先例；必须如实显示 FAIL，不得写成 PASS。
 
 ## 完成门禁
 
-completed 必须同时满足：CP0–CP3 完整、CP2 测试通过、CP3 CI 状态为 success、登记表已由总管预先记录 acceptance_status=accepted 与 accepted_by、执行转换时 --accepted-by 与登记值完全一致。当前状态转换器有意不把 blocked_by 为空作为机械完成条件；blocked_by 是流程阻塞元数据，由总管在验收前人工核查并解除或明确裁决。工人不得自行标记 completed。PR 是否合并是独立事项；本任务只开 PR、不合并。
+completed 必须同时满足：CP0–CP3 完整（历史导入任务 legacy_import=true 豁免）、CP2 测试通过、CP3 CI 状态为 success 或总管基线比对验收（已记入非空 acceptance_basis，须写明证据）、登记表已由总管用 accept 命令预先记录 acceptance_status=accepted、accepted_by 与 acceptance_basis、执行转换时 --accepted-by 与登记值完全一致。当前状态转换器有意不把 blocked_by 为空作为机械完成条件；blocked_by 是流程阻塞元数据，由总管在验收前人工核查并解除或明确裁决。工人不得自行标记 completed。PR 是否合并是独立事项；本任务只开 PR、不合并。
 
 ## 并行与冲突
 
@@ -63,3 +63,19 @@ completed 必须同时满足：CP0–CP3 完整、CP2 测试通过、CP3 CI 状�
 ## 登记脚本边界
 
 脚本只允许登记任务、记录检查点、校验状态、检查并行/冲突/HEAD、生成恢复信息。不得修改游戏代码、测试用例或测试数据，不得创建/合并 PR，不得部署，不得自动改写任务分支。
+
+
+## 总管验收命令 accept（总管专用）
+
+总管用 `accept` 命令把验收决定记入登记表，工人不得调用：
+
+```
+python3 tools/agent_ops/task_registry.py accept --request-id <任务 id> --accepted-by <总管> --acceptance-basis "<非空文字，须写明证据>" [--head-sha <40 位十六进制>] [--head-sha-verified-at <ISO 时间>]
+```
+
+- 只允许 `awaiting_review` 或 `completed` 状态的任务；`created` / `dispatched` / `in_progress` 调用会被拒绝。
+- 写入 `acceptance_status=accepted`、`accepted_by`、`acceptance_basis`、`head_sha`、`head_sha_verified_at`、`last_updated`；写后用 `validate_task` + capacity/conflict 校验。
+- `acceptance_basis` 为空时拒绝；`--head-sha` 须为 40 位十六进制；`--head-sha-verified-at` 须为 ISO 时间。
+- `accept` 只记入验收，不改变任务状态；之后仍须用 `transition --to completed`（`--accepted-by` 须与 `accepted_by` 完全匹配）完成任务。
+- 验收值只来自总管决定：工人不得调用 `accept`，也不得自行填写或编造 `acceptance_status` / `accepted_by` / `acceptance_basis`。
+- CI 不是 success 时，只有已记入非空 `acceptance_basis`（总管基线比对验收：与基线比无新增失败）才能进入 `completed`；无 `acceptance_basis` 时仍被拒绝。
