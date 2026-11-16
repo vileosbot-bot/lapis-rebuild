@@ -25,7 +25,7 @@ export type HelpBlock = {help_id:number;line:number;steps:HelpStep[]};
 export type HelpScriptContent = {schema:number;source:string;helps:HelpBlock[];comments:unknown[];summary:{help_count:number;step_count:number;record_count:number;comment_count:number}};
 export type TutorialHelpSummary = {schema:number;evidence:string;tutorial:{talk_count:number;text_line_count:number;source_sha256?:string};help_script:{help_count:number;step_count:number;record_count:number;source_sha256?:string}};
 export type LoadedContent = { manifest:ContentAsset; summary:ContentSummary; npcScript:NpcScriptContent; quests:Record<string,QuestContent>; tutorial:TutorialContent|null; helpScript:HelpScriptContent|null; tutorialHelpSummary:TutorialHelpSummary|null };
-export type LoadedPack = { manifest: Manifest; collision: Collision; inspector: Inspector | null; maps:Record<string,LoadedMap>; effects:Record<string,EffectAsset>; animations: Record<string, Record<string, Animation>>; images: Record<string, string>; content:LoadedContent|null; digest: string };
+export type LoadedPack = { manifest: Manifest; collision: Collision; inspector: Inspector | null; maps:Record<string,LoadedMap>; effects:Record<string,EffectAsset>; animations: Record<string, Record<string, Animation>>; images: Record<string, string>; content:LoadedContent|null; digest: string; startMapId?:number; initialImageKeys?:string[] };
 export function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
 const integer = (x: unknown): x is number => Number.isInteger(x);
 export function safePath(value: unknown): string {
@@ -104,3 +104,5 @@ export const textureKey = (id: string, slot: string, index: number) => `B${id}_$
 export const frameFile = (dir: string, index: number) => `${dir}/frame-${String(index).padStart(3,'0')}.png`;
 export const mapTextureKey = (id:number)=>`map_${id}`;
 export const effectTextureKey=(id:number,index:number)=>`effect_${id}_${index}`;
+
+export const ASSET_PLACEHOLDER_TEXTURE_KEY='lapis-asset-placeholder';

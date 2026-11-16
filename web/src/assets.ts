@@ -1,6 +1,7 @@
 import { assert, validateManifest, validateAnimation, validateCollision, validateContentSummary, validateNpcScript, validateQuestContent, validateTutorialContent, validateHelpScript, validateTutorialHelpSummary, frameFile, textureKey, safePath, mapTextureKey, effectTextureKey } from './model.ts';
 import type { LoadedPack, Inspector, LoadedContent } from './model.ts';
 import {installSourcePanel} from './source-panel.ts';
+import {buildInitialImageKeys} from './boot-assets.ts';
 declare global { interface Window { __LAPIS_PACK__?: Record<string,string>; } }
 export const assetUrl = (path: string) => {
   safePath(path);
@@ -57,8 +58,15 @@ export async function loadPack(progress: (s: string)=>void): Promise<LoadedPack>
   const effects=manifest.effects??{};
   for(const effect of Object.values(effects))for(const index of effect.sequence)images[effectTextureKey(effect.resource_id,index)]=assetUrl(frameFile(effect.frames_dir,index));
   const loadedContent=await content(manifest);
-  const pack:LoadedPack={manifest,collision:primary.collision,inspector:primary.inspector,maps,effects,animations,images,content:loadedContent,digest:manifest.provenance?.pack_sha256??manifest.provenance?.installer_sha256??'synthetic-fixture-v1'};
+  const params=new URLSearchParams(window.location.search);
+  const chapter1=params.get('m4')==='1'&&(params.get('mode')==='chapter1'||params.get('ch1')==='1'||params.get('chapter1')==='1');
+  const requestedMapId=chapter1?1000:1;
+  const startMapId=maps[String(requestedMapId)]?requestedMapId:manifest.map.id;
+  const initialImageKeys=buildInitialImageKeys({manifest,effects,animations,images},startMapId,chapter1?'chapter1':'m5');
+  const pack:LoadedPack={manifest,collision:primary.collision,inspector:primary.inspector,maps,effects,animations,images,content:loadedContent,digest:manifest.provenance?.pack_sha256??manifest.provenance?.installer_sha256??'synthetic-fixture-v1',startMapId,initialImageKeys};
   installSourcePanel(pack);
-  progress(`已校验 ${Object.keys(images).length} 个图像资源引用${manifest.visuals?` / ${Object.keys(manifest.visuals).length} 个 M5 world visual`:''}${loadedContent?` / ${loadedContent.summary.quests.length} 组任务内容${loadedContent.tutorial?` / ${loadedContent.tutorial.summary.talk_count} TALK`:''}`:''}`);
+  const roleImageCount=Object.keys(images).filter(key=>key.startsWith('B')).length;
+  console.info(`[Lapis boot] 首屏图片 ${initialImageKeys.length}/${Object.keys(images).length}；角色帧图 ${roleImageCount}；模式 ${chapter1?'chapter1':'m5'}`);
+  progress(`首屏图片集 ${initialImageKeys.length} 张；全部图像引用 ${Object.keys(images).length} 张，动画 JSON 已校验`);
   return pack;
 }

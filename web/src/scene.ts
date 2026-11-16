@@ -3,6 +3,7 @@ import {initialInventory,equip,equipmentBonus,changeRole} from './inventory.ts';
 import Phaser from 'phaser';
 import { frameIndex, textureKey, advanceClock, mapTextureKey, effectTextureKey } from './model.ts';
 import type { LoadedPack, Animation, LoadedMap, EffectAsset } from './model.ts';
+import {ASSET_PLACEHOLDER_TEXTURE_KEY} from './model.ts';
 import { referenceCellToScreen, referenceScreenToCell, closestWalkable, rawCell, nearestAnchor, findRoute, directionFor } from './coordinates.ts';
 import type { Cell } from './coordinates.ts';
 import { PROVISIONAL as P } from './config.ts';
@@ -72,7 +73,10 @@ export class LabScene extends Phaser.Scene {
   showCollision=false;
   showBounds=false;
   inBattleView=false;
-  battlePaused=false;
+  private _battlePaused=false;
+  private battleClockLastAt:number|null=null;
+  private battleEntryPending=false;
+  private readonly handleBattleVisibilityChange=()=>{this.battleClockLastAt=null;};
   private battleFocus:{x:number;y:number;width:number;height:number}|null=null;
   private effectOrigin:{x:number;y:number}|null=null;
   anchor={x:768,y:384};
@@ -121,40 +125,252 @@ export class LabScene extends Phaser.Scene {
   private timedAction=0;
   private effectUntil=0;
   private notice: (message:string)=>void;
+  private loadingNoticeHandler:((message:string)=>void)|undefined;
+  private worldVisualSpecs:WorldVisualSpec[]=[];
+  private texturePromises=new Map<string,Promise<void>>();
+  private textureAttempts=new Map<string,number>();
+  private missingTextures=new Set<string>();
+  private backgroundTextureLoadStarted=false;
+  private foregroundTextureRequests=0;
+  private foregroundTextureWaiters:(()=>void)[]=[];
+
+  get battlePaused():boolean{return this._battlePaused;}
+  set battlePaused(paused:boolean){
+    if(paused!==this._battlePaused)this.battleClockLastAt=null;
+    this._battlePaused=paused;
+  }
 
   constructor(pack:LoadedPack, notice:(message:string)=>void){
     super('lab');
     this.pack=pack;
     this.notice=notice;
     this.character=Object.keys(pack.manifest.characters)[0];
-    this.mapId=pack.maps[String(P.defaultFieldMapId)]?P.defaultFieldMapId:pack.manifest.map.id;
+    this.mapId=pack.startMapId??(pack.maps[String(P.defaultFieldMapId)]?P.defaultFieldMapId:pack.manifest.map.id);
     this.duration=frameIntervalMs(this.animation().raw_timing);
     const effect=Object.keys(pack.effects)[0];
     this.effectId=effect===undefined?null:Number(effect);
     if(this.effectId!==null)this.effectDuration=frameIntervalMs(this.effect().raw_timing);
   }
 
+  private createAssetPlaceholder(){
+    if(this.textures.exists(ASSET_PLACEHOLDER_TEXTURE_KEY))return;
+    const graphics=this.make.graphics({x:0,y:0});
+    graphics.fillStyle(0x261b2b,1).fillRect(0,0,64,64);
+    graphics.fillStyle(0xe45b91,1).fillRect(0,0,32,32).fillRect(32,32,32,32);
+    graphics.generateTexture(ASSET_PLACEHOLDER_TEXTURE_KEY,64,64);
+    graphics.destroy();
+  }
+
+  setLoadingNoticeHandler(handler:((message:string)=>void)|undefined):void{this.loadingNoticeHandler=handler;}
+  private reportLoadingProgress(message:string):void{
+    const loading=document.getElementById('loading');
+    if(loading&&!loading.hidden)loading.textContent=message;
+    this.loadingNoticeHandler?.(message);
+  }
+
+  private recordMissingTexture(key:string){
+    if(this.missingTextures.has(key))return;
+    this.missingTextures.add(key);
+    this.notice(`资源缺失 ${key}；已显示占位图，正在重试`);
+    this.events.emit('asset-missing-recorded',key);
+  }
+
+  private animationTextureKeys(resourceId:string,slot:string):string[]{
+    const animation=this.pack.animations[resourceId]?.[slot];
+    if(!animation)return [];
+    return [...new Set(animation.directions.flat())].map(index=>textureKey(resourceId,slot,index));
+  }
+
+  characterTextureKeys(id:string,slots:readonly string[]=['00','01']):string[]{
+    return slots.flatMap(slot=>this.animationTextureKeys(id,slot));
+  }
+
+  async prepareMapTextures(id:number):Promise<void>{
+    if(!this.pack.maps[String(id)])throw new Error(`未知地图 ${id}`);
+    // A destination map must have every slot-00 frame for its visible NPC/preview actors before the map switch commits.
+    const worldKeys=this.worldVisualSpecs.filter(spec=>spec.mapId===id).flatMap(spec=>
+      this.animationTextureKeys(String(spec.resourceId),'00')
+    );
+    await this.ensureTextures([mapTextureKey(id),...this.characterTextureKeys(this.character,['00']),...worldKeys],`地图 ${String(id).padStart(4,'0')}资源`);
+  }
+
+  private async loadTextureOnce(key:string):Promise<void>{
+    const url=this.pack.images[key];
+    if(!url)throw new Error('资源清单中没有图片 URL：'+key);
+    await new Promise<void>((resolve,reject)=>{
+      const image=new Image();
+      let settled=false;
+      const finish=(error?:Error)=>{
+        if(settled)return;
+        settled=true;
+        window.clearTimeout(timeout);
+        image.onload=null;
+        image.onerror=null;
+        if(error)reject(error);else{
+          if(!this.textures.exists(key))this.textures.addImage(key,image);
+          resolve();
+        }
+      };
+      const timeout=window.setTimeout(()=>{image.src='';finish(new Error('图片加载超时（15 秒）：'+key));},15000);
+      image.crossOrigin='anonymous';
+      image.onload=()=>finish();
+      image.onerror=()=>finish(new Error('图片加载失败：'+key));
+      image.src=url;
+    });
+  }
+
+  private async loadTextureWithRetry(key:string):Promise<void>{
+    let attempt=this.textureAttempts.get(key)??0;
+    let lastError:unknown;
+    while(attempt<3){
+      attempt+=1;
+      this.textureAttempts.set(key,attempt);
+      try{
+        await this.loadTextureOnce(key);
+        this.missingTextures.delete(key);
+        return;
+      }catch(error){
+        lastError=error;
+        this.recordMissingTexture(key);
+        if(attempt<3)await new Promise(resolve=>window.setTimeout(resolve,attempt*180));
+      }
+    }
+    throw lastError instanceof Error?lastError:new Error('图片加载失败：'+key);
+  }
+
+  private ensureTexture(key:string):Promise<void>{
+    if(this.textures.exists(key))return Promise.resolve();
+    const pending=this.texturePromises.get(key);
+    if(pending)return pending;
+    const promise=this.loadTextureWithRetry(key).finally(()=>this.texturePromises.delete(key));
+    this.texturePromises.set(key,promise);
+    return promise;
+  }
+
+  private backgroundTextureLoadPaused():boolean{
+    // Keep the 3,200-image background queue off the main thread's combat window; resume only after leaving battle.
+    return this.foregroundTextureRequests>0||this.battleEntryPending||this.inBattleView;
+  }
+
+  private async waitForForegroundTextures():Promise<void>{
+    while(this.backgroundTextureLoadPaused())await new Promise<void>(resolve=>this.foregroundTextureWaiters.push(resolve));
+  }
+
+  private resumeBackgroundTextureLoads():void{
+    if(this.backgroundTextureLoadPaused())return;
+    const waiters=this.foregroundTextureWaiters.splice(0);
+    for(const resolve of waiters)resolve();
+  }
+
+  private finishForegroundTextureRequest():void{
+    this.foregroundTextureRequests=Math.max(0,this.foregroundTextureRequests-1);
+    this.resumeBackgroundTextureLoads();
+  }
+
+  async ensureTextures(keys:readonly string[],stage='资源',priority:'foreground'|'background'='foreground'):Promise<void>{
+    const requested=[...new Set(keys)];
+    const unique=requested.filter(key=>!this.textures.exists(key));
+    if(!unique.length)return;
+    const foreground=priority==='foreground';
+    if(foreground)this.foregroundTextureRequests+=1;
+    try{
+      let cursor=0,completed=requested.length-unique.length;
+      const failures:string[]=[];
+      this.reportLoadingProgress(`正在加载${stage} ${completed}/${requested.length}`);
+      const worker=async()=>{
+        while(cursor<unique.length){
+          if(!foreground)await this.waitForForegroundTextures();
+          const key=unique[cursor++]!;
+          try{await this.ensureTexture(key);}
+          catch(error){failures.push(key);this.recordMissingTexture(key);}
+          completed+=1;
+          this.reportLoadingProgress(`正在加载${stage} ${completed}/${requested.length}${failures.length?`，失败 ${failures.length}`:''}`);
+        }
+      };
+      const concurrency=foreground?8:2;
+      await Promise.all(Array.from({length:Math.min(concurrency,unique.length)},()=>worker()));
+      this.refreshBootstrapTextures();
+      this.syncWorldVisualActors();
+      this.ensureEnemyVisualActors();
+      if(failures.length)throw new Error(`${stage}有 ${failures.length} 张图片未能加载：${failures.slice(0,8).join(', ')}`);
+      this.reportLoadingProgress(`${stage}已就绪：${requested.length}/${requested.length}`);
+    }finally{
+      if(foreground)this.finishForegroundTextureRequest();
+    }
+  }
+
+  private refreshBootstrapTextures(){
+    const mapKey=mapTextureKey(this.mapId);
+    if(this.mapImage)this.mapImage.setTexture(this.textures.exists(mapKey)?mapKey:ASSET_PLACEHOLDER_TEXTURE_KEY);
+    if(this.sprite){
+      const animation=this.animation();
+      const index=frameIndex(animation,this.direction,this.cursor);
+      const key=textureKey(this.character,this.slot,index);
+      this.sprite.setTexture(this.textures.exists(key)?key:ASSET_PLACEHOLDER_TEXTURE_KEY);
+    }
+    if(this.effectSprite&&this.effectId!==null){
+      const effect=this.effect(),index=effect.sequence[this.effectCursor],key=effectTextureKey(effect.resource_id,index);
+      this.effectSprite.setTexture(this.textures.exists(key)?key:ASSET_PLACEHOLDER_TEXTURE_KEY);
+    }
+  }
+
+  private async loadRemainingTextures(){
+    if(this.backgroundTextureLoadStarted)return;
+    this.backgroundTextureLoadStarted=true;
+    const initial=new Set(this.pack.initialImageKeys??[]);
+    const remaining=Object.keys(this.pack.images).filter(key=>!initial.has(key));
+    for(let offset=0;offset<remaining.length;offset+=24){
+      await this.waitForForegroundTextures();
+      const batch=remaining.slice(offset,offset+24);
+      try{await this.ensureTextures(batch,`后台资源 ${Math.min(offset+batch.length,remaining.length)}/${remaining.length}`,'background');}
+      catch(error){this.notice(`后台资源部分失败：${String(error)}；缺失贴图已记录`);}
+      this.syncWorldVisualActors();
+      this.ensureEnemyVisualActors();
+      await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+    }
+    this.reportLoadingProgress(`后台资源处理完成：已加载 ${Object.keys(this.pack.images).length-this.missingTextures.size}/${Object.keys(this.pack.images).length}，缺失 ${this.missingTextures.size}`);
+  }
+
   preload(){
+    const initialKeys=this.pack.initialImageKeys??Object.keys(this.pack.images);
+    let completed=0;
+    this.load.maxRetries=0;
+    const onFileComplete=()=>{
+      completed+=1;
+      this.reportLoadingProgress(`首屏图片加载 ${completed}/${initialKeys.length}`);
+    };
+    this.load.on('filecomplete',onFileComplete);
+    this.load.once('complete',()=>this.load.off('filecomplete',onFileComplete));
     this.load.on('loaderror',(file:Phaser.Loader.File)=>{
-      this.notice(`资源加载失败: ${file.key}`);
+      this.recordMissingTexture(file.key);
       this.events.emit('asset-failure',file.key);
     });
-    for(const [key,url] of Object.entries(this.pack.images))this.load.image(key,url);
+    for(const key of initialKeys){
+      const url=this.pack.images[key];
+      if(!url||this.textures.exists(key))continue;
+      // Phaser preload is attempt 1; ensureTextures below performs at most 2 retries.
+      this.textureAttempts.set(key,1);
+      this.load.image({key,url,xhrSettings:{responseType:'blob',timeout:15000}});
+    }
   }
 
   create(){
-    const missing=Object.keys(this.pack.images).filter(k=>!this.textures.exists(k));
-    if(missing.length){
-      this.notice(`缺失 ${missing.length} 张图片，停止初始化`);
-      return;
-    }
-    this.mapImage=this.add.image(0,0,mapTextureKey(this.mapId)).setOrigin(0).setDepth(0);
+    this.createAssetPlaceholder();
+    this.events.on('asset-missing',(key:string)=>this.recordMissingTexture(key));
+    const initialKeys=this.pack.initialImageKeys??Object.keys(this.pack.images);
+    const missingInitial=initialKeys.filter(key=>!this.textures.exists(key));
+    for(const key of missingInitial)this.recordMissingTexture(key);
+    if(missingInitial.length)this.reportLoadingProgress(`首屏有 ${missingInitial.length} 张图片暂缺，先用占位图初始化并后台重试`);
+    const mapKey=mapTextureKey(this.mapId),map=this.currentMap();
+    this.mapImage=this.add.image(0,0,this.textures.exists(mapKey)?mapKey:ASSET_PLACEHOLDER_TEXTURE_KEY).setOrigin(0).setDepth(0);
+    if(!this.textures.exists(mapKey))this.mapImage.setDisplaySize(map.manifest.render.width,map.manifest.render.height);
     this.resetPosition();
-    this.sprite=this.add.image(0,0,textureKey(this.character,'00',0)).setOrigin(0).setDepth(20);
+    const playerIndex=frameIndex(this.animation(),0,0),playerKey=textureKey(this.character,'00',playerIndex);
+    this.sprite=this.add.image(0,0,this.textures.exists(playerKey)?playerKey:ASSET_PLACEHOLDER_TEXTURE_KEY).setOrigin(0).setDepth(20);
     if(this.effectId!==null){
-      const e=this.effect();
-      const eb=e.frame_bounds[0];
-      this.effectSprite=this.add.image(this.anchor.x+eb.left,this.anchor.y+eb.top,effectTextureKey(e.resource_id,0)).setOrigin(0).setDepth(30).setVisible(false);
+      const e=this.effect(),effectIndex=e.sequence[0],effectKey=effectTextureKey(e.resource_id,effectIndex);
+      const eb=e.frame_bounds[effectIndex];
+      this.effectSprite=this.add.image(this.anchor.x+eb.left,this.anchor.y+eb.top,this.textures.exists(effectKey)?effectKey:ASSET_PLACEHOLDER_TEXTURE_KEY).setOrigin(0).setDepth(30).setVisible(false);
     }
     this.overlay=this.add.graphics().setDepth(40);
     this.minimapGraphics=this.add.graphics().setDepth(2000).setVisible(false);
@@ -212,12 +428,29 @@ export class LabScene extends Phaser.Scene {
       this.moveTo(world.x,world.y);
     });
     this.input.on('wheel',(_p:unknown,_o:unknown,_x:number,dy:number)=>{if(this.viewport)this.viewport.handleWheel(dy);else this.zoom(dy>0?.9:1.1);});
-    this.events.once('shutdown',()=>this.scale.removeAllListeners('resize'));
+    document.addEventListener('visibilitychange',this.handleBattleVisibilityChange);
+    this.events.once('shutdown',()=>{
+      document.removeEventListener('visibilitychange',this.handleBattleVisibilityChange);
+      this.battleClockLastAt=null;
+      this.scale.removeAllListeners('resize');
+    });
     this.notice(this.pack.manifest.provenance?.kind==='synthetic'
       ?'合成测试样本已加载。不是原版美术。'
       :'真实地图、角色和诊断特效已加载。当前为非战斗地图；战斗入口通过显式 authority/battle-entry 边界。');
     installInventoryPanel(this);
     window.dispatchEvent(new CustomEvent('lapis-ready'));
+    // Two animation frames leave one paint opportunity for the map/player before background requests begin.
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      void this.ensureTextures(initialKeys,'首屏资源补载')
+        .catch(error=>this.notice('首屏资源仍有缺失：'+String(error)))
+        .finally(()=>{
+          // Refresh every recovered first-screen asset even if a different non-critical image failed.
+          this.refreshBootstrapTextures();
+          this.syncWorldVisualActors();
+          this.ensureEnemyVisualActors();
+          void this.loadRemainingTextures();
+        });
+    }));
   }
 
   animation():Animation{return this.pack.animations[this.character][this.slot];}
@@ -506,14 +739,24 @@ export class LabScene extends Phaser.Scene {
   configureWorldVisuals(specs:readonly WorldVisualSpec[]){
     for(const row of this.worldVisualActors.values()){row.actor.destroy();row.label.destroy();}
     this.worldVisualActors.clear();
-    for(const spec of specs){
-      if(!this.pack.animations[String(spec.resourceId)])continue;
+    this.worldVisualSpecs=specs.map(spec=>({...spec}));
+    this.syncWorldVisualActors();
+  }
+
+  private syncWorldVisualActors(){
+    for(const spec of this.worldVisualSpecs){
+      if(spec.mapId!==this.mapId||this.worldVisualActors.has(spec.id))continue;
+      const resourceId=String(spec.resourceId),animation=this.pack.animations[resourceId]?.['00'];
+      if(!animation)continue;
+      const firstFrame=animation.directions[0]?.[0];if(firstFrame===undefined)continue;
+      const key=textureKey(resourceId,'00',firstFrame);
+      if(!this.textures.exists(key)){this.recordMissingTexture(key);continue;}
       const [x,y]=referenceCellToScreen(spec.cell);
-      const actor=new VisualActor(this,this.pack,String(spec.resourceId),x,y,0);actor.image.setDepth(10);
+      const actor=new VisualActor(this,this.pack,resourceId,x,y,0);actor.image.setDepth(10);
       const label=this.add.text(x,y-58,spec.label,{fontFamily:'sans-serif',fontSize:'12px',color:'#f4e6bd',backgroundColor:'#14201dcc',padding:{x:4,y:2}}).setOrigin(.5,1).setDepth(50);
       this.worldVisualActors.set(spec.id,{spec:{...spec},actor,label});
     }
-    if(this.worldVisualActors.size)this.guideLabel.setVisible(false);
+    if(this.guideLabel&&this.worldVisualActors.size)this.guideLabel.setVisible(false);
     this.refreshRecoveredVisualVisibility();
   }
 
@@ -536,10 +779,14 @@ export class LabScene extends Phaser.Scene {
     for(const enemy of this.state.enemies){
       const resourceId=bindings.get(enemy.id);
       const resource=resourceId===undefined?null:String(resourceId);
-      if(resource&&this.pack.animations[resource]&&!this.enemyVisualActors.has(enemy.id)){
+      const idle=this.pack.animations[resource??'']?.['00'];
+      const idleIndex=idle?.directions[0]?.[0];
+      const idleKey=idleIndex===undefined||!resource?'':textureKey(resource,'00',idleIndex);
+      if(resource&&idle&&this.textures.exists(idleKey)&&!this.enemyVisualActors.has(enemy.id)){
         const actor=new VisualActor(this,this.pack,resource,0,0,0);actor.image.setDepth(12);actor.setVisible(false);
         this.enemyVisualActors.set(enemy.id,actor);
       }
+      if(resource&&idle&&!this.textures.exists(idleKey))this.recordMissingTexture(idleKey);
       if(this.enemyVisualActors.has(enemy.id)){
         this.enemyFallbackLabels.get(enemy.id)?.destroy();
         this.enemyFallbackLabels.delete(enemy.id);
@@ -598,40 +845,67 @@ export class LabScene extends Phaser.Scene {
     }
   }
 
-  setMap(id:number){
+  async setMap(id:number):Promise<void>{
     const next=this.pack.maps[String(id)];
-    if(!next){this.notice(`未知地图 ${id}`);return;}
-    if(this.inBattleView){this.notice('战斗画面中不能切换非战斗地图');return;}
+    if(!next)throw new Error(`未知地图 ${id}`);
+    if(this.inBattleView)throw new Error('战斗画面中不能切换非战斗地图');
+    // Commit the requested map immediately; placeholder textures keep the scene drawable while assets load.
     this.mapId=id;
-    this.mapImage?.setTexture(mapTextureKey(id));
     this.state=initialState();
     this.resetPosition();
-    this.setAction('00');
+    this.applyActionState('00');
+    this.mapImage?.setTexture(this.textures.exists(mapTextureKey(id))?mapTextureKey(id):ASSET_PLACEHOLDER_TEXTURE_KEY)
+      .setDisplaySize(next.manifest.render.width,next.manifest.render.height);
     this.effectSprite?.setVisible(false);
     this.effectPlaying=false;
     this.updateGuideLabel();
+    this.syncWorldVisualActors();
     this.refreshRecoveredVisualVisibility();
     this.fit();
-    this.notice(`已切换非战斗地图 ${String(id).padStart(4,'0')} / ${next.manifest.name}`);
+    try{
+      await this.prepareMapTextures(id);
+      if(this.mapId!==id)return;
+      this.refreshBootstrapTextures();
+      this.syncWorldVisualActors();
+      this.refreshRecoveredVisualVisibility();
+      this.notice(`已切换非战斗地图 ${String(id).padStart(4,'0')} / ${next.manifest.name}`);
+    }catch(error){
+      this.refreshBootstrapTextures();
+      this.syncWorldVisualActors();
+      throw error;
+    }
   }
 
-  setCharacter(id:string){
+  async setCharacter(id:string):Promise<void>{
     if(!this.pack.animations[id])return;
     if(this.inBattleView){this.notice('请先退出战斗画面再切换主角');return;}
     this.character=id;
     this.inventory=changeRole(this.inventory,id);
-    this.setAction('00');
     this.route=[];
     this.state=initialState();
+    this.applyActionState('00');
     this.updateGuideLabel();
+    this.refreshBootstrapTextures();
+    await this.ensureTextures(this.characterTextureKeys(id,['00','01']),`主角 B${id}资源`);
+    this.refreshBootstrapTextures();
   }
-  setAction(slot:string){
-    if(!this.pack.animations[this.character][slot])return;
+  private applyActionState(slot:string):Animation|null{
+    const animation=this.pack.animations[this.character]?.[slot];
+    if(!animation)return null;
     this.timedAction=0;
     this.slot=slot;
     this.cursor=0;
     this.elapsed=0;
-    this.duration=frameIntervalMs(this.animation().raw_timing);
+    this.duration=frameIntervalMs(animation.raw_timing);
+    this.refreshBootstrapTextures();
+    return animation;
+  }
+  async setAction(slot:string):Promise<void>{
+    const animation=this.applyActionState(slot);
+    if(!animation)return;
+    const keys=this.animationTextureKeys(this.character,slot);
+    if(keys.some(key=>!this.textures.exists(key)))await this.ensureTextures(keys,`主角动作 _${slot}`);
+    this.refreshBootstrapTextures();
   }
   private setTransientAction(slot:'02'|'03'){
     if(!this.pack.animations[this.character][slot])return;
@@ -656,28 +930,46 @@ export class LabScene extends Phaser.Scene {
     this.elapsed=0;
   }
 
-  setEffect(id:number){
-    if(!this.pack.effects[String(id)])return;
+  async setEffect(id:number):Promise<void>{
+    const effect=this.pack.effects[String(id)];if(!effect)return;
     this.effectId=id;
     this.effectOrigin=null;
     this.effectCursor=0;
     this.effectElapsed=0;
     this.effectPlaying=false;
-    this.effectDuration=frameIntervalMs(this.effect().raw_timing);
-    if(this.effectSprite)this.effectSprite.setTexture(effectTextureKey(id,0)).setVisible(true);
-    this.notice(`MagicRes ${id}：ANI timing 使用已恢复 common consumer；FOCUS 放置/混合/阶段仍未验证。`);
+    this.effectDuration=frameIntervalMs(effect.raw_timing);
+    if(this.effectSprite)this.effectSprite.setTexture(this.textures.exists(effectTextureKey(id,effect.sequence[0]))?effectTextureKey(id,effect.sequence[0]):ASSET_PLACEHOLDER_TEXTURE_KEY).setVisible(true);
+    const keys=effect.sequence.map(index=>effectTextureKey(id,index));
+    this.refreshBootstrapTextures();
+    await this.ensureTextures(keys,`MagicRes ${id}特效`);
+    this.refreshBootstrapTextures();
+    if(this.effectId===id)this.notice(`MagicRes ${id}：ANI timing 使用已恢复 common consumer；FOCUS 放置/混合/阶段仍未验证。`);
   }
-  playEffect(){
+  async playEffect():Promise<void>{
     if(this.effectId===null)return;
+    const effect=this.effect();
+    const effectId=this.effectId;
+    // Playback is logical state: expose it immediately; missing frames render as placeholders while textures load.
     this.effectCursor=0;
     this.effectElapsed=0;
     this.effectPlaying=true;
     this.effectSprite?.setVisible(true);
+    try{
+      await this.ensureTextures(effect.sequence.map(index=>effectTextureKey(effect.resource_id,index)),`MagicRes ${effect.resource_id}诊断播放`);
+    }catch(error){
+      if(this.effectId===effectId)this.effectPlaying=false;
+      throw error;
+    }
+    if(this.effectId===effectId)this.refreshBootstrapTextures();
   }
-  stepEffect(){
+  async stepEffect():Promise<void>{
     if(this.effectId===null)return;
+    const effect=this.effect();
+    const nextCursor=(this.effectCursor+1)%effect.frame_count;
+    const nextFrame=effect.sequence[nextCursor];
+    await this.ensureTextures([effectTextureKey(effect.resource_id,nextFrame)],`MagicRes ${effect.resource_id}诊断单帧`);
     this.effectPlaying=false;
-    this.effectCursor=(this.effectCursor+1)%this.effect().frame_count;
+    this.effectCursor=nextCursor;
     this.effectElapsed=0;
     this.effectSprite?.setVisible(true);
   }
@@ -707,7 +999,7 @@ export class LabScene extends Phaser.Scene {
     }
     this.route=nextRoute;
     if(this.inBattleView){this.battleCameraMode='FOLLOW_PLAYER';this.battleCameraTarget=null;}
-    this.setAction('01');
+    void this.setAction('01').catch(error=>this.notice('移动动画资源未就绪：'+String(error)));
     this.playing=true;
     return true;
   }
@@ -718,45 +1010,70 @@ export class LabScene extends Phaser.Scene {
     if(this.inBattleView){this.notice('战斗画面中不能推进非战斗任务');return;}
     const result=advanceGuide(this.quest,this.mapId);
     this.quest=result.state;
-    if(result.transitionMapId!==null)this.setMap(result.transitionMapId);
+    if(result.transitionMapId!==null)void this.setMap(result.transitionMapId).catch(error=>this.notice(String(error)));
     this.updateGuideLabel();
     this.notice(`${result.message} / RECONSTRUCTION_POLICY`);
   }
 
-  enterBattle(entryOverride?:BattleEntry){
+  async enterBattle(entryOverride?:BattleEntry):Promise<void>{
     if(this.inBattleView)return;
     if(this.route.length){this.notice('请等角色停稳后进入战斗');return;}
     const intent=createTrainingInteraction(this.mapId);
     const entry=entryOverride??OFFLINE_TRAINING_ENCOUNTER_AUTHORITY.resolve(intent,{trainingBattleZoneId:P.battleMapId});
     if(!entry){this.notice('当前交互没有产生战斗入口');return;}
     this.lastInteraction=intent;
-    this.applyBattleEntry(entry);
+    try{await this.applyBattleEntry(entry);}
+    catch(error){this.notice(`战斗资源未就绪，未进入战斗：${String(error)}`);}
   }
 
-  private applyBattleEntry(entry:BattleEntry){
+  private async applyBattleEntry(entry:BattleEntry):Promise<void>{
     const map=this.pack.maps[String(entry.battleZoneId)];
-    if(!map){this.notice(`缺少 battleZone ${entry.battleZoneId} 资源`);return;}
-    let layout:ReturnType<typeof chooseBattleLayout>;
-    try{layout=chooseBattleLayout(map.collision);}catch(e){this.notice(String(e));return;}
+    if(!map)throw new Error(`缺少 battleZone ${entry.battleZoneId} 资源`);
+    const layout=chooseBattleLayout(map.collision);
+    const pos=referenceCellToScreen(layout.player);
+    const nextState=beginBattle(pos[0],pos[1],entry,this.reconstructionBattleSetup);
+    layout.enemies.forEach((cell,i)=>{const enemy=nextState.enemies[i];if(!enemy)return;const xy=referenceCellToScreen(cell);enemy.x=xy[0];enemy.y=xy[1];});
+    const fallbackBindings=new Map<string,number>([['dummy-melee',4524],['dummy-ranged',4544]]);
+    const enemyResourceIds=new Set<number>();
+    for(const enemy of nextState.enemies){
+      const resourceId=enemy.visualResourceId??fallbackBindings.get(enemy.id);
+      if(resourceId!==undefined&&this.pack.animations[String(resourceId)]?.['00'])enemyResourceIds.add(resourceId);
+    }
+    // Battle entry needs the map, the player's complete idle slot, and only each enemy's idle first frame.
+    const enemyKeys=[...enemyResourceIds].flatMap(id=>{
+      const animation=this.pack.animations[String(id)]?.['00'];
+      const firstFrame=animation?.directions[0]?.[0];
+      return firstFrame===undefined?[]:[textureKey(String(id),'00',firstFrame)];
+    });
+    const playerKeys=this.characterTextureKeys(this.character,['00']);
+    this.battleEntryPending=true;
+    try{
+      await this.ensureTextures([mapTextureKey(entry.battleZoneId),...playerKeys,...enemyKeys],`battleZone ${entry.battleZoneId}战斗资源`);
+    }catch(error){
+      this.battleEntryPending=false;
+      this.resumeBackgroundTextureLoads();
+      throw error;
+    }
     const camera=this.cameras.main,center=camera.getWorldPoint(this.scale.width/2,this.scale.height/2);
     this.fieldReturn={mapId:this.mapId,anchor:{...this.anchor},direction:this.direction,camera:{x:center.x,y:center.y,zoom:camera.zoom}};
     this.battleEntry=entry;
     this.inBattleView=true;
+    this.battleEntryPending=false;
+    this.battleClockLastAt=null;
     this.battlePaused=false;
     this.mapId=entry.battleZoneId;
     this.mapImage.setTexture(mapTextureKey(this.mapId));
     this.battleFocus=layout.focus;
-    const pos=referenceCellToScreen(layout.player);this.anchor={x:pos[0],y:pos[1]};
+    this.anchor={x:pos[0],y:pos[1]};
     this.route=[];
-    this.state=beginBattle(this.anchor.x,this.anchor.y,entry,this.reconstructionBattleSetup);
-    layout.enemies.forEach((cell,i)=>{const enemy=this.state.enemies[i];if(!enemy)return;const xy=referenceCellToScreen(cell);enemy.x=xy[0];enemy.y=xy[1];});
+    this.state=nextState;
     this.ensureEnemyVisualActors();
     this.enemyMotions.clear();this.clearBattleFeedback();
     this.battleCameraTarget=null;this.battleCameraMode='FOLLOW_PLAYER';
     this.battleTargetingVisual=null;
     this.fit();
     this.selectedEnemy=this.state.enemies.find(enemy=>enemy.hp>0)?.id??'dummy-melee';
-    this.setAction('00');
+    this.applyActionState('00');
     this.effectSprite?.setVisible(false);
     this.effectPlaying=false;
     this.updateGuideLabel();
@@ -769,6 +1086,8 @@ export class LabScene extends Phaser.Scene {
     if(this.state.phase==='won')this.gold+=this.state.reward;
     const back=this.fieldReturn;
     this.inBattleView=false;
+    this.battleClockLastAt=null;
+    this.resumeBackgroundTextureLoads();
     this.fieldReturn=null;
     this.battleEntry=null;
     this.battleFocus=null;
@@ -830,9 +1149,10 @@ export class LabScene extends Phaser.Scene {
     }
     const rid=skill?.magic_pattern?.magic_resources?.[0]?.magic_resource_id;
     if(rid&&this.pack.effects[String(rid)]){
-      this.setEffect(rid);
-      this.effectOrigin=!buff&&target?{x:target.x,y:target.y}:{...this.anchor};
-      this.playEffect();
+      void this.setEffect(rid).then(()=>{
+        this.effectOrigin=!buff&&target?{x:target.x,y:target.y}:{...this.anchor};
+        void this.playEffect().catch(error=>this.notice('特效资源未就绪：'+String(error)));
+      }).catch(error=>this.notice('特效资源未就绪：'+String(error)));
     }
     return true;
   }
@@ -849,9 +1169,10 @@ export class LabScene extends Phaser.Scene {
     this.effectUntil=P.effectDurationMs;
     for(const target of targets)this.enemyVisualActors.get(target.id)?.playTransient('03');
     if(magicResourceId!==undefined&&this.pack.effects[String(magicResourceId)]){
-      this.setEffect(magicResourceId);
-      this.effectOrigin=explicitOrigin?{...explicitOrigin}:selfTarget||!primary?{...this.anchor}:{x:primary.x,y:primary.y};
-      this.playEffect();
+      void this.setEffect(magicResourceId).then(()=>{
+        this.effectOrigin=explicitOrigin?{...explicitOrigin}:selfTarget||!primary?{...this.anchor}:{x:primary.x,y:primary.y};
+        void this.playEffect().catch(error=>this.notice('特效资源未就绪：'+String(error)));
+      }).catch(error=>this.notice('特效资源未就绪：'+String(error)));
     }
   }
 
@@ -898,7 +1219,7 @@ export class LabScene extends Phaser.Scene {
     try{await writeSave(this.makeSave());this.notice('存档已写入浏览器 IndexedDB');}
     catch(e){this.notice(`存档失败，可使用导出 JSON：${String(e)}`);}
   }
-  restore(raw:unknown){
+  async restore(raw:unknown):Promise<void>{
     if(this.inBattleView)throw new Error('请先退出战斗再读档');
     const all=Object.values(this.pack.maps).map(m=>m.manifest.render);
     const maxWidth=Math.max(...all.map(m=>m.width)),maxHeight=Math.max(...all.map(m=>m.height));
@@ -910,8 +1231,10 @@ export class LabScene extends Phaser.Scene {
     this.inBattleView=false;
     this.fieldReturn=null;
     this.battleEntry=null;
-    this.setCharacter(s.character);
-    this.setMap(mapId);
+    await this.ensureTextures(this.characterTextureKeys(s.character,['00','01']),'读档角色资源');
+    await this.prepareMapTextures(mapId);
+    await this.setCharacter(s.character);
+    await this.setMap(mapId);
     this.anchor={x:s.x,y:s.y};
     this.gold=s.gold;
     this.inventory=s.inventory!;
@@ -920,7 +1243,7 @@ export class LabScene extends Phaser.Scene {
     this.notice('存档恢复成功');
   }
   async loadSaved(){
-    try{this.restore(await readSave());}
+    try{await this.restore(await readSave());}
     catch(e){this.notice(`读档失败：${String(e)}`);}
   }
 
@@ -975,7 +1298,8 @@ export class LabScene extends Phaser.Scene {
       worldVisuals:[...this.worldVisualActors.values()].map(row=>({id:row.spec.id,mapId:row.spec.mapId,resourceId:row.spec.resourceId,visible:row.actor.image.visible,cell:row.spec.cell})),
       worldPointerTargets:this.worldPointerTargets().map(target=>({id:target.id,kind:target.kind,visible:target.visible,bounds:{...target.bounds},depth:target.depth})),
       effect:e?{id:e.resource_id,cursor:this.effectCursor,frame:e.sequence[this.effectCursor],length:e.frame_count,rawTiming:e.raw_timing,duration:this.effectDuration,timingPolicy:'RETAIL_COMMON' as const,playing:this.effectPlaying}:null,
-      fps:Math.round(this.game.loop.actualFps)
+      fps:Math.round(this.game.loop.actualFps),
+      assetLoading:{loaded:Object.keys(this.pack.images).filter(key=>this.textures.exists(key)).length,total:Object.keys(this.pack.images).length,initial:this.pack.initialImageKeys?.length??Object.keys(this.pack.images).length,missing:[...this.missingTextures]}
     };
   }
 
@@ -997,15 +1321,25 @@ export class LabScene extends Phaser.Scene {
   private advanceTimedAction(dt:number):void{
     if(this.timedAction>0){
       this.timedAction=Math.max(0,this.timedAction-dt);
-      if(this.timedAction<=0)this.setAction('00');
+      if(this.timedAction<=0){
+        void this.setAction('00');
+        this.resumeBackgroundTextureLoads();
+      }
     }
   }
 
-  private advanceBattleState(dt:number):ReturnType<typeof initialState>['phase']{
+  private advanceBattleState(elapsedMs:number):ReturnType<typeof initialState>['phase']{
     const enemyPositionsBefore=new Map(this.state.enemies.map(enemy=>[enemy.id,{x:enemy.x,y:enemy.y}] as const));
     const before=this.state.phase;
-    const events=updateBattle(this.state,dt,this.anchor.x,this.anchor.y,equipmentBonus(this.inventory,this.character).defense,
-      this.inBattleView?{collision:this.currentMap().collision,playerBusy:this.busy(),reserved:this.route}:undefined);
+    const events:ReturnType<typeof updateBattle>=[];
+    // Preserve updateBattle's 250ms safety step without discarding wall-clock game time after a long render frame.
+    let remaining=Math.max(0,elapsedMs);
+    while(remaining>0&&this.state.phase==='active'){
+      const step=Math.min(250,remaining);
+      events.push(...updateBattle(this.state,step,this.anchor.x,this.anchor.y,equipmentBonus(this.inventory,this.character).defense,
+        this.inBattleView?{collision:this.currentMap().collision,playerBusy:this.busy(),reserved:this.route}:undefined));
+      remaining-=step;
+    }
     if(this.inBattleView)this.captureEnemyMotions(enemyPositionsBefore);
     if(events.some(event=>event.kind==='hp-loss'&&event.target==='player')&&this.state.phase==='active')this.setTransientAction('03');
     for(const event of events){
@@ -1051,11 +1385,21 @@ export class LabScene extends Phaser.Scene {
   update(time:number,delta:number){
     if(!this.sprite)return;
     const cameraDt=Math.min(delta,100);
+    const battleClockActive=this.inBattleView&&!this.battlePaused&&!document.hidden;
+    let battleDt=0;
+    if(battleClockActive){
+      const now=performance.now();
+      if(this.battleClockLastAt!==null)battleDt=Math.max(0,now-this.battleClockLastAt);
+      this.battleClockLastAt=now;
+    }else{
+      // Reset the baseline so paused/hidden time is never accumulated on resume.
+      this.battleClockLastAt=null;
+    }
     const dt=this.inBattleView&&(this.battlePaused||document.hidden)?0:cameraDt;
     this.advanceRouteMovement(dt);
     if(this.inBattleView)this.updateBattleCamera(cameraDt);
     else if(this.cameraFollowEnabled)this.viewport?.follow(this.anchor,dt);
-    this.advanceTimedAction(dt);
+    this.advanceTimedAction(this.inBattleView?battleDt:dt);
     this.effectUntil=Math.max(0,this.effectUntil-dt);
     const a=this.animation();
     if(this.playing){
@@ -1064,7 +1408,9 @@ export class LabScene extends Phaser.Scene {
       this.elapsed=next.elapsed;
     }
     const i=frameIndex(a,this.direction,this.cursor),b=a.frame_bounds[i];
-    this.sprite.setTexture(textureKey(this.character,this.slot,i)).setPosition(this.anchor.x+b.left,this.anchor.y+b.top).setAlpha(this.state.phase==='lost'?.3:1);
+    const playerKey=textureKey(this.character,this.slot,i);
+    if(!this.textures.exists(playerKey))this.recordMissingTexture(playerKey);
+    this.sprite.setTexture(this.textures.exists(playerKey)?playerKey:ASSET_PLACEHOLDER_TEXTURE_KEY).setPosition(this.anchor.x+b.left,this.anchor.y+b.top).setAlpha(this.state.phase==='lost'?.3:1);
     if(this.effectId!==null&&this.effectSprite){
       const e=this.effect();
       if(this.effectPlaying){
@@ -1077,11 +1423,13 @@ export class LabScene extends Phaser.Scene {
       if(this.effectSprite.visible){
         const ei=e.sequence[this.effectCursor],eb=e.frame_bounds[ei];
         const origin=this.effectOrigin??this.anchor;
-        this.effectSprite.setTexture(effectTextureKey(e.resource_id,ei)).setPosition(origin.x+eb.left,origin.y+eb.top);
+        const effectKey=effectTextureKey(e.resource_id,ei);
+        if(!this.textures.exists(effectKey))this.recordMissingTexture(effectKey);
+        this.effectSprite.setTexture(this.textures.exists(effectKey)?effectKey:ASSET_PLACEHOLDER_TEXTURE_KEY).setPosition(origin.x+eb.left,origin.y+eb.top);
       }
     }
     this.advanceEnemyMotions(dt);
-    const before=this.advanceBattleState(dt);
+    const before=this.advanceBattleState(this.inBattleView?battleDt:0);
     for(const row of this.worldVisualActors.values())row.actor.update(dt);
     this.reselectBattleTargetIfNeeded();
     for(const enemy of this.state.enemies){
