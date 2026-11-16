@@ -314,12 +314,12 @@ def validate_transition(task: dict[str, Any], target: str, *, release=False, res
         authorization_errors = completion_authorization_errors(task, accepted_by)
         if authorization_errors:
             raise RegistryError("; ".join(authorization_errors))
-        if any(not task.get("checkpoints", {}).get(n, {}).get("completed") for n in ("CP0", "CP1", "CP2", "CP3")):
+        if not task.get("legacy_import") and any(not task.get("checkpoints", {}).get(n, {}).get("completed") for n in ("CP0", "CP1", "CP2", "CP3")):
             raise RegistryError("CP0-CP3 required before completion")
         if task.get("acceptance_status") != "accepted":
             raise RegistryError("acceptance_status must be accepted")
-        if task.get("checkpoints", {}).get("CP3", {}).get("ci_status") != "success":
-            raise RegistryError("cannot complete while CP3 CI status is not success")
+        if task.get("checkpoints", {}).get("CP3", {}).get("ci_status") != "success" and not _acceptance_basis(task):
+            raise RegistryError("cannot complete while CP3 CI status is not success without a recorded acceptance_basis (manager baseline-comparison acceptance)")
 
 
 def find_task(data: dict[str, Any], request_id: str) -> dict[str, Any]:
@@ -775,7 +775,7 @@ def command_self_test(_args):
         assert result == 0 and "CHECK: PASS" in output and "HEAD_MATCH" in output, output
         assert "detached HEAD; using explicit --branch" in output, output
 
-    tests = [
+    tests = _ACCEPT_GATEFIX_TESTS + [
         ("duplicate request-id rejected", duplicate),
         ("missing required field rejected", missing),
         ("missing head_sha_verified_at rejected", missing_head_sha_verified_at),
@@ -892,7 +892,7 @@ def build_parser():
     p.add_argument("--observed-head")
     p.add_argument("--observed-parent")
     p.add_argument("--observed-file", action="append", default=[])
-    p.set_defaults(func=command_simulate)
+    p.set_defaults(func=command_simulate); _add_accept_parser(sub)  # accept: manager-only acceptance recording
     return parser
 
 
@@ -903,6 +903,261 @@ def main():
     except (RegistryError, json.JSONDecodeError) as exc:
         print(f"REJECTED: {exc}", file=sys.stderr)
         return 2
+
+
+# Entry point moved to the end of this file (see below).
+# The live entry point is at the end of this file.
+
+
+# --- Registry gatefix (request-id agent-7x24-registry-gatefix-20261116-01) ---
+# Manager-only acceptance recording (accept) and its self-tests. These
+# definitions live after main() so that the entry point at the end of this
+# file runs last; they are resolved at call time, like the other commands.
+
+
+def _acceptance_basis(task):
+    """Return the recorded acceptance basis, or "" when none is recorded."""
+    basis = task.get("acceptance_basis")
+    return basis.strip() if isinstance(basis, str) else ""
+
+
+def command_accept(args):
+    """Record a manager acceptance decision (manager only).
+
+    Workers must never call this command: acceptance values come only from
+    the manager's decision. The command only records the decision; it does
+    not change the task status. A later ``transition --to completed`` still
+    requires --accepted-by to match the recorded accepted_by.
+    """
+    path = Path(args.registry)
+    data = load_registry(path)
+    task = find_task(data, args.request_id)
+    if task.get("status") not in ("awaiting_review", "completed"):
+        raise RegistryError(
+            f"accept requires awaiting_review or completed status, got {task.get('status')}"
+        )
+    basis = args.acceptance_basis
+    if not isinstance(basis, str) or not basis.strip():
+        raise RegistryError("acceptance_basis must be a non-empty text stating evidence")
+    if not isinstance(args.accepted_by, str) or not args.accepted_by.strip():
+        raise RegistryError("accepted_by must be a non-empty value")
+    head_sha = getattr(args, "head_sha", None)
+    if head_sha is not None and not re.fullmatch(r"[0-9a-f]{40}", head_sha):
+        raise RegistryError("head_sha must be 40 hex characters")
+    verified_at = getattr(args, "head_sha_verified_at", None)
+    if verified_at is not None:
+        try:
+            datetime.fromisoformat(verified_at)
+        except ValueError as exc:
+            raise RegistryError("head_sha_verified_at must be an ISO timestamp") from exc
+    task["acceptance_status"] = "accepted"
+    task["accepted_by"] = args.accepted_by
+    task["acceptance_basis"] = basis.strip()
+    if head_sha is not None:
+        task["head_sha"] = head_sha
+    if verified_at is not None:
+        task["head_sha_verified_at"] = verified_at
+    task["last_updated"] = now_iso()
+    errors = validate_task(task)
+    if errors:
+        raise RegistryError("; ".join(errors))
+    errors = capacity_errors(data["tasks"], data["parallel_limit"]) + conflict_errors(data["tasks"])
+    if errors:
+        raise RegistryError("; ".join(errors))
+    save_registry(path, data)
+    print(f"ACCEPTED: {task['request_id']} accepted_by={args.accepted_by}")
+    return 0
+
+
+def _add_accept_parser(sub):
+    """Add the manager-only accept subcommand to the CLI parser."""
+    p = sub.add_parser("accept", help="record a manager acceptance decision (manager only)")
+    p.add_argument("--registry", default=REGISTRY_REL)
+    p.add_argument("--request-id", required=True)
+    p.add_argument("--accepted-by", required=True)
+    p.add_argument("--acceptance-basis", required=True)
+    p.add_argument("--head-sha")
+    p.add_argument("--head-sha-verified-at")
+    p.set_defaults(func=command_accept)
+
+
+def _gatefix_sample(key="T1", rid="req-1", status="created"):
+    """A minimal valid task, mirroring the sample in command_self_test."""
+    return {
+        "task_key": key,
+        "request_id": rid,
+        "task_name": "sample",
+        "conversation_url": "https://chatgpt.com/c/example",
+        "workspace": "test",
+        "model": "GPT-6",
+        "mode": "Chat",
+        "repository": "owner/repo",
+        "branch": f"branch-{key}",
+        "base_sha": "1" * 40,
+        "head_sha": "1" * 40,
+        "status": status,
+        "progress": "test",
+        "next_action": "continue",
+        "deadline": None,
+        "risk_level": "medium",
+        "approval_required": True,
+        "last_updated": "2026-11-16",
+        "head_sha_verified_at": None,
+        "cost_budget": {"max_rounds": None, "timeout_minutes": None, "cost_record": []},
+        "conflict_group": None,
+        "shared_files": [],
+        "write_files": [],
+        "depends_on": [],
+        "blocked_by": [],
+        "checkpoints": {},
+    }
+
+
+def _gatefix_registry(path, tasks):
+    save_registry(path, {
+        "schema_version": 1,
+        "registry_repository": "owner/repo",
+        "parallel_limit": 10,
+        "active_statuses": list(ACTIVE),
+        "tasks": tasks,
+    })
+
+
+def _gatefix_completion_ready(ci_status="success", basis=None, legacy_import=False, status="awaiting_review"):
+    task = _gatefix_sample(status=status)
+    task["legacy_import"] = legacy_import
+    task["checkpoints"] = {
+        "CP0": {"completed": True},
+        "CP1": {"completed": True},
+        "CP2": {"completed": True, "tests_passed": True, "test_results": []},
+        "CP3": {"completed": True, "ci_status": ci_status, "pull_request_url": "https://github.com/o/r/pull/1", "pending_todos": []},
+    }
+    task["pull_request_url"] = "https://github.com/o/r/pull/1"
+    task["acceptance_status"] = "accepted"
+    task["accepted_by"] = "total-manager"
+    task["acceptance_basis"] = basis
+    return task
+
+
+def accept_records_acceptance_and_head():
+    task = _gatefix_completion_ready(ci_status="success")
+    task["acceptance_status"] = "pending"
+    task["accepted_by"] = None
+    task["acceptance_basis"] = None
+    with tempfile.TemporaryDirectory() as directory:
+        registry_path = Path(directory) / "task-registry.yml"
+        _gatefix_registry(registry_path, [task])
+        command = [
+            sys.executable, __file__, "accept", "--registry", str(registry_path),
+            "--request-id", task["request_id"], "--accepted-by", "total-manager",
+            "--acceptance-basis", "Baseline comparison: PR #1 CI failures pre-existing on main, no new failures; evidence: baseline CI run.",
+            "--head-sha", "c" * 40, "--head-sha-verified-at", "2026-11-16T06:00:00+00:00",
+        ]
+        result = subprocess.run(command, text=True, capture_output=True, check=False)
+        assert result.returncode == 0, (result.returncode, result.stdout, result.stderr)
+        assert "ACCEPTED:" in result.stdout, result.stdout
+        after = load_registry(registry_path)["tasks"][0]
+        assert after["status"] == "awaiting_review"
+        assert after["acceptance_status"] == "accepted"
+        assert after["accepted_by"] == "total-manager"
+        assert "Baseline comparison" in after["acceptance_basis"]
+        assert after["head_sha"] == "c" * 40
+        assert after["head_sha_verified_at"] == "2026-11-16T06:00:00+00:00"
+
+
+def accept_empty_basis_rejected():
+    task = _gatefix_completion_ready(ci_status="success")
+    task["acceptance_status"] = "pending"
+    task["accepted_by"] = None
+    task["acceptance_basis"] = None
+    with tempfile.TemporaryDirectory() as directory:
+        registry_path = Path(directory) / "task-registry.yml"
+        _gatefix_registry(registry_path, [task])
+        args = argparse.Namespace(
+            registry=str(registry_path), request_id=task["request_id"],
+            accepted_by="total-manager", acceptance_basis="   ",
+            head_sha=None, head_sha_verified_at=None,
+        )
+        try:
+            command_accept(args)
+        except RegistryError:
+            after = load_registry(registry_path)["tasks"][0]
+            assert after["acceptance_status"] == "pending"
+            assert after.get("accepted_by") is None
+            return
+        raise AssertionError("accept allowed an empty acceptance_basis")
+
+
+def ci_failure_with_basis_can_complete():
+    task = _gatefix_completion_ready(
+        ci_status="failure",
+        basis="Baseline comparison: PR #1 CI failures pre-existing on main, no new failures; evidence: baseline CI run.",
+    )
+    validate_transition(task, "completed", accepted_by="total-manager")
+
+
+def ci_failure_without_basis_cannot_complete():
+    task = _gatefix_completion_ready(ci_status="failure", basis=None)
+    try:
+        validate_transition(task, "completed", accepted_by="total-manager")
+    except RegistryError:
+        return
+    raise AssertionError("CI failure without acceptance_basis was allowed to complete")
+
+
+def completion_accepted_by_mismatch_with_basis():
+    task = _gatefix_completion_ready(
+        ci_status="failure",
+        basis="Baseline comparison: PR #1 CI failures pre-existing on main, no new failures; evidence: baseline CI run.",
+    )
+    try:
+        validate_transition(task, "completed", accepted_by="someone-else")
+    except RegistryError:
+        return
+    raise AssertionError("completion allowed a mismatched --accepted-by")
+
+
+def legacy_only_cp0_with_basis_can_complete():
+    task = _gatefix_sample(status="awaiting_review")
+    task["legacy_import"] = True
+    task["checkpoints"] = {"CP0": {"completed": True}}
+    task["acceptance_status"] = "accepted"
+    task["accepted_by"] = "total-manager"
+    task["acceptance_basis"] = "Legacy import: historical checkpoints were not provided; acceptance based on manager review of the merged PR."
+    task["pull_request_url"] = "https://github.com/o/r/pull/1"
+    validate_transition(task, "completed", accepted_by="total-manager")
+
+
+def accept_created_task_rejected():
+    task = _gatefix_sample(status="created")
+    with tempfile.TemporaryDirectory() as directory:
+        registry_path = Path(directory) / "task-registry.yml"
+        _gatefix_registry(registry_path, [task])
+        args = argparse.Namespace(
+            registry=str(registry_path), request_id=task["request_id"],
+            accepted_by="total-manager",
+            acceptance_basis="Baseline comparison: evidence.",
+            head_sha="d" * 40, head_sha_verified_at="2026-11-16T06:00:00+00:00",
+        )
+        try:
+            command_accept(args)
+        except RegistryError:
+            after = load_registry(registry_path)["tasks"][0]
+            assert after["status"] == "created"
+            assert "acceptance_status" not in after
+            return
+        raise AssertionError("accept allowed a created task")
+
+
+_ACCEPT_GATEFIX_TESTS = [
+    ("accept records acceptance and head", accept_records_acceptance_and_head),
+    ("accept rejects empty acceptance basis", accept_empty_basis_rejected),
+    ("CI failure with recorded basis can complete", ci_failure_with_basis_can_complete),
+    ("CI failure without basis cannot complete", ci_failure_without_basis_cannot_complete),
+    ("completion with basis rejects mismatched --accepted-by", completion_accepted_by_mismatch_with_basis),
+    ("legacy task with only CP0 and basis can complete", legacy_only_cp0_with_basis_can_complete),
+    ("accept on created task is rejected", accept_created_task_rejected),
+]
 
 
 if __name__ == "__main__":
