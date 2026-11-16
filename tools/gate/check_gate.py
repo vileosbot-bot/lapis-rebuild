@@ -171,8 +171,20 @@ def normalize_status(value: str | None) -> str:
     return "UNKNOWN"
 
 
+def normalize_optional_status(value: str | None) -> str:
+    if (value or "").strip().lower() in {"skipped", "not_applicable", "n/a"}:
+        return "NOT_APPLICABLE"
+    return normalize_status(value)
+
+
 def combine_statuses(*values: str | None) -> str:
-    states = [normalize_status(value) for value in values]
+    states = [
+        value if value == "NOT_APPLICABLE" else normalize_status(value)
+        for value in values
+    ]
+    states = [value for value in states if value != "NOT_APPLICABLE"]
+    if not states:
+        return "UNKNOWN"
     if "FAIL" in states:
         return "FAIL"
     if "UNKNOWN" in states:
@@ -437,6 +449,7 @@ def static_check() -> int:
             "gate-comment:", "needs: synthetic",
             "if: always() && github.event_name == 'pull_request'",
             "id: gate-comment-download", "id: gate-comment-prepare", "id: gate-comment-write",
+            "GATE_S41_E2E: ${{ steps.s41-e2e.outcome }}",
             "SUMMARY_JSON: ${{ runner.temp }}/agent-ops-gate/summary.json",
             'if [ "$overall" != "PASS" ]; then',
         )
@@ -943,7 +956,12 @@ def reverse_tests() -> int:
          classify_review([{"filename": "tools/gate/check_gate.py", "status": "modified"}], 10) == "red" and
          not review_decision("red", "PASS", opus_review="missing", manager_review="approved")["merge_allowed"] and
          test_permission_blocks_reject_extra_write_permissions() and
-         test_gate_finalize_step_presence()),
+         test_gate_finalize_step_presence() and
+         normalize_optional_status("skipped") == "NOT_APPLICABLE" and
+         status_label(normalize_optional_status("skipped")) == "不适用" and
+         combine_statuses("PASS", "NOT_APPLICABLE") == "PASS" and
+         combine_statuses("FAIL", "NOT_APPLICABLE") == "FAIL" and
+         combine_statuses("NOT_APPLICABLE") == "UNKNOWN"),
         ("8 绿灯缺少子代理盲审不得标记已审查（仅验证策略函数）",
          not review_decision("green", "PASS", manager_review="not_selected")["reviewed"]),
         ("9 台账忽略代码块/HTML 注释并逐项核对 PR/SHA/merged_at",
@@ -998,7 +1016,7 @@ def summarize(args: argparse.Namespace) -> int:
         ("截图", normalize_status(os.environ.get("GATE_SCREENSHOT"))),
         ("Chromium E2E", normalize_status(os.environ.get("GATE_CHROMIUM_E2E"))),
         ("M7.3 E2E", normalize_status(os.environ.get("GATE_M73_E2E"))),
-        ("S41 E2E", normalize_status(os.environ.get("GATE_S41_E2E", "success"))),
+        ("S41 E2E", normalize_optional_status(os.environ.get("GATE_S41_E2E"))),
         ("Playwright 安装", normalize_status(os.environ.get("GATE_PLAYWRIGHT_INSTALL"))),
         ("独立预览", normalize_status(os.environ.get("GATE_STANDALONE_PREVIEW"))),
         ("M7.3 夹具", normalize_status(os.environ.get("GATE_M73_FIXTURE"))),

@@ -29,10 +29,10 @@ workflow 触发集合：push（分支 `codex/**`、`feat/ch1-m73-wild-encounters
 | 4 | 格式检查 | git diff --check 检查新增行行尾空白；检查变更文本文件的混合换行和末尾换行，新文件全量检查行尾空白 | 3 分钟 | 精确到变更文件和行号 |
 | 5 | 静态检查 | 对变更 Python 文件执行 AST 解析；核验 web-ci.yml 的 PR 触发、门禁步骤超时、Action SHA 固定、gate-finalize 步骤存在及禁止另建 ci.yml | 3 分钟 | 精确到 Python 文件/行；工作流结构错误定位到 web-ci.yml 对应行 |
 | 6 | 敏感信息扫描 | 扫描 PR 新增行中的常见云密钥、GitHub token、Slack token、私钥块和凭据赋值 | 3 分钟 | 精确到文件和新增行号 |
-| 7 | 截图与 E2E | 单一聚合行：截图、Chromium E2E、M7.3 E2E、S41 E2E、Playwright 安装、独立预览、M7.3 夹具七项；确认 canvas 可见、页面无 pageerror/横向溢出并校验 PNG | E2E 25 分钟；截图 5 分钟 | 评论在该行下方逐项列出七个子状态；浏览器错误、失败测试文件/行及截图格式错误定位到具体文件 |
+| 7 | 截图与 E2E | 单一聚合行：截图、Chromium E2E、M7.3 E2E、S41 E2E、Playwright 安装、独立预览、M7.3 夹具七项；S41 按分支条件可不执行，跳过显示“不适用”且不计为 PASS；其余适用状态共同决定聚合结果 | E2E 25 分钟；截图 5 分钟 | 评论在该行下方逐项列出七个子状态；浏览器错误、失败测试文件/行及截图格式错误定位到具体文件 |
 | 8 | GitHub 独立读回 | 用 Actions token 从 GitHub API 读回 PR head/base、PR 文件清单、合并 PR 集合及审查台账；与本次 checkout 的 Git diff 对照 | 3 分钟 | 不一致为 FAIL；API 不可用为 UNKNOWN，绝不当作 PASS |
 
-第 7 项保持一个聚合门禁行，不拆成多个门禁；聚合状态由上述七个子状态共同决定。评论必须在“截图与 E2E”行下方列出：截图、Chromium E2E、M7.3 E2E、S41 E2E、Playwright 安装、独立预览、M7.3 夹具。
+第 7 项保持一个聚合门禁行，不拆成多个门禁；聚合状态由适用的子状态共同决定。S41 按分支条件跳过时标记为 NOT_APPLICABLE（评论显示“不适用”），不折算为 PASS，也不参与聚合；若 S41 应执行却没有结果，则标记 UNKNOWN。评论必须在“截图与 E2E”行下方列出：截图、Chromium E2E、M7.3 E2E、S41 E2E、Playwright 安装、独立预览、M7.3 夹具。
 
 依赖安装、synthetic fixture 生成、Chromium 安装也分别设有步骤超时。完整 Chromium E2E 采用 25 分钟上限；如果 Playwright 因超时留下 4173 端口的 preview server，后续 M7.3 E2E 与截图自检会先清理该端口，避免把残留进程误判为新的测试失败。整个 synthetic job 有总超时；总超时或未到达的检查均不能显示为通过。
 
@@ -113,7 +113,7 @@ PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 a
 - `git log -p` 默认不输出 merge commit 的 diff；后续评估使用 `--cc` 或 `-m` 补足合并提交扫描。
 - `touches_gate_self()` 目前只检查 filename；改名移出门禁目录时应同时检查 GitHub changed-file 的 `previous_filename`。
 - `format_check()` 的 subprocess.run 尚未显式指定 `encoding="utf-8", errors="replace"`；后续统一解码行为。
-- 逐项反向测试结果是否完整进入 `web-synthetic-validation` artifact 仍待核实：reverse-tests.log 写入 runner temp 目录，需核对实际产物清单与 artifact path。
+- 逐项反向测试结果已由 Run #95（HEAD `d5c5c46288c1cdcae63259ed74bdbcc0a24a3b38`）的 `web-synthetic-validation` Artifact #14192880317 实际下载核实：ZIP 内含 `_temp/agent-ops-gate/reverse-tests.log`，逐项九条 PASS；该项核验闭环，后续运行继续保留此日志。
 - 门禁长期红问题：main 基线已存在 9 项 Chromium E2E 失败及 M7.3 金币绝对值断言问题；须另行修复既有测试或由负责人批准明确的既有失败基线比较机制，不能通过把失败/跳过改写为 PASS 解决。
 
 ## 9. 本轮基线证据与裁定

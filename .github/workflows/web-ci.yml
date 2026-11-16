@@ -253,7 +253,7 @@ jobs:
           GATE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.event.repository.default_branch }}
           GATE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GATE_DEPS: ${{ steps.deps.outcome }}
-          GATE_S41_E2E: ${{ steps.s41-e2e.outcome == 'skipped' && 'success' || steps.s41-e2e.outcome }}
+          GATE_S41_E2E: ${{ steps.s41-e2e.outcome }}
           GATE_PARSER_UNIT: ${{ steps.parser-unit.outcome }}
           GATE_WEB_UNIT: ${{ steps.web-unit.outcome }}
           GATE_BUILD: ${{ steps.build.outcome }}
