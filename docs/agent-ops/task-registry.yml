@@ -30,10 +30,10 @@
       "repository": "vileosbot-bot/lapis-rebuild",
       "branch": "feat/agent-ops-gate-20261116",
       "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
-      "head_sha": "2041c630ba7d0f858d7bbc78e6071ce171751e22",
-      "status": "awaiting_review",
-      "progress": "PR #20 保持 Open、未合并；返工中，门禁 FAIL 待查，Opus 再审待定。GitHub 实际读回的 PR head/base 与登记值一致。",
-      "next_action": "核查门禁 FAIL 根因，取得 Opus 再审结论，等待总管裁决。",
+      "head_sha": "808a1b9c79a1efe8afec337349651d4b07991151",
+      "status": "completed",
+      "progress": "已完成。总管验收通过；PR #20 已合并，合并提交 5458ee096f89d3a34e555f2de5f56e183c176e64。",
+      "next_action": "无；已完成。",
       "deadline": null,
       "risk_level": "high",
       "approval_required": true,
@@ -58,7 +58,9 @@
       "blocked_by": [],
       "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/20",
       "legacy_import": true,
-      "acceptance_status": "pending",
+      "acceptance_status": "accepted",
+      "accepted_by": "总管",
+      "acceptance_basis": "Opus 再审有保留同意（2026-11-16）+ 总管独立重验 self-test 9/9、secrets PASS（四笔排除 4/4、4/4、4/4、1/1）+ 基线比对：CI 失败仅为既有 10 项（Chromium 9 + M7.3 1），无新增失败；合并提交 5458ee096f89d3a34e555f2de5f56e183c176e64",
       "checkpoints": {
         "CP0": {
           "completed": true,
@@ -72,9 +74,10 @@
         "PR #20 六个文件均由 GitHub changed-files 实际读回；本任务不写这些路径。",
         "历史任务导入；未从旧对话推测或补造缺失检查点。",
         "M4 维护例外：本轮 GitHub 实际观察到该分支 HEAD 已前进至 176c9ce3385c9d908b07e206197b1d21e1dfac23；按总管裁决本次不改 seed head_sha=2041c630ba7d0f858d7bbc78e6071ce171751e22，head_sha_verified_at=null，待 P0-1 验收完成后由总管通知刷新。",
-        "head_sha_verified_at 未填：历史种子缺少本字段的可核实时间戳，待下一次总管验收/状态变更时实际读回并刷新。"
+        "head_sha_verified_at 未填：历史种子缺少本字段的可核实时间戳，待下一次总管验收/状态变更时实际读回并刷新。",
+        "2026-11-16 总管验收：Opus 再审有保留同意 + 总管独立重验 self-test 9/9、secrets PASS；PR #20 已合并，合并提交 5458ee096f89d3a34e555f2de5f56e183c176e64；状态转为 completed。"
       ],
-      "head_sha_verified_at": null
+      "head_sha_verified_at": "2026-11-16"
     },
     {
       "task_key": "P0-2",
@@ -88,9 +91,9 @@
       "branch": "main",
       "base_sha": "",
       "base_sha_note": "新库建库，首批提交无父提交",
-      "head_sha": "7627ef30d3011ad9634d11564ad88a7b1de68435",
+      "head_sha": "772accb49902c6f1407437ab252fb8c41d1a302a",
       "status": "completed",
-      "progress": "总管已验收；私有记忆库已建立并完成首批文件提交。GitHub 实际读回 main HEAD 与登记值一致。",
+      "progress": "总管已验收；私有记忆库已建立并完成首批文件提交；agent-memory PR #1 已合并，合并提交 772accb49902c6f1407437ab252fb8c41d1a302a；GitHub 实际读回 main HEAD 与登记值一致。",
       "next_action": "无；已完成。",
       "deadline": null,
       "risk_level": "medium",
@@ -110,14 +113,17 @@
       "pull_request_url": null,
       "legacy_import": true,
       "acceptance_status": "accepted",
+      "accepted_by": "总管",
+      "acceptance_basis": "总管独立验收通过（脚本 test-mode 与 self-test 通过、真实包上传并读回验证、T11 故障模拟通过、T10 演练通过）；合并提交 772accb49902c6f1407437ab252fb8c41d1a302a",
       "checkpoints": {},
       "notes": [
         "GitHub 实际读回 main HEAD：7627ef30d3011ad9634d11564ad88a7b1de68435。",
         "GitHub 实际读回首次 README 提交 9e08afcc3ce674888b27e7a96c79b452e1dc99b5 的 parents=[]，确认首批提交起点无父提交，因此 base_sha 留空。",
         "历史任务导入；总管已验收状态来自用户明确提供，不补造旧检查点细节。",
-        "head_sha_verified_at 未填：历史种子缺少本字段的可核实时间戳，待下一次总管验收/状态变更时实际读回并刷新。"
+        "head_sha_verified_at 未填：历史种子缺少本字段的可核实时间戳，待下一次总管验收/状态变更时实际读回并刷新。",
+        "2026-11-16 核对：agent-memory main HEAD 已为合并提交 772accb49902c6f1407437ab252fb8c41d1a302a（PR #1，父提交 7627ef30… + 7e3f577…）；head_sha 已刷新。"
       ],
-      "head_sha_verified_at": null
+      "head_sha_verified_at": "2026-11-16"
     },
     {
       "task_key": "P0-3",
@@ -131,9 +137,9 @@
       "branch": "feat/agent-ops-registry-20261117",
       "base_sha": "5fbf1679367142b358b8d6ac3a0f288dc33d24b2",
       "head_sha": "ed719902fd3b9aadb1f5ffe4980499ac84527e45",
-      "status": "awaiting_review",
-      "progress": "M1–M5 必修项已修，M6 已记录为已知限制；Python 编译通过，self-test 21/21，两个 observed-head 场景各 simulate 5/5；PR #21 Open、未合并；最新 CI pending。",
-      "next_action": "等待 GitHub Actions run #43777396785（run #87）完成并读取最终结论；总管独立重验 M1–M6；不合并 PR #21。",
+      "status": "completed",
+      "progress": "已完成。总管验收通过；M1–M5 已修，M6 为已知限制；self-test 21/21、simulate 5/5；PR #21 已合并，合并提交 1f4bff63eaccb727337fd4ddc81785bb40325c28。",
+      "next_action": "无；已完成。",
       "deadline": "2026-11-17T12:00:00+08:00",
       "risk_level": "high",
       "approval_required": true,
@@ -158,7 +164,9 @@
       "blocked_by": [],
       "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/21",
       "legacy_import": false,
-      "acceptance_status": "pending",
+      "acceptance_status": "accepted",
+      "accepted_by": "总管",
+      "acceptance_basis": "总管独立重验 self-test 21/21、simulate 5/5、M1–M5 抽查通过 + CI 基线比对：Run #88 失败仅为既有 9 项 Chromium（与基线逐项一致），M7.3 为既有问题被跳过，无新增失败；合并提交 1f4bff63eaccb727337fd4ddc81785bb40325c28",
       "checkpoints": {
         "CP0": {
           "completed": true,
@@ -404,7 +412,8 @@
         "M3：detached HEAD 无 --branch 时 CHECK FAIL；显式 --branch 时用于任务关联并继续比对 HEAD，不因空分支名误报。",
         "M4：每条任务有 head_sha_verified_at；总管每次验收/状态变更刷新相关种子。P0-1 seed 暂按裁决保留旧 SHA，核验时间 null。",
         "M5：状态机 CI/完成门禁与代码一致；blocked_by 不作为脚本机械完成门禁，文档说明由总管人工核查；异常标签统一 HEAD_MISMATCH。",
-        "M6：write_files 声明式交集检查不与 Git changed files 交叉核对，已在 checkpoint-rules.md 的已知限制中记录。"
+        "M6：write_files 声明式交集检查不与 Git changed files 交叉核对，已在 checkpoint-rules.md 的已知限制中记录。",
+        "2026-11-16 总管验收：独立重验 self-test 21/21、simulate 5/5、M1–M5 抽查通过；CI 基线比对：Run #88（43777684072）synthetic failed，13 分 22 秒，失败仅为既有 9 项 Chromium（与基线逐项一致），M7.3 为既有问题被跳过，无新增失败；PR #21 已合并，合并提交 1f4bff63eaccb727337fd4ddc81785bb40325c28；状态转为 completed。（CP3 为送审时快照，ci_status 保持 pending 不动；最终 CI 结论记于此条。）"
       ],
       "head_sha_verified_at": "2026-11-16"
     },
@@ -489,5 +498,5 @@
       "head_sha_verified_at": null
     }
   ],
-  "head_sha_verified_at_policy": "每个任务必须包含 head_sha_verified_at。该时间只表示登记表当前 head_sha 与 GitHub 实际分支状态/提交图完成核对的日期；无法确认、SHA 已知过期或时间来源不明时填 null，不得用更新时间冒充验证时间。总管每次验收或任务状态变更时，必须重新读取对应 GitHub 分支 HEAD、PR head/base 和必要提交图，核对后刷新 head_sha 与 head_sha_verified_at。P0-1 的现有 seed head_sha 本次按总管裁决保持不变；虽然本轮观察到其 GitHub 实际 HEAD 已前进至 176c9ce3385c9d908b07e206197b1d21e1dfac23，head_sha_verified_at 保持 null，待 P0-1 验收完成后由总管另行通知刷新。"
+  "head_sha_verified_at_policy": "每个任务必须包含 head_sha_verified_at。该时间只表示登记表当前 head_sha 与 GitHub 实际分支状态/提交图完成核对的日期；无法确认、SHA 已知过期或时间来源不明时填 null，不得用更新时间冒充验证时间。总管每次验收或任务状态变更时，必须重新读取对应 GitHub 分支 HEAD、PR head/base 和必要提交图，核对后刷新 head_sha 与 head_sha_verified_at。P0-1 的 seed head_sha 已于 2026-11-16 按总管裁决刷新为 808a1b9c79a1efe8afec337349651d4b07991151（验收完成，head_sha_verified_at 已填）。"
 }
