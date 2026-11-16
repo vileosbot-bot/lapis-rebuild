@@ -1303,11 +1303,18 @@ export class LabScene extends Phaser.Scene {
     }
   }
 
-  private advanceBattleState(dt:number):ReturnType<typeof initialState>['phase']{
+  private advanceBattleState(elapsedMs:number):ReturnType<typeof initialState>['phase']{
     const enemyPositionsBefore=new Map(this.state.enemies.map(enemy=>[enemy.id,{x:enemy.x,y:enemy.y}] as const));
     const before=this.state.phase;
-    const events=updateBattle(this.state,dt,this.anchor.x,this.anchor.y,equipmentBonus(this.inventory,this.character).defense,
-      this.inBattleView?{collision:this.currentMap().collision,playerBusy:this.busy(),reserved:this.route}:undefined);
+    const events:ReturnType<typeof updateBattle>=[];
+    // Preserve updateBattle's 250ms safety step without discarding wall-clock game time after a long render frame.
+    let remaining=Math.max(0,elapsedMs);
+    while(remaining>0&&this.state.phase==='active'){
+      const step=Math.min(250,remaining);
+      events.push(...updateBattle(this.state,step,this.anchor.x,this.anchor.y,equipmentBonus(this.inventory,this.character).defense,
+        this.inBattleView?{collision:this.currentMap().collision,playerBusy:this.busy(),reserved:this.route}:undefined));
+      remaining-=step;
+    }
     if(this.inBattleView)this.captureEnemyMotions(enemyPositionsBefore);
     if(events.some(event=>event.kind==='hp-loss'&&event.target==='player')&&this.state.phase==='active')this.setTransientAction('03');
     for(const event of events){
@@ -1353,11 +1360,14 @@ export class LabScene extends Phaser.Scene {
   update(time:number,delta:number){
     if(!this.sprite)return;
     const cameraDt=Math.min(delta,100);
-    const dt=this.inBattleView&&(this.battlePaused||document.hidden)?0:cameraDt;
+    const battlePaused=this.inBattleView&&(this.battlePaused||document.hidden);
+    const dt=battlePaused?0:cameraDt;
+    // Battle/action clocks consume elapsed game time, not the render/camera delta capped at 100ms.
+    const battleDt=battlePaused?0:Math.max(0,delta);
     this.advanceRouteMovement(dt);
     if(this.inBattleView)this.updateBattleCamera(cameraDt);
     else if(this.cameraFollowEnabled)this.viewport?.follow(this.anchor,dt);
-    this.advanceTimedAction(dt);
+    this.advanceTimedAction(this.inBattleView?battleDt:dt);
     this.effectUntil=Math.max(0,this.effectUntil-dt);
     const a=this.animation();
     if(this.playing){
@@ -1387,7 +1397,7 @@ export class LabScene extends Phaser.Scene {
       }
     }
     this.advanceEnemyMotions(dt);
-    const before=this.advanceBattleState(dt);
+    const before=this.advanceBattleState(this.inBattleView?battleDt:0);
     for(const row of this.worldVisualActors.values())row.actor.update(dt);
     this.reselectBattleTargetIfNeeded();
     for(const enemy of this.state.enemies){
