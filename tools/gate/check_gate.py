@@ -816,7 +816,7 @@ def test_historical_exception_scope() -> bool:
     # credential-like token contiguously in this source file.
     db_password_fixture_line = (
         "        db_password = " + '"DB' + '_PASSWORD="' +
-        " + " + '("synthetic-' + ' " + "test-' + ' " + "secret-' + ' " + "value-' + ' " + "12345")'
+        " + " + '("synthetic-' + '" + "test-' + '" + "secret-' + '" + "value-' + '" + "12345")'
     )
     fourth_sha = "f90c4ce2bc44997743bdd032543382b25cf1a1a4"
     fourth_line_sha256 = "65ec8d91f00e3cd64d4f831f5d31299273d7fa1da3f0a1c0de800c784bd2a7a4"
