@@ -32,7 +32,7 @@
 
 ## CP3：创建 PR
 
-记录 PR 编号和真实 URL、head branch/head SHA、base branch/base SHA、PR Open/merged 状态、必需检查名称/运行号/结论，以及审查意见和 TODO。PR 已创建后，CP3 必须记录真实 CI 状态。CP2 测试通过且 CP3 已记录 PR URL 与明确 CI 状态（success/failure/pending/unknown）时，可进入 awaiting_review；该状态表示等待人工审查，不代表 CI 已通过。failure/pending/unknown 必须原样记录；completed 仍要求 CI success 和总管验收。只开 PR、不合并。
+记录 PR 编号和真实 URL、head branch/head SHA、base branch/base SHA、PR Open/merged 状态、必需检查名称/运行号/结论，以及审查意见和 TODO。PR 已创建后，CP3 必须记录真实 CI 状态。CP2 测试通过且 CP3 已记录 PR URL 与明确 CI 状态（success/failure/pending/unknown）时，可进入 awaiting_review；该状态表示等待人工审查，不代表 CI 已通过。failure/pending/unknown 必须原样记录；completed 仍要求总管验收，且 CI 为 success，或总管基线比对验收（已记入非空 acceptance_basis，须写明证据）。只开 PR、不合并。
 
 ## head_sha 的自引用边界
 
@@ -45,7 +45,7 @@ Git commit SHA 由提交内容决定。登记表不能在同一提交内写入�
 - dispatched 缺 CP0：错误，不能视为已派活；
 - in_progress 缺 CP0 或 CP1：告警；
 - awaiting_review 缺 CP0–CP3：错误；
-- completed 缺 CP0–CP3 或验收记录：错误；
+- completed 缺 CP0–CP3 或验收记录：错误；历史导入任务（legacy_import=true）豁免 CP0–CP3 齐全要求，但仍须有验收记录；CI 不是 success 时须有非空 acceptance_basis（总管基线比对验收），否则不能完成；
 - 历史导入任务使用 legacy_import=true，缺失历史检查点标注“历史未提供”，不得补造；新任务不得使用此豁免。
 
 ## 预算记录
@@ -65,3 +65,18 @@ Git commit SHA 由提交内容决定。登记表不能在同一提交内写入�
 当前并发冲突检查只比较活跃任务在登记表中声明的 `write_files` 路径交集，不会在每次检查时把这些声明与 Git 实际 changed files、PR changed files 做交叉核对。因此，若任务漏报某个实际写入文件，登记阶段可能漏掉共享文件冲突。
 
 未登记代码提交会在后续 HEAD 核对时被 `HEAD_MISMATCH` 兜底发现，但这是提交后的检测，不能替代提交前的文件范围核对。该限制本轮按总管裁决保留，不阻挡本次验收；后续加固方向是在 CP2/PR 检查时将 `write_files` 与 GitHub 实际 changed files 比较，并在不一致时阻止进入审查状态。
+
+
+## 总管验收命令 accept（总管专用）
+
+总管用 `accept` 命令把验收决定记入登记表，工人不得调用：
+
+```
+python3 tools/agent_ops/task_registry.py accept --request-id <任务 id> --accepted-by <总管> --acceptance-basis "<非空文字，须写明证据>" [--head-sha <40 位十六进制>] [--head-sha-verified-at <ISO 时间>]
+```
+
+- 只允许 `awaiting_review` 或 `completed` 状态的任务；`created` / `dispatched` / `in_progress` 调用会被拒绝。
+- 写入 `acceptance_status=accepted`、`accepted_by`、`acceptance_basis`、`head_sha`、`head_sha_verified_at`、`last_updated`；写后用 `validate_task` + capacity/conflict 校验。
+- `acceptance_basis` 为空时拒绝；`--head-sha` 须为 40 位十六进制；`--head-sha-verified-at` 须为 ISO 时间。
+- `accept` 只记入验收，不改变任务状态；之后仍须用 `transition --to completed`（`--accepted-by` 须与 `accepted_by` 完全匹配）完成任务。
+- 验收值只来自总管决定：工人不得调用 `accept`，也不得自行填写或编造 `acceptance_status` / `accepted_by` / `acceptance_basis`。
