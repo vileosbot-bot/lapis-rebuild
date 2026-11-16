@@ -537,7 +537,7 @@ def secret_scan(root: Path = ROOT, base: str | None = None, head: str | None = N
             failed = True
         print(
             f"historical_fixture_exclusion: exact_sha={commit_sha}; "
-            f"excluded_lines={sum(counts.values())}/4"
+            f"excluded_lines={sum(counts.values())}/{len(counts)}"
         )
     print(f"secret_scan: {'FAIL' if failed else 'PASS'}")
     return int(failed)
