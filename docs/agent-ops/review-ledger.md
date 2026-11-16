@@ -22,6 +22,11 @@
 | #17 | 2026-11-14T14:22:05Z | 41e99dd0aed3d76b0386618d624c3b850f05b110 | 历史基线（门禁前；未追认审查） |
 | #18 | 2026-11-14T14:35:27Z | 237d22375a1919d2c374b3fec93d0532cd37c92f | 历史基线（门禁前；未追认审查） |
 | #19 | 2026-11-15T00:45:17Z | 5fbf1679367142b358b8d6ac3a0f288dc33d24b2 | 历史基线（门禁前；未追认审查） |
+| #20 | 2026-11-16T05:50:06Z | 5458ee096f89d3a34e555f2de5f56e183c176e64 | 门禁 8 项技术检查全 PASS（self-test 9/9、secrets PASS）；审查等级红灯；Opus 5.5 盲审再审：有保留同意（A、B 两项合并前条件已满足）；总管独立重验通过；CI 失败仅为既有 10 项（Chromium 9 + M7.3 1），无新增。 |
+| #21 | 2026-11-16T05:51:49Z | 1f4bff63eaccb727337fd4ddc81785bb40325c28 | 总管独立重验通过（self-test 21/21、simulate 5/5）；子代理盲审：有保留同意（M1–M5 已修）；CI 失败仅为既有 9 项 Chromium，M7.3 被跳过（既有问题），无新增。 |
+| #22 | 2026-11-16T05:20:41Z | 73a02b4015a2cabafb32b87ca8504b3d109defc4 | 门禁前合并（CI 运行旧 workflow，无门禁）；总管独立验收通过（脚本 test-mode 与 self-test 通过；真实包上传并读回验证；T11 故障模拟通过；T10 演练通过）。 |
+| #23 | 2026-11-16T09:58:15Z | 8508b8a2e7c49f75372df85cdeda90e3b65829e9 | 总管独立重验通过（check PASS、self-test 21/21）；CI 失败为既有 10 项 + S34 1 项抖动（同一测试在 #24 的 run 中通过，非本 PR 引起；总管已裁决）。 |
+| #24 | 2026-11-16T09:37:13Z | d1caf5b971058607d1febed096bf5a1fa02caa95 | 总管独立重验通过（self-test 28/28、simulate 5/5、端到端命令全过）；CI 失败仅为既有 10 项，无新增。 |
 
 GitHub 读回口径：以 pulls?state=closed&base=main 返回的已合并 PR 为准，逐项核对 PR 编号、merged_at 和 merge_commit_sha；台账解析忽略 fenced code block 与 HTML 注释中的示例行。
 
@@ -32,12 +37,3 @@ GitHub 读回口径：以 pulls?state=closed&base=main 返回的已合并 PR 为
 - 新 PR 合并后，追加一条真实审查记录，字段至少包含 PR 编号、合并时间、merge SHA、门禁状态、审查等级、盲审类型/结论、总管决定。
 - PR 编号必须唯一；台账编号集合必须与 GitHub API 读回的 merged PR 编号集合完全相同。
 - 不得预先把未合并 PR 写成已合并；不得为凑行数伪造审查结论。
-
-
-## P0-1 当前试运行快照（PR #20 未合并，不计入上方合并台账）
-
-- PR：[#20](https://github.com/vileosbot-bot/lapis-rebuild/pull/20)，状态 Open，未合并。
-- base：`5fbf1679367142b358b8d6ac3a0f288dc33d24b2`；Run #43772129471 对应 HEAD：`176c9ce3385c9d908b07e206197b1d21e1dfac23`。
-- CI：Run [#43772129471](https://github.com/vileosbot-bot/lapis-rebuild/actions/runs/43772129471)，结论 failure；Chromium 9 项失败，M7.3 金币断言另有 1 项失败。
-- 基线解释：PR #20 的六文件 diff 不触及游戏/E2E 文件；main 与 PR head 的 M7.3 测试、初始金币定义和奖励结算文件 blob SHA 相同。M7.3 断言比较总金币绝对值 40，而 20,000 初始金币加 40 奖励为 20,040。main workflow 在 Chromium 失败后跳过 M7.3，PR workflow 继续执行；SKIPPED 不等于 PASS。该 M7.3 问题记为既有测试写法问题，另行修复。
-- 本快照不是合并记录，不新增 PR 表格行；PR #20 仍须 Opus 盲审与总管验收后才能讨论合并。
