@@ -77,7 +77,7 @@ SECRET_PATTERNS = (
     re.compile(r"\bgithub_pat_[A-Za-z0-9_]{40,}\b"),
     re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
     re.compile(r"-----BEGIN (?:(?:RSA|DSA|EC|OPENSSH|PGP) |ENCRYPTED )?PRIVATE KEY(?: BLOCK)?-----"),
-    re.compile(r"""(?i)\b(?:password|passwd|secret|api[_-]?key|client[_-]?secret|access[_-]?token)\b\s*[:=]\s*(?:"[^"\s]{12,}"|'[^'\s]{12,}'|[A-Za-z0-9_./+=-]{12,})"""),
+    re.compile(r"""(?i)(?<![A-Za-z0-9])(?:password|passwd|secret|api[_-]?key|client[_-]?secret|access[_-]?token)\b\s*[:=]\s*(?:"[^"\s]{12,}"|'[^'\s]{12,}'|[A-Za-z0-9_./+=-]{12,})"""),
 )
 
 FALLBACKS = {
@@ -325,6 +325,51 @@ def format_check(root: Path = ROOT, base: str | None = None, head: str | None = 
     return int(failed)
 
 
+def has_exact_job_permissions(job_block: str, expected: set[tuple[str, str]]) -> bool:
+    lines = job_block.splitlines()
+    headers = [index for index, line in enumerate(lines) if line == "    permissions:"]
+    if len(headers) != 1:
+        return False
+    entries: list[tuple[str, str]] = []
+    for line in lines[headers[0] + 1:]:
+        if not line.strip():
+            continue
+        if re.match(r"^    \\S", line):
+            break
+        match = re.fullmatch(r"      ([A-Za-z][A-Za-z0-9-]*):\\s*(read|write|none)\\s*", line)
+        if not match:
+            return False
+        entries.append((match.group(1), match.group(2)))
+    return len(entries) == len(expected) and set(entries) == expected
+
+
+def test_permission_blocks_reject_extra_write_permissions() -> bool:
+    synthetic = """    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+"""
+    comment = """    permissions:
+      issues: write
+    runs-on: ubuntu-24.04
+"""
+    synthetic_with_id_token = synthetic.replace(
+        "      contents: read\\n", "      contents: read\\n      id-token: write\\n"
+    )
+    synthetic_with_packages = synthetic.replace(
+        "      contents: read\\n", "      contents: read\\n      packages: write\\n"
+    )
+    comment_with_contents = comment.replace(
+        "      issues: write\\n", "      issues: write\\n      contents: write\\n"
+    )
+    return (
+        has_exact_job_permissions(synthetic, {("contents", "read")})
+        and has_exact_job_permissions(comment, {("issues", "write")})
+        and not has_exact_job_permissions(synthetic_with_id_token, {("contents", "read")})
+        and not has_exact_job_permissions(synthetic_with_packages, {("contents", "read")})
+        and not has_exact_job_permissions(comment_with_contents, {("issues", "write")})
+    )
+
+
 def static_check() -> int:
     base, head = diff_refs()
     try:
@@ -350,9 +395,11 @@ def static_check() -> int:
             "id: s41-e2e", "id: m73-fixture", "id: m73-build", "id: m73-e2e",
             "id: gate-format", "id: gate-static", "id: gate-secrets", "id: gate-screenshot",
             "id: gate-readback", "id: gate-self-test", "id: synthetic-artifact", "id: gate-summary",
-            "id: gate-summary-artifact", "gate-comment:", "needs: synthetic",
+            "id: gate-summary-artifact", "id: synthetic-gate-enforce", "gate-comment:", "needs: synthetic",
             "if: always() && github.event_name == 'pull_request'",
-            "id: gate-comment-download", "id: gate-comment-prepare", "id: gate-comment-write", "id: gate-finalize",
+            "id: gate-comment-download", "id: gate-comment-prepare", "id: gate-comment-write",
+            "SUMMARY_JSON: ${{ runner.temp }}/agent-ops-gate/summary.json",
+            'if [ "$overall" != "PASS" ]; then',
         )
         lines = workflow.splitlines()
         for token in required:
@@ -383,11 +430,11 @@ def static_check() -> int:
         synthetic = workflow.split("  synthetic:\n", 1)[1].split("\n  gate-comment:", 1)[0] if "  synthetic:\n" in workflow and "\n  gate-comment:" in workflow else ""
         comment = workflow.split("  gate-comment:\n", 1)[1].split("\n  private-original:", 1)[0] if "  gate-comment:\n" in workflow and "\n  private-original:" in workflow else ""
         top_permissions = workflow.split("permissions:\n", 1)[1].split("\nconcurrency:", 1)[0] if "permissions:\n" in workflow else ""
-        if "permissions:\n      contents: read" not in synthetic or "actions: read" in synthetic or "pull-requests: write" in synthetic or "issues: write" in synthetic:
-            annotation(".github/workflows/web-ci.yml", 1, "synthetic job 必须仅有 contents: read")
+        if not has_exact_job_permissions(synthetic, {("contents", "read")}):
+            annotation(".github/workflows/web-ci.yml", 1, "synthetic job permissions 必须精确等于 {contents: read}")
             failed = True
-        if "permissions:\n      issues: write" not in comment or "pull-requests: write" in comment or "actions: read" in comment:
-            annotation(".github/workflows/web-ci.yml", 1, "gate-comment job 必须仅有 issues: write")
+        if not has_exact_job_permissions(comment, {("issues", "write")}):
+            annotation(".github/workflows/web-ci.yml", 1, "gate-comment job permissions 必须精确等于 {issues: write}")
             failed = True
         if "actions: read" in top_permissions:
             annotation(".github/workflows/web-ci.yml", 1, "顶层 permissions 不应授予未使用的 actions: read")
@@ -701,7 +748,8 @@ def test_secret_scan_commit_history() -> bool:
         git_at(repo, "commit", "--quiet", "-m", "baseline")
         base = git_at(repo, "rev-parse", "HEAD").strip()
         credential = "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345")
-        target.write_text("MODE=test\n" + credential + "\n", encoding="utf-8")
+        db_password = "DB_PASSWORD=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345")
+        target.write_text("MODE=test\n" + credential + "\n" + db_password + "\n", encoding="utf-8")
         git_at(repo, "add", "credentials.env")
         git_at(repo, "commit", "--quiet", "-m", "add temporary test credential")
         target.write_text("MODE=test\n", encoding="utf-8")
@@ -710,7 +758,10 @@ def test_secret_scan_commit_history() -> bool:
         output = io.StringIO()
         with redirect_stdout(output):
             result = secret_scan(root=repo, base=base, head="HEAD")
-        return result == 1 and "credentials.env" in output.getvalue() and "line=2" in output.getvalue()
+        return (
+            result == 1 and "credentials.env" in output.getvalue()
+            and "line=2" in output.getvalue() and "line=3" in output.getvalue()
+        )
 
 
 def test_historical_exception_scope() -> bool:
@@ -793,18 +844,17 @@ def reverse_tests() -> int:
         "\x60\x60\x60",
     ])
     parsed_ledger = parse_ledger_text(ledger_sample)
-    bot_comment = {"id": 2, "user": {"login": "github-actions[bot]"}, "body": "<!-- agent-ops-gate -->"}
-    human_comment = {"id": 1, "user": {"login": "reviewer"}, "body": "<!-- agent-ops-gate -->"}
     secret_samples = (
         "AKIA" + "A" * 16,
         "-----BEGIN " + "PGP PRIVATE KEY BLOCK" + "-----",
         "-----BEGIN " + "ENCRYPTED PRIVATE KEY" + "-----",
         "-----BEGIN " + "DSA PRIVATE KEY" + "-----",
         "API" + "_KEY=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345"),
+        "DB_PASSWORD=" + ("synthetic-" + "test-" + "secret-" + "value-" + "12345"),
     )
     tests = [
         ("1 单元测试失败的 PR 返回阻断退出码", combine_statuses("failure", "success") == "FAIL" and final_exit_code("FAIL") == 1),
-        ("2 PGP/ENCRYPTED/DSA/无引号凭据及逐提交扫描均拦截",
+        ("2 PGP/ENCRYPTED/DSA/API_KEY/DB_PASSWORD 及逐提交扫描均拦截",
          all(detect_secret(value) for value in secret_samples) and
          test_secret_scan_commit_history() and test_historical_exception_scope()),
         ("3 真实文件 format_check 检出混合换行并输出行号", test_format_check_real_file()),
@@ -814,15 +864,15 @@ def reverse_tests() -> int:
          review_decision("green", "PASS", blind_review="passed", manager_review="not_selected")["merge_allowed"]),
         ("5 超时明确归为失败", normalize_status("timed_out") == "FAIL" and final_exit_code("FAIL") == 1),
         ("6 CI/API 不可用显示未知且不放行", normalize_status(None) == "UNKNOWN" and status_label("UNKNOWN") == "门禁未知" and final_exit_code("UNKNOWN") == 1),
-        ("7 钱/删除/门禁自身变更归红灯且缺少 Opus 不得合并",
+        ("7 高风险分类/Opus 门禁及权限精确断言（拒绝 id-token:write、packages:write、contents:write）",
          classify_review([{"filename": "web/src/player-state.ts", "status": "modified"}], 4, "+player.gold += 20") == "red" and
          classify_review([{"filename": "web/data/catalog.json", "status": "removed"}], 10) == "red" and
          classify_review([{"filename": ".github/workflows/web-ci.yml", "status": "modified"}], 10) == "red" and
          classify_review([{"filename": "tools/gate/check_gate.py", "status": "modified"}], 10) == "red" and
-         not review_decision("red", "PASS", opus_review="missing", manager_review="approved")["merge_allowed"]),
-        ("8 绿灯缺少子代理盲审不得标记已审查，且只更新 Actions bot 评论",
-         not review_decision("green", "PASS", manager_review="not_selected")["reviewed"] and
-         find_bot_comment([human_comment, bot_comment]) == bot_comment),
+         not review_decision("red", "PASS", opus_review="missing", manager_review="approved")["merge_allowed"] and
+         test_permission_blocks_reject_extra_write_permissions()),
+        ("8 绿灯缺少子代理盲审不得标记已审查（仅验证策略函数）",
+         not review_decision("green", "PASS", manager_review="not_selected")["reviewed"]),
         ("9 台账忽略代码块/HTML 注释并逐项核对 PR/SHA/merged_at",
          len(parsed_ledger) == 1 and parsed_ledger[0]["number"] == 1 and
          ledger_matches({1: (timestamp.replace("Z", ".000Z"), sha_a)}, parsed_ledger) and
@@ -871,12 +921,16 @@ def summarize(args: argparse.Namespace) -> int:
     readback_data = read_json(args.readback, {})
     dependencies = normalize_status(os.environ.get("GATE_DEPS"))
     build = combine_statuses(dependencies, os.environ.get("GATE_BUILD"), os.environ.get("GATE_M73_BUILD"))
-    screenshot = combine_statuses(
-        os.environ.get("GATE_SCREENSHOT"), os.environ.get("GATE_CHROMIUM_E2E"),
-        os.environ.get("GATE_M73_E2E"), os.environ.get("GATE_PLAYWRIGHT_INSTALL"),
-        os.environ.get("GATE_STANDALONE_PREVIEW"), os.environ.get("GATE_M73_FIXTURE"),
-        os.environ.get("GATE_S41_E2E", "success")
-    )
+    screenshot_components = [
+        ("截图", normalize_status(os.environ.get("GATE_SCREENSHOT"))),
+        ("Chromium E2E", normalize_status(os.environ.get("GATE_CHROMIUM_E2E"))),
+        ("M7.3 E2E", normalize_status(os.environ.get("GATE_M73_E2E"))),
+        ("S41 E2E", normalize_status(os.environ.get("GATE_S41_E2E", "success"))),
+        ("Playwright 安装", normalize_status(os.environ.get("GATE_PLAYWRIGHT_INSTALL"))),
+        ("独立预览", normalize_status(os.environ.get("GATE_STANDALONE_PREVIEW"))),
+        ("M7.3 夹具", normalize_status(os.environ.get("GATE_M73_FIXTURE"))),
+    ]
+    screenshot = combine_statuses(*(status for _, status in screenshot_components))
     readback_status = str(readback_data.get("status", "UNKNOWN")).upper() if is_pr else "NOT_APPLICABLE"
     gates = [
         ("单元测试", combine_statuses(dependencies, os.environ.get("GATE_PARSER_UNIT"), os.environ.get("GATE_WEB_UNIT")), "unit_tests"),
@@ -885,7 +939,7 @@ def summarize(args: argparse.Namespace) -> int:
         ("格式检查", normalize_status(os.environ.get("GATE_FORMAT")), "format"),
         ("静态检查", normalize_status(os.environ.get("GATE_STATIC")), "static"),
         ("敏感信息扫描", normalize_status(os.environ.get("GATE_SECRETS")), "secrets"),
-        ("截图自检", screenshot, "screenshot"),
+        ("截图与 E2E", screenshot, "screenshot"),
         ("GitHub 独立读回", readback_status, "github_readback"),
     ]
     reverse = normalize_status(os.environ.get("GATE_SELF_TEST"))
@@ -911,6 +965,9 @@ def summarize(args: argparse.Namespace) -> int:
     for title, status, _ in gates:
         lines.append(f"| {title} | {status_label(status)} |")
     lines += [
+        "",
+        "**截图与 E2E 子状态：**",
+        *[f"- {name}：{status_label(status)}" for name, status in screenshot_components],
         f"| 九项反向测试 | {status_label(reverse)} |",
         f"| 验证产物上传 | {status_label(artifact)} |",
         "", f"**审查等级：** {level}", "", "**改动清单：**",
@@ -936,6 +993,7 @@ def summarize(args: argparse.Namespace) -> int:
     Path(args.output).write_text(markdown, encoding="utf-8")
     write_json(args.json_output, {
         "overall": overall, "gates": {key: status for _, status, key in gates},
+        "screenshot_components": {name: status for name, status in screenshot_components},
         "reverse_tests": reverse, "evidence_upload": artifact, "review_level": level,
         "gate_self_modified": gate_self_modified, "changed_files": rows, "readback": readback_data,
     })
@@ -953,72 +1011,10 @@ def summarize(args: argparse.Namespace) -> int:
     return 0
 
 
-def find_bot_comment(comments: list[dict], marker: str = "<!-- agent-ops-gate -->") -> dict | None:
-    return next((
-        item for item in comments
-        if (item.get("user") or {}).get("login") == "github-actions[bot]"
-        and marker in str(item.get("body", ""))
-    ), None)
-
-
-def post_comment(args: argparse.Namespace) -> int:
-    token = os.environ.get("GITHUB_TOKEN", "")
-    repo = os.environ.get("GITHUB_REPOSITORY", "")
-    number = os.environ.get("PR_NUMBER", "")
-    if not all((token, repo, number)):
-        write_json(args.output, {"status": "UNKNOWN", "reason": "PR 评论环境变量缺失"})
-        print("pr_comment: UNKNOWN")
-        return 0
-    body = Path(args.summary).read_text(encoding="utf-8")
-    marker = "<!-- agent-ops-gate -->"
-    try:
-        root = f"https://api.github.com/repos/{repo}"
-        comments = paged_api(f"{root}/issues/{number}/comments", token)
-        existing = find_bot_comment(comments, marker)
-        if existing:
-            result = api_json(f"{root}/issues/comments/{existing['id']}", token, {"body": body}, "PATCH")
-            action = "updated"
-        else:
-            result = api_json(f"{root}/issues/{number}/comments", token, {"body": body}, "POST")
-            action = "created"
-        write_json(args.output, {"status": "PASS", "action": action, "comment_id": result.get("id")})
-        print(f"pr_comment: PASS; {action}")
-        return 0
-    except HTTPError as exc:
-        try:
-            detail = exc.read().decode("utf-8", errors="replace")[:600]
-        except OSError:
-            detail = ""
-        reason = f"GitHub comment API HTTP {exc.code}: {detail}"
-        write_json(args.output, {"status": "UNKNOWN", "reason": reason})
-        annotation(".github/workflows/web-ci.yml", 1, "PR 门禁结果无法写回评论；门禁未知，请查看 API 状态与响应")
-        print(f"pr_comment: UNKNOWN; HTTP {exc.code}; {detail}")
-        return 0
-    except (URLError, TimeoutError, RuntimeError, OSError, json.JSONDecodeError, AttributeError, TypeError) as exc:
-        write_json(args.output, {"status": "UNKNOWN", "reason": f"评论写回不可用：{type(exc).__name__}"})
-        annotation(".github/workflows/web-ci.yml", 1, "PR 门禁结果无法写回评论；门禁未知")
-        print(f"pr_comment: UNKNOWN; {type(exc).__name__}")
-        return 0
-
 
 def final_exit_code(overall: str) -> int:
     return 0 if overall == "PASS" else 1
 
-
-def finalize(args: argparse.Namespace) -> int:
-    summary = read_json(args.summary_json, {})
-    overall = str(summary.get("overall", "UNKNOWN")).upper()
-    if os.environ.get("IS_PR", "false").lower() == "true":
-        comment = read_json(args.comment_json, {})
-        if str(comment.get("status", "UNKNOWN")).upper() != "PASS" and overall == "PASS":
-            overall = "UNKNOWN"
-    message = f"最终门禁状态：{status_label(overall)}。"
-    step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
-    if step_summary:
-        with open(step_summary, "a", encoding="utf-8") as handle:
-            handle.write("\n" + message + "\n")
-    print(message)
-    return final_exit_code(overall)
 
 
 def main() -> int:
@@ -1042,12 +1038,6 @@ def main() -> int:
     sm.add_argument("--output", required=True)
     sm.add_argument("--json-output", required=True)
     sm.add_argument("--readback", default=os.environ.get("GATE_READBACK_FILE", ""))
-    cm = sub.add_parser("comment")
-    cm.add_argument("--summary", required=True)
-    cm.add_argument("--output", required=True)
-    fin = sub.add_parser("finalize")
-    fin.add_argument("--summary-json", required=True)
-    fin.add_argument("--comment-json", default="")
     args = parser.parse_args()
     actions = {
         "run": lambda: command_run(args),
@@ -1058,8 +1048,6 @@ def main() -> int:
         "screenshot": lambda: screenshot_check(args.path),
         "readback": lambda: readback(args),
         "summarize": lambda: summarize(args),
-        "comment": lambda: post_comment(args),
-        "finalize": lambda: finalize(args),
     }
     return actions[args.command_name]()
 

@@ -284,6 +284,24 @@ jobs:
             ${{ runner.temp }}/agent-ops-gate/summary.json
           retention-days: 1
           if-no-files-found: warn
+      - name: Enforce synthetic gate result
+        id: synthetic-gate-enforce
+        if: always()
+        timeout-minutes: 1
+        env:
+          SUMMARY_JSON: ${{ runner.temp }}/agent-ops-gate/summary.json
+        run: |
+          set -euo pipefail
+          if [ ! -s "$SUMMARY_JSON" ]; then
+            echo "::error::Machine gate summary.json missing; result is UNKNOWN."
+            exit 1
+          fi
+          overall="$(jq -r '.overall // "UNKNOWN"' "$SUMMARY_JSON")"
+          if [ "$overall" != "PASS" ]; then
+            echo "::error::Machine gate not passed: overall=$overall"
+            exit 1
+          fi
+          echo "Synthetic machine gate result: PASS"
   gate-comment:
     needs: synthetic
     if: always() && github.event_name == 'pull_request'

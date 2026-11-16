@@ -17,6 +17,8 @@
 
 总体裁定顺序：任一 FAIL → 未通过；否则任一 UNKNOWN/NOT_RUN → 门禁未知；只有八项均 PASS 才显示通过。取消、超时、步骤跳过不能被折算为 PASS。
 
+workflow 触发集合：push（分支 `codex/**`、`feat/ch1-m73-wild-encounters`，且须命中 paths 过滤）；pull_request（目标分支 main）；workflow_dispatch（手动触发）。synthetic job 在汇总后读取 summary.json，只有 overall=PASS 才以退出码 0 结束；FAIL/UNKNOWN/缺失均退出码 1，因此非 PR 事件也会保留失败信号。
+
 ## 2. 八项门禁
 
 | # | 门禁 | 执行内容 | 单项超时 | 失败证据 |
@@ -27,8 +29,10 @@
 | 4 | 格式检查 | git diff --check 检查新增行行尾空白；检查变更文本文件的混合换行和末尾换行，新文件全量检查行尾空白 | 3 分钟 | 精确到变更文件和行号 |
 | 5 | 静态检查 | 对变更 Python 文件执行 AST 解析；核验 web-ci.yml 的 PR 触发、门禁步骤超时、Action SHA 固定及禁止另建 ci.yml | 3 分钟 | 精确到 Python 文件/行；工作流结构错误定位到 web-ci.yml 对应行 |
 | 6 | 敏感信息扫描 | 扫描 PR 新增行中的常见云密钥、GitHub token、Slack token、私钥块和凭据赋值 | 3 分钟 | 精确到文件和新增行号 |
-| 7 | 截图自检 | 现有 Chromium E2E + production preview 冒烟；确认 canvas 可见、页面无 pageerror/横向溢出，生成并校验 PNG | E2E 25 分钟；截图 5 分钟 | 浏览器错误、失败测试文件/行；截图格式错误定位到截图文件 |
+| 7 | 截图与 E2E | 单一聚合行：截图、Chromium E2E、M7.3 E2E、S41 E2E、Playwright 安装、独立预览、M7.3 夹具七项；确认 canvas 可见、页面无 pageerror/横向溢出并校验 PNG | E2E 25 分钟；截图 5 分钟 | 评论在该行下方逐项列出七个子状态；浏览器错误、失败测试文件/行及截图格式错误定位到具体文件 |
 | 8 | GitHub 独立读回 | 用 Actions token 从 GitHub API 读回 PR head/base、PR 文件清单、合并 PR 集合及审查台账；与本次 checkout 的 Git diff 对照 | 3 分钟 | 不一致为 FAIL；API 不可用为 UNKNOWN，绝不当作 PASS |
+
+第 7 项保持一个聚合门禁行，不拆成多个门禁；聚合状态由上述七个子状态共同决定。评论必须在“截图与 E2E”行下方列出：截图、Chromium E2E、M7.3 E2E、S41 E2E、Playwright 安装、独立预览、M7.3 夹具。
 
 依赖安装、synthetic fixture 生成、Chromium 安装也分别设有步骤超时。完整 Chromium E2E 采用 25 分钟上限；如果 Playwright 因超时留下 4173 端口的 preview server，后续 M7.3 E2E 与截图自检会先清理该端口，避免把残留进程误判为新的测试失败。整个 synthetic job 有总超时；总超时或未到达的检查均不能显示为通过。
 
@@ -44,11 +48,12 @@
 每次 PR 汇总至少包含：
 - 文件路径、变更状态、增加行数、删除行数；
 - 八项门禁状态及整体状态；
+- “截图与 E2E”聚合行及其七个子状态；
 - PR 的 base/head SHA 与 GitHub API 读回结果；
 - 审查等级（绿/黄/红）及对应下一步；
 - 九项反向测试的汇总状态。逐项输出只保留在 Actions 日志与 artifact，不写入 PR 评论。
 
-PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 artifact 传递 summary.md；该 job 仅授予 issues:write，不 checkout、不执行 PR 脚本。synthetic job 只读（contents:read），不授予 actions:read 或写权限。评论只更新作者为 github-actions[bot] 且包含固定标记的评论；不接管人工评论。评论 job 使用 if: always()，即使 synthetic job 超时或失败也会在缺少 artifact 时写回“门禁未知”，避免遗留旧的“通过”评论。被新提交取代的旧 head 运行会先读回当前 PR head 并跳过写回。若读回不可用，仍用事件中的 PR 编号/base/head 标识“门禁未知”。评论 API 写入失败或权限不足时，评论 job 失败，PR 门禁不能显示通过。Actions Job Summary 和 web-synthetic-validation artifact 同时保留运行证据。
+PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 artifact 传递 summary.md；该 job 仅授予 issues:write，不 checkout、不执行 PR 脚本。synthetic job 只读（contents:read），不授予 actions:read 或写权限；静态检查对两个 job 的 permissions 映射做精确集合比较，任何额外权限（包括额外 write）均失败。评论只更新作者为 github-actions[bot] 且包含固定标记的评论；不接管人工评论。评论 job 使用 if: always()，即使 synthetic job 超时或失败也会在缺少 artifact 时写回“门禁未知”，避免遗留旧的“通过”评论。被新提交取代的旧 head 运行会先读回当前 PR head 并跳过写回。若读回不可用，仍用事件中的 PR 编号/base/head 标识“门禁未知”。评论 API 写入失败或权限不足时，评论 job 失败，PR 门禁不能显示通过。Actions Job Summary 和 web-synthetic-validation artifact 同时保留运行证据。
 
 ## 4. 敏感扫描边界
 
@@ -90,13 +95,32 @@ PR 评论由独立 gate-comment job 在 synthetic job 结束后写回，使用 a
 | 5 | 单项超时 | 超时归 FAIL，不能被当作跳过或通过 |
 | 6 | CI/API 不可用或结果缺失 | 状态 UNKNOWN，显示“门禁未知” |
 | 7 | 红灯 PR 没有 Opus 盲审 | 函数级 review_decision() 返回 merge_allowed=false；workflow 不自动执行 Opus 检查 |
-| 8 | 绿灯 PR 没有子代理盲审 | reviewed=false，不得标记“已审查通过” |
+| 8 | 绿灯 PR 没有子代理盲审 | reviewed=false，不得标记“已审查通过”；本项只调用 review_decision() 策略函数 |
 | 9 | 审查台账 PR 集合/行数与已合并 PR 集合不一致 | 校验失败；一致才通过 |
 
-第 7、8 项只验证函数级审查策略，不代表 workflow 已接入 Opus/子代理盲审，更不是 GitHub branch protection 技术锁。试运行阶段仍由负责人遵守不得合并/不得标记审查通过的规则。
+第 8 项只验证 review_decision() 的策略函数，不调用评论写回代码，也不测试 GitHub 评论 API；PR 评论实际由 web-ci.yml 的独立 gate-comment job 使用 gh api 实现。第 7 项同样只验证红灯/Opus 缺失时的函数级策略。它们不代表 workflow 已接入 Opus/子代理盲审，更不是 GitHub branch protection 技术锁。试运行阶段仍由负责人遵守不得合并/不得标记审查通过的规则。Python 中未被 workflow 调用的 find_bot_comment/post_comment/finalize 函数及对应 CLI 子命令已删除。
 
 
 ## 8. 试运行调优清单（暂缓）
+
+以下事项明确留待后续处理，本 PR 不改游戏代码或既有 E2E 测试：
+
+- M7.3 金币断言是既有测试写法问题：`web/e2e/ch1-wild-encounters.spec.ts` 第 263/265 行检查胜利后的玩家总金币绝对值 40，而新角色初始金币为 20,000；奖励 40 后总额 20,040。应另行把测试改为奖励增量/胜利前后差值断言；本 PR 不修改游戏逻辑、该测试或结算代码。
+- main 的 web-ci.yml 在 Chromium E2E 失败后会跳过后续步骤；跨运行基线比较必须把 SKIPPED/NOT_RUN 与实际 PASS/FAIL 分开，不得把跳过当通过。
+- 凭据规则的已知误报：把 `api_key` 赋值为 `settings.API_KEY_VALUE` 的代码表达式可能被无引号分支误报。误报按 fail-safe 处理，本 PR 不放宽规则。
+- API 读 PR head 失败时，prepare 步骤会因 set -e 退出，后续无法写回“门禁未知”；需研究读不到 head 时使用事件中的 PR/base/head 安全写回 UNKNOWN 的方式。
+- `git log -p` 默认不输出 merge commit 的 diff；后续评估使用 `--cc` 或 `-m` 补足合并提交扫描。
+- `touches_gate_self()` 目前只检查 filename；改名移出门禁目录时应同时检查 GitHub changed-file 的 `previous_filename`。
+- `format_check()` 的 subprocess.run 尚未显式指定 `encoding="utf-8", errors="replace"`；后续统一解码行为。
+- 逐项反向测试结果是否完整进入 `web-synthetic-validation` artifact 仍待核实：reverse-tests.log 写入 runner temp 目录，需核对实际产物清单与 artifact path。
+- 门禁长期红问题：main 基线已存在 9 项 Chromium E2E 失败及 M7.3 金币绝对值断言问题；须另行修复既有测试或由负责人批准明确的既有失败基线比较机制，不能通过把失败/跳过改写为 PASS 解决。
+
+## 9. 本轮基线证据与裁定
+
+- PR #20 的 base..head compare 只包含六个文件：本 workflow、check_gate.py 和四份 agent-ops 文档；没有 `web/e2e/`、`web/src/` 游戏测试或逻辑文件。
+- main@5fbf1679 与 PR #20 HEAD 上，`web/e2e/ch1-wild-encounters.spec.ts`、`web/src/m4-runtime-integration.ts`、`web/src/world/ch1-wild-encounter-settlement.ts` 的 Git blob SHA 分别相同：`24e98fac94f3090457f1f887cbbed8915d158694`、`83d3833908092de568e8f0afc5b36b87f818a770`、`ca598126936088596f9aab02bb62760326f84071`。测试第 263 行取得胜利后的完整玩家状态，第 265 行断言 `won.gold == 40`；M4 runtime 第 163 行新角色初始金币为 20,000；结算代码第 43 行奖励金币为 40。20,000 + 40 = 20,040，问题是测试用总余额绝对值断言，不是奖励结算错误。
+- Run #43772129471（PR #20 HEAD 176c9ce3）Chromium 九项失败，与 PR #21 Run #43777684072 的 Chromium 九项失败按测试名一致。后者 M7.3 E2E 为 SKIPPED，前者 M7.3 E2E 为 FAIL；main workflow 的 Chromium 步骤失败会跳过后续 M7.3 步骤，而 PR workflow 的 continue-on-error 与 M7.3 独立条件允许继续执行。按上述相同源文件证据，M7.3 是 main 已存在的测试写法问题，不是 PR #20 引入的新失败。SKIPPED 不代表 PASS。
+
 
 以下事项属于低优先级调优，本轮不修：
 - 第 10 项：S41 条件跳过与状态映射；NOT_APPLICABLE 的统一口径；synthetic-pack 是否单独计入门禁状态；artifact 完整性校验。
