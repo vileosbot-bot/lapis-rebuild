@@ -2,12 +2,15 @@ declare global {
   interface ImportMeta {
     readonly env: { readonly PROD: boolean };
   }
+  interface Window {
+    readonly __LAPIS_SINGLE_FILE__?: boolean;
+  }
 }
 
 const PWA_UPDATE_EVENT = 'lapis-pwa-update-ready';
 
 export function registerAppShellServiceWorker(): void {
-  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
+  if (window.__LAPIS_SINGLE_FILE__ || !import.meta.env.PROD || !('serviceWorker' in navigator)) return;
 
   window.addEventListener('load', () => {
     void navigator.serviceWorker.register('./service-worker.js', { scope: './' })

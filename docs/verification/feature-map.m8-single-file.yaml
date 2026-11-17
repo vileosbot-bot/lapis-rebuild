@@ -1,0 +1,116 @@
+schema_version: 1
+map_id: lapis-m8-single-file-delivery
+repository: vileosbot-bot/lapis-rebuild
+baseline_commit: d32cb1a42877c0757d23d47b7951c3b70076f638
+
+integration_dependency:
+  task_id: ch1-singlefile-20261117-01
+  status: NOT_RUN
+  policy: "仅验证单文件构建与离线启动，不替代第一章真实主链验收。"
+
+evidence_policy:
+  source_evidence_levels:
+    - NOT_APPLICABLE
+  runtime_status_values:
+    - NOT_RUN
+    - PASS
+    - FAIL
+    - BLOCKED
+  ybcs_source_rule: "本 Feature 不改变任何来源证据等级；不得将 ybcs-offline 标记为 VERIFIED。"
+
+features:
+  - feature_id: M8-SINGLE-01
+    flow_order: 1
+    name: 单文件构建与资源内嵌
+    feature_status: NOT_RUN
+    runtime_status: NOT_RUN
+    location:
+      kind: build-artifact
+      value: "web/dist/lapis-single-file.html"
+      status: NOT_RUN
+    code_anchors:
+      - path: tools/build-single-file.mjs
+        role: "将 Vite dist、CSS/JS 与 game-data 全部内联到一个 HTML。"
+        status: ACTIVE_IMPLEMENTATION
+      - path: web/src/assets.ts
+        role: "复用 window.__LAPIS_PACK__ 路径映射与 Data URI 资源读取。"
+        status: ACTIVE_IMPLEMENTATION
+    source_records: []
+    bindings:
+      input_dist:
+        value: "web/dist built with --base=./"
+        status: NOT_RUN
+      game_data:
+        value: "web/public/game-data"
+        status: NOT_RUN
+    entry_path:
+      - step_id: build
+        action: "运行普通相对路径构建，再执行 tools/build-single-file.mjs。"
+        expected_observation: "生成一个包含所有 JS、CSS 与 game-data 文件的自包含 HTML。"
+        status: NOT_RUN
+    expected_observations:
+      - "全部 JS/CSS 内联；不存在额外 JS chunk 引用。"
+      - "prototype.json、asset-index.json 及 game-data 下所有文件均以 Base64 Data URI 嵌入 window.__LAPIS_PACK__。"
+      - "输出 HTML 字节数由构建脚本实际统计。"
+    assertions:
+      - assertion_id: M8-SINGLE-01-A
+        method: log
+        expected: "单文件构建成功，JS chunk 恰为 1，CSS 至少 1，game-data 文件全部嵌入。"
+        status: NOT_RUN
+        evidence_artifact: NOT_RUN
+      - assertion_id: M8-SINGLE-01-B
+        method: log
+        expected: "输出检查通过，报告 HTML 最终字节数。"
+        status: NOT_RUN
+        evidence_artifact: NOT_RUN
+    screenshots: []
+    state_snapshots: []
+    known_gaps: []
+
+  - feature_id: M8-SINGLE-02
+    flow_order: 2
+    name: file URL 启动与无外部请求
+    feature_status: NOT_RUN
+    runtime_status: NOT_RUN
+    location:
+      kind: browser
+      value: "file://<generated single-file HTML>"
+      status: NOT_RUN
+    code_anchors:
+      - path: web/src/assets.ts
+        role: "从内嵌路径映射读取 prototype、JSON 与图片 Data URI。"
+        status: ACTIVE_IMPLEMENTATION
+      - path: web/src/pwa-shell.ts
+        role: "单文件模式不注册 Service Worker。"
+        status: ACTIVE_IMPLEMENTATION
+    source_records: []
+    bindings:
+      browser:
+        value: "Chromium file://"
+        status: NOT_RUN
+      external_requests:
+        value: "none"
+        status: NOT_RUN
+    entry_path:
+      - step_id: open-file
+        action: "在 Chromium 中直接打开生成的 HTML 文件。"
+        expected_observation: "无需服务器、Python 或网络，游戏完成启动。"
+        status: NOT_RUN
+    expected_observations:
+      - "file:// 下游戏启动并可见 canvas。"
+      - "浏览器不发起任何 http(s) 外部请求。"
+      - "单文件模式不注册 Service Worker。"
+    assertions:
+      - assertion_id: M8-SINGLE-02-A
+        method: runtime_assertion
+        expected: "file:// 页面成功启动，资源包 ready，canvas 可见。"
+        status: NOT_RUN
+        evidence_artifact: NOT_RUN
+      - assertion_id: M8-SINGLE-02-B
+        method: log
+        expected: "外部请求数量为 0，Service Worker registration 为 null。"
+        status: NOT_RUN
+        evidence_artifact: NOT_RUN
+    screenshots: []
+    state_snapshots: []
+    known_gaps: []
