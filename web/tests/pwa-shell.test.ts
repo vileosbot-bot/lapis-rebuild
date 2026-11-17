@@ -24,9 +24,10 @@ test('service worker caches only explicit app-shell paths and build assets', asy
   assert.doesNotMatch(source, /skipWaiting/);
 });
 
-test('PWA registration is production-only and never forces a refresh', async () => {
+test('PWA registration is production-only, skipped for single-file mode, and never forces a refresh', async () => {
   const source = await read('../src/pwa-shell.ts');
   assert.match(source, /import\.meta\.env\.PROD/);
+  assert.match(source, /window\.__LAPIS_SINGLE_FILE__/);
   assert.match(source, /serviceWorker\.register/);
   assert.doesNotMatch(source, /location\.reload/);
 });
