@@ -191,11 +191,6 @@ jobs:
           $p = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($launcher.Name)`"" -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput (Join-Path $ws "game-stdout.log") -RedirectStandardError (Join-Path $ws "game-stderr.log")
           Write-Host "launcher pid: $($p.Id)"
           Start-Sleep -Seconds 35
-          Shot "shot-00-preclick"
-          Click-Client 625 544
-          Write-Host "clicked Confirm at 625,544"
-          Start-Sleep -Seconds 5
-          Shot "shot-00-postclick"
 
           try {
             $game = $null
@@ -211,7 +206,12 @@ jobs:
             if (-not [WinInput]::GetClientRect($gameHwnd, [ref]$rect)) { throw "Cannot read NeoDark client rectangle" }
             Write-Host "game window: pid=$($game.Id) hwnd=$gameHwnd client=$($rect.Right - $rect.Left)x$($rect.Bottom - $rect.Top)"
             Focus-Game
-
+            Shot "shot-00-preclick"
+            Click-Client 625 544
+            Write-Host "clicked Confirm at 625,544"
+            Start-Sleep -Seconds 5
+            Shot "shot-00-postclick"
+            Focus-Game
             Shot "route-1030-start"
             Navigate-MapTarget 1030 6 138 122 534 "route-1030" "1020"
             Navigate-MapTarget 1020 7 177 148 270 "route-1020" "1000"
