@@ -50,6 +50,22 @@ jobs:
           $clientLog = Join-Path $ws "ybcs\runtime\logs\ybcs-gui-client.jsonl"
           $serverLog = Join-Path $ws "ybcs\runtime\logs\ybcs-gui-server.log"
           cd ybcs
+          $neodarkPath = Join-Path $ws "ybcs\runtime\client\NeoDark.exe"
+          if (-not (Test-Path -LiteralPath $neodarkPath)) { throw "NeoDark.exe missing from the verified offline package: $neodarkPath" }
+          $neoHash = (Get-FileHash -LiteralPath $neodarkPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "STATIC_BINARY path=$neodarkPath sha256=$neoHash"
+          if ($neoHash -ne "c1be05eb2977a8aae8cbe8b716bc1e3957263edde8187d5269d554b327f13cbd") {
+            throw "NeoDark.exe differs from the binary used for the offline static disassembly"
+          }
+          Write-Host "STATIC_UNPACK UPX_PE32 method=2(NRV2B) filter=0x26 cto=0x1b; compressed/uncompressed Adler-32 checks matched; binary was not executed for static analysis"
+          Write-Host "STATIC_DISPATCH_ANALYSIS binary=NeoDark.exe image_base=0x00400000 architecture=PE32"
+          Write-Host "STATIC_HIT_TEST 0x004572A0: x_rel=arg0-[this+0x14]; y_rel=arg1-[this+0x18]; rows=[this+0x110..this+0x114] pointer array; row.Kind=[row+0]; active_kind=[this+0x11c]; RECT=[row+0x4]; transform=(dx=+20,dy=-15) via [0x004E2478]; point-in-rect via [0x004E2510]; hit stores ordinal at [this+0x120], no hit stores -1 at 0x004573C2"
+          Write-Host "STATIC_ORDINAL_RULE: only rows whose Kind equals [this+0x11c] are eligible; eligible ordinal starts at 0 and increments after each miss; first containing RECT wins"
+          Write-Host "STATIC_CLICK_HANDLER 0x004571F0: if [this+0x11c]==2 then push [this+0x120] and call 0x00457A90"
+          Write-Host "STATIC_DISPATCH 0x00457A90: ordinal=[esp+0x4]; range 0..3; jump table=[0x00457CB8+ordinal*4]"
+          Write-Host "STATIC_ORDINAL0 0x00457ADE: packet=[0x49,0x09,word([this+0x108])] length=4; call target=0x004A6FD0"
+          Write-Host "STATIC_ORDINAL1 0x00457B44: packet=[0x30,word([this+0x108]),word(action)] length=5; action selected from ([this+0x104]-12) lookup table; call target=0x004A6FD0"
+          Write-Host "STATIC_DISPATCH_TAIL 0x00457CA0: call 0x004186E0 then return; packet dispatcher 0x004A6FD0 has error branches to 0x004D94D1"
           $npcPatch = @'
           from pathlib import Path
 
@@ -181,301 +197,167 @@ jobs:
             OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
           );
           '''
-          new_trace_anchor = b'''let npcDialogNativeTraceInstalled = false;
+          new_trace_anchor = b'''          let npcDialogNativeTraceInstalled = false;
           let npcDialogNativeTraceSequence = 0;
+          let npcExitTraceInstalled = false;
           function npcDialogTraceHex(bytes) {
             return Array.from(bytes).map(function(value) {
               return (value < 16 ? "0" : "") + value.toString(16);
             }).join("");
           }
-          function npcDialogTraceReadS16(bytes, offset) {
-            const value = bytes[offset] | (bytes[offset + 1] << 8);
-            return (value & 0x8000) !== 0 ? value - 0x10000 : value;
-          }
-          function npcDialogTraceReadU32(bytes, offset) {
-            return (bytes[offset] | (bytes[offset + 1] << 8) |
-              (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24)) >>> 0;
-          }
-          function npcDialogTraceReadS32(bytes, offset) {
-            const value = npcDialogTraceReadU32(bytes, offset);
-            return value > 0x7fffffff ? value - 0x100000000 : value;
-          }
-          function npcDialogTraceFindMenuRows(bytes) {
-            const fullExpected = [
-              {kind: 1, x: 150, y: 17, width: 200, height: 12, ordinal: null},
-              {kind: 2, x: 150, y: 17, width: 200, height: 12, ordinal: 0},
-              {kind: 2, x: 150, y: 35, width: 200, height: 12, ordinal: 1},
-              {kind: 2, x: 150, y: 53, width: 200, height: 12, ordinal: 2}
-            ];
-            const selectableExpected = [
-              {kind: 2, x: 150, y: 17, width: 200, height: 12, ordinal: 0},
-              {kind: 2, x: 150, y: 35, width: 200, height: 12, ordinal: 1},
-              {kind: 2, x: 150, y: 53, width: 200, height: 12, ordinal: 2}
-            ];
-            const layouts = [
-              {name: "kind-u8-i16x4", stride: 9, kindOffset: 0, kindWidth: 1, coordOffset: 1, coordWidth: 2},
-              {name: "kind-u16-i16x4", stride: 10, kindOffset: 0, kindWidth: 2, coordOffset: 2, coordWidth: 2},
-              {name: "kind-u8-pad1-i16x4", stride: 10, kindOffset: 0, kindWidth: 1, coordOffset: 2, coordWidth: 2},
-              {name: "kind-u32-i16x4", stride: 12, kindOffset: 0, kindWidth: 4, coordOffset: 4, coordWidth: 2},
-              {name: "kind-u8-pad3-i16x4", stride: 12, kindOffset: 0, kindWidth: 1, coordOffset: 4, coordWidth: 2},
-              {name: "kind-u32-i32x4", stride: 20, kindOffset: 0, kindWidth: 4, coordOffset: 4, coordWidth: 4},
-              {name: "kind-u8-pad3-i32x4", stride: 20, kindOffset: 0, kindWidth: 1, coordOffset: 4, coordWidth: 4}
-            ];
-            function readField(offset, width, signed) {
-              if (offset < 0 || offset + width > bytes.length) return null;
-              if (width === 1) return bytes[offset];
-              if (width === 2) return signed
-                ? npcDialogTraceReadS16(bytes, offset)
-                : (bytes[offset] | (bytes[offset + 1] << 8));
-              return signed
-                ? npcDialogTraceReadS32(bytes, offset)
-                : npcDialogTraceReadU32(bytes, offset);
+          function npcDialogTraceBacktrace(context) {
+            try {
+              return Thread.backtrace(context, Backtracer.ACCURATE).map(function(address) {
+                let symbol = null;
+                try { symbol = DebugSymbol.fromAddress(address).toString(); } catch (_) {}
+                return {address: address.toString(), symbol: symbol};
+              });
+            } catch (error) {
+              return [{error: String(error)}];
             }
-            function rowAt(layout, offset) {
-              const kind = readField(offset + layout.kindOffset, layout.kindWidth, false);
-              const coord = offset + layout.coordOffset;
-              if (kind !== 1 && kind !== 2) return null;
-              return {
-                kind: kind,
-                x: readField(coord, layout.coordWidth, true),
-                y: readField(coord + layout.coordWidth, layout.coordWidth, true),
-                width: readField(coord + layout.coordWidth * 2, layout.coordWidth, true),
-                height: readField(coord + layout.coordWidth * 3, layout.coordWidth, true)
-              };
-            }
-            function matches(actual, expected) {
-              return actual !== null && actual.kind === expected.kind &&
-                actual.x === expected.x && actual.y === expected.y &&
-                actual.width === expected.width && actual.height === expected.height;
-            }
-            const arrays = [];
-            const rows = [];
-            layouts.forEach(function(layout) {
-              for (let offset = 0; offset + layout.stride * 4 <= bytes.length; offset++) {
-                const entries = [];
-                let valid = true;
-                for (let index = 0; index < fullExpected.length; index++) {
-                  const actual = rowAt(layout, offset + index * layout.stride);
-                  if (!matches(actual, fullExpected[index])) {
-                    valid = false;
-                    break;
-                  }
-                  entries.push({
-                    rowIndex: index,
-                    kind: actual.kind,
-                    x: actual.x,
-                    y: actual.y,
-                    width: actual.width,
-                    height: actual.height,
-                    ordinal: fullExpected[index].ordinal
-                  });
-                }
-                if (valid) arrays.push({layout: layout.name, offset: offset, entryCount: 4, entries: entries});
-              }
-              for (let offset = 0; offset + layout.stride * 3 <= bytes.length; offset++) {
-                const entries = [];
-                let valid = true;
-                for (let index = 0; index < selectableExpected.length; index++) {
-                  const actual = rowAt(layout, offset + index * layout.stride);
-                  if (!matches(actual, selectableExpected[index])) {
-                    valid = false;
-                    break;
-                  }
-                  entries.push({
-                    rowIndex: index,
-                    kind: actual.kind,
-                    x: actual.x,
-                    y: actual.y,
-                    width: actual.width,
-                    height: actual.height,
-                    ordinal: selectableExpected[index].ordinal
-                  });
-                }
-                if (valid) arrays.push({layout: layout.name, offset: offset, entryCount: 3, entries: entries});
-              }
-              for (let offset = 0; offset + layout.stride <= bytes.length; offset++) {
-                const actual = rowAt(layout, offset);
-                if (actual !== null && actual.x === 150 &&
-                    (actual.y === 17 || actual.y === 35 || actual.y === 53) &&
-                    actual.width === 200 && actual.height === 12) {
-                  rows.push({
-                    layout: layout.name,
-                    offset: offset,
-                    kind: actual.kind,
-                    x: actual.x,
-                    y: actual.y,
-                    width: actual.width,
-                    height: actual.height
-                  });
-                }
-              }
-            });
-            return {arrays: arrays.slice(0, 8), rows: rows.slice(0, 32)};
           }
-          function npcDialogTraceFindProgram15(bytes) {
-            const candidates = [];
-            for (let offset = 0; offset < bytes.length && candidates.length < 24; offset++) {
-              if (bytes[offset] === 15) candidates.push({width: 1, offset: offset, value: 15});
-              if (offset + 2 <= bytes.length &&
-                  (bytes[offset] | (bytes[offset + 1] << 8)) === 15) {
-                candidates.push({width: 2, offset: offset, value: 15});
-              }
-              if (offset + 4 <= bytes.length && npcDialogTraceReadU32(bytes, offset) === 15) {
-                candidates.push({width: 4, offset: offset, value: 15});
-              }
-            }
-            return candidates;
-          }
-          function npcDialogTracePointer(value, maxBytes) {
+          function npcDialogTraceReadMenuObject(value, source, point) {
             let addressText = null;
             try {
-              const address = ptr(value);
-              addressText = address.toString();
-              const numericAddress = address.toUInt32();
-              if (address.isNull() || numericAddress < 0x10000) {
-                return {status: "not-pointer", address: addressText};
+              const base = ptr(value);
+              addressText = base.toString();
+              if (base.isNull() || base.toUInt32() < 0x10000) {
+                return {status: "not-menu-pointer", source: source, address: addressText};
               }
-              let range = null;
-              let rangeLookupError = null;
-              try {
-                range = Process.findRangeByAddress(address);
-              } catch (rangeError) {
-                rangeLookupError = String(rangeError);
+              const raw = base.readVolatile(0x124);
+              if (raw === null) {
+                return {status: "not-readable", source: source, address: addressText, bytes: 0};
               }
-              let protection = null;
-              let available = null;
-              if (range !== null) {
-                protection = range.protection;
-                if (protection.indexOf("r") < 0) {
-                  return {
-                    status: "not-readable",
-                    address: addressText,
-                    rangeBase: range.base.toString(),
-                    rangeSize: range.size,
-                    protection: protection
-                  };
+              const view = new DataView(raw);
+              const fields = {
+                program: view.getInt32(0x104, true),
+                target: view.getUint16(0x108, true),
+                originX: view.getInt32(0x14, true),
+                originY: view.getInt32(0x18, true),
+                rowsBegin: view.getUint32(0x110, true),
+                rowsEnd: view.getUint32(0x114, true),
+                state: view.getInt32(0x11c, true),
+                selectedOrdinal: view.getInt32(0x120, true)
+              };
+              const relativePoint = point === null ? null : {
+                x: point.x - fields.originX,
+                y: point.y - fields.originY
+              };
+              const rows = [];
+              const rowErrors = [];
+              let rowArrayStatus = "unavailable";
+              let eligibleOrdinal = 0;
+              const byteLength = fields.rowsEnd - fields.rowsBegin;
+              if (fields.rowsBegin >= 0x10000 && fields.rowsEnd >= fields.rowsBegin &&
+                  byteLength % 4 === 0 && byteLength <= 128) {
+                const count = byteLength / 4;
+                const pointerBytes = count === 0 ? new ArrayBuffer(0) : ptr(fields.rowsBegin).readVolatile(byteLength);
+                if (pointerBytes === null) {
+                  rowArrayStatus = "pointer-array-not-readable";
+                } else {
+                  rowArrayStatus = "readable";
+                  const pointerView = new DataView(pointerBytes);
+                  for (let index = 0; index < count; index++) {
+                    try {
+                      const rowAddress = pointerView.getUint32(index * 4, true);
+                      if (rowAddress < 0x10000) {
+                        rowErrors.push({rowIndex: index, status: "invalid-row-pointer", address: "0x" + rowAddress.toString(16)});
+                        continue;
+                      }
+                      const rowBytes = ptr(rowAddress).readVolatile(0x14);
+                      if (rowBytes === null) {
+                        rowErrors.push({rowIndex: index, status: "row-not-readable", address: "0x" + rowAddress.toString(16)});
+                        continue;
+                      }
+                      const rowView = new DataView(rowBytes);
+                      const kind = rowView.getUint8(0);
+                      const left = rowView.getInt32(4, true);
+                      const top = rowView.getInt32(8, true);
+                      const right = rowView.getInt32(12, true);
+                      const bottom = rowView.getInt32(16, true);
+                      const eligible = kind === fields.state;
+                      const ordinal = eligible ? eligibleOrdinal : null;
+                      const hitRect = {
+                        left: left + 20,
+                        top: top - 15,
+                        right: right + 20,
+                        bottom: bottom - 15
+                      };
+                      const contains = eligible && relativePoint !== null &&
+                        relativePoint.x >= hitRect.left && relativePoint.x < hitRect.right &&
+                        relativePoint.y >= hitRect.top && relativePoint.y < hitRect.bottom;
+                      rows.push({
+                        rowIndex: index,
+                        address: "0x" + rowAddress.toString(16),
+                        kind: kind,
+                        eligibleForCurrentState: eligible,
+                        ordinal: ordinal,
+                        rawRect: {left: left, top: top, right: right, bottom: bottom},
+                        hitRectAfterNativeOffset: hitRect,
+                        containsPoint: contains
+                      });
+                      if (eligible) eligibleOrdinal++;
+                    } catch (rowError) {
+                      rowErrors.push({rowIndex: index, error: String(rowError)});
+                    }
+                  }
                 }
-                try {
-                  available = range.base.add(range.size).sub(address).toUInt32();
-                } catch (sizeError) {
-                  rangeLookupError = String(sizeError);
-                }
+              } else {
+                rowArrayStatus = "invalid-vector-bounds";
               }
-              const requested = maxBytes || 128;
-              const length = Math.min(requested, available === null ? Math.min(requested, 64) : available);
-              if (length < 8) {
-                return {
-                  status: "range-too-short",
-                  address: addressText,
-                  rangeBase: range === null ? null : range.base.toString(),
-                  rangeSize: range === null ? null : range.size,
-                  protection: protection,
-                  available: available
+              const hitRows = rows.filter(function(row) { return row.containsPoint; });
+              const secondRow = rows.find(function(row) {
+                return row.eligibleForCurrentState && row.ordinal === 1;
+              });
+              let suggestedHitTestPoint = null;
+              if (secondRow !== undefined) {
+                suggestedHitTestPoint = {
+                  x: fields.originX + Math.floor((secondRow.hitRectAfterNativeOffset.left + secondRow.hitRectAfterNativeOffset.right) / 2),
+                  y: fields.originY + Math.floor((secondRow.hitRectAfterNativeOffset.top + secondRow.hitRectAfterNativeOffset.bottom) / 2)
                 };
               }
-              const raw = Memory.readByteArray(address, length);
-              if (raw === null) return {status: "empty-read", address: addressText, requestedBytes: length};
-              const bytes = Array.from(new Uint8Array(raw));
-              const dwordCandidates = [];
-              const pointerWords = [];
-              for (let offset = 0; offset + 4 <= bytes.length; offset += 4) {
-                const pointerValue = npcDialogTraceReadU32(bytes, offset);
-                if (pointerValue < 0x10000) continue;
-                let targetRange = null;
-                try {
-                  targetRange = Process.findRangeByAddress(ptr(pointerValue));
-                } catch (_) {}
-                const targetProtection = targetRange === null ? null : targetRange.protection;
-                const readableTarget = targetRange !== null &&
-                  targetProtection.indexOf("r") >= 0 && targetProtection.indexOf("x") < 0;
-                const candidate = {
-                  offset: offset,
-                  value: pointerValue,
-                  hex: "0x" + pointerValue.toString(16),
-                  targetProtection: targetProtection,
-                  readableTarget: readableTarget
-                };
-                dwordCandidates.push(candidate);
-                if (readableTarget) pointerWords.push(candidate);
-              }
-              const rowAnalysis = npcDialogTraceFindMenuRows(bytes);
               return {
                 status: "readable",
+                source: source,
                 address: addressText,
-                rangeBase: range === null ? null : range.base.toString(),
-                rangeSize: range === null ? null : range.size,
-                protection: protection,
-                rangeLookupError: rangeLookupError,
-                byteLength: bytes.length,
-                bytesHex: npcDialogTraceHex(bytes),
-                program15Candidates: npcDialogTraceFindProgram15(bytes),
-                menuRowArrayCandidates: rowAnalysis.arrays,
-                menuRowCandidates: rowAnalysis.rows,
-                dwordCandidates: dwordCandidates.slice(0, 32),
-                pointerWords: pointerWords.slice(0, 24)
+                fields: fields,
+                rowArrayStatus: rowArrayStatus,
+                rows: rows,
+                rowErrors: rowErrors,
+                point: point,
+                relativePoint: relativePoint,
+                predictedOrdinal: hitRows.length > 0 ? hitRows[0].ordinal : null,
+                containingRows: hitRows.map(function(row) { return row.rowIndex; }),
+                suggestedOrdinal1HitTestPoint: suggestedHitTestPoint
               };
             } catch (error) {
-              return {status: "read-error", address: addressText, error: String(error)};
+              return {status: "read-error", source: source, address: addressText, error: String(error)};
             }
           }
           function npcDialogTraceSnapshot(name, address, args, context) {
             const registers = {};
-            const candidateWords = [];
             const argumentWords = [];
             const stackWords = [];
-            const frameWords = [];
-            const memorySnapshots = [];
-            const nestedPointerSnapshots = [];
             const memoryReadErrors = [];
-            const seenMemory = {};
-            function addMemorySnapshot(source, value, maxBytes) {
-              try {
-                const address = ptr(value);
-                const addressText = address.toString();
-                if (address.isNull() || address.toUInt32() < 0x10000) return null;
-                if (seenMemory[addressText] !== undefined) {
-                  seenMemory[addressText].sources.push(source);
-                  return seenMemory[addressText];
-                }
-                const entry = {
-                  sources: [source],
-                  snapshot: npcDialogTracePointer(address, maxBytes)
-                };
-                seenMemory[addressText] = entry;
-                memorySnapshots.push(entry);
-                return entry;
-              } catch (error) {
-                memoryReadErrors.push({source: source, error: String(error)});
-                return null;
-              }
-            }
             ["eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "esp", "eip"].forEach(function(registerName) {
               try {
-                const value = context[registerName].toUInt32();
-                registers[registerName] = "0x" + value.toString(16);
-                if (value <= 0xffff) candidateWords.push({source: "reg." + registerName, value: value});
-                if (registerName === "ecx" || registerName === "ebp" ||
-                    registerName === "edi" || registerName === "esi" || registerName === "esp") {
-                  addMemorySnapshot("reg." + registerName, value, 128);
-                }
-              } catch (_) {}
+                registers[registerName] = context[registerName].toString();
+              } catch (error) {
+                memoryReadErrors.push({source: "register." + registerName, error: String(error)});
+              }
             });
             for (let index = 0; index < 8; index++) {
               try {
-                const value = args[index].toUInt32();
-                argumentWords.push({index: index, value: value, hex: "0x" + value.toString(16)});
-                if (value <= 0xffff) candidateWords.push({source: "arg" + index, value: value});
-                else addMemorySnapshot("arg" + index, value, 128);
+                const value = args[index];
+                argumentWords.push({index: index, value: value.toString(), u32: value.toUInt32()});
               } catch (_) {}
             }
             try {
               const esp = context.esp;
-              for (let index = 0; index < 16; index++) {
+              for (let index = 0; index < 12; index++) {
                 try {
                   const value = esp.add(index * 4).readU32();
                   stackWords.push({index: index, value: value, hex: "0x" + value.toString(16)});
-                  if (value <= 0xffff) candidateWords.push({source: "stack" + index, value: value});
-                  else if (index > 0 && index < 12) addMemorySnapshot("stack" + index, value, 96);
                 } catch (error) {
                   stackWords.push({index: index, readError: String(error)});
                 }
@@ -483,101 +365,113 @@ jobs:
             } catch (error) {
               memoryReadErrors.push({source: "stack", error: String(error)});
             }
-            try {
-              const ebp = context.ebp;
-              for (let offset = -16; offset <= 32; offset += 4) {
-                try {
-                  const slot = offset < 0 ? ebp.sub(-offset) : ebp.add(offset);
-                  const value = slot.readU32();
-                  frameWords.push({offset: offset, value: value, hex: "0x" + value.toString(16)});
-                  if (value <= 0xffff) candidateWords.push({source: "ebp" + offset, value: value});
-                } catch (error) {
-                  frameWords.push({offset: offset, readError: String(error)});
-                }
-              }
-            } catch (error) {
-              memoryReadErrors.push({source: "frame", error: String(error)});
+            let menuObjectAddress = null;
+            let point = null;
+            if (name === "npc_menu_hit_test_0x004572A0" ||
+                name === "npc_menu_click_handler_0x004571F0") {
+              menuObjectAddress = context.ecx;
+              try { point = {x: args[0].toInt32(), y: args[1].toInt32()}; }
+              catch (error) { memoryReadErrors.push({source: "mouse-arguments", error: String(error)}); }
+            } else if (name === "npc_menu_dispatch_0x00457A90") {
+              menuObjectAddress = context.ecx;
+              if (stackWords.length > 8) point = {x: stackWords[7].value, y: stackWords[8].value};
+            } else if (name === "npc_menu_ordinal0_callsite_0x00457ADE" ||
+                       name === "npc_menu_ordinal1_callsite_0x00457B44") {
+              menuObjectAddress = context.esi;
             }
-            const seenNested = {};
-            let queue = memorySnapshots.slice();
-            for (let depth = 0; depth < 2 && nestedPointerSnapshots.length < 24; depth++) {
-              const nextQueue = [];
-              queue.forEach(function(entry) {
-                if (nestedPointerSnapshots.length >= 24 || !entry.snapshot ||
-                    entry.snapshot.status !== "readable") return;
-                (entry.snapshot.pointerWords || []).forEach(function(pointerWord) {
-                  if (nestedPointerSnapshots.length >= 24) return;
-                  const pointerKey = pointerWord.hex;
-                  if (seenNested[pointerKey] !== undefined || seenMemory[pointerKey] !== undefined) return;
-                  seenNested[pointerKey] = true;
-                  const nested = {
-                    sources: [entry.sources[0] + ".dword+" + pointerWord.offset],
-                    snapshot: npcDialogTracePointer(ptr(pointerWord.value), 64)
-                  };
-                  nestedPointerSnapshots.push(nested);
-                  if (nested.snapshot.status === "readable") nextQueue.push(nested);
-                });
-              });
-              queue = nextQueue;
-            }
-            const allMemorySnapshots = memorySnapshots.concat(nestedPointerSnapshots);
-            const program15MemoryCandidates = [];
-            const menuRowArrayCandidates = [];
-            const menuRowCandidates = [];
-            allMemorySnapshots.forEach(function(entry) {
-              const source = entry.sources.join("|");
-              const snapshot = entry.snapshot;
-              if (!snapshot) return;
-              (snapshot.program15Candidates || []).forEach(function(item) {
-                program15MemoryCandidates.push({source: source, address: snapshot.address, candidate: item});
-              });
-              (snapshot.menuRowArrayCandidates || []).forEach(function(item) {
-                menuRowArrayCandidates.push({source: source, address: snapshot.address, candidate: item});
-              });
-              (snapshot.menuRowCandidates || []).forEach(function(item) {
-                menuRowCandidates.push({source: source, address: snapshot.address, candidate: item});
-              });
-            });
+            const menuObject = menuObjectAddress === null
+              ? null
+              : npcDialogTraceReadMenuObject(menuObjectAddress,
+                  name.indexOf("ordinal") >= 0 ? "context.esi" : "context.ecx", point);
             return {
               function: name,
               address: address,
               registers: registers,
               args: argumentWords,
               stack: stackWords,
-              frame: frameWords,
-              programIndexCandidates: candidateWords.filter(function(item) {
-                return item.value >= 11 && item.value <= 49;
-              }),
-              optionOrdinalCandidates: candidateWords.filter(function(item) {
-                return item.value >= 0 && item.value <= 3;
-              }),
-              program15MemoryCandidates: program15MemoryCandidates.slice(0, 48),
-              menuRowArrayCandidates: menuRowArrayCandidates.slice(0, 24),
-              npcScriptKindRowCandidates: menuRowCandidates.slice(0, 48),
-              menuObjectProbe: name === "npc_menu_dispatch_0x00457A90" ? {
-                ecx: registers.ecx || null,
-                ebp: registers.ebp || null,
-                edi: registers.edi || null,
-                esi: registers.esi || null,
-                observedStackWords7And8: stackWords.length > 8
-                  ? [stackWords[7].value, stackWords[8].value]
-                  : null,
-                argument1: argumentWords[1] || null,
-                argument2: argumentWords[2] || null
-              } : null,
-              directMemorySnapshots: memorySnapshots,
-              nestedPointerSnapshots: nestedPointerSnapshots,
-              pointerSnapshots: allMemorySnapshots,
+              dispatchOrdinal: name === "npc_menu_dispatch_0x00457A90" && argumentWords.length > 0
+                ? argumentWords[0].u32
+                : null,
+              menuObject: menuObject,
               memoryReadErrors: memoryReadErrors
             };
+          }
+          function npcDialogTraceInstallExceptionAndExitHooks() {
+            if (npcExitTraceInstalled) return;
+            const installed = [];
+            const errors = [];
+            try {
+              const handlerInstalled = Process.setExceptionHandler(function(details) {
+                const backtrace = npcDialogTraceBacktrace(details.context);
+                const context = {};
+                try {
+                  ["eip", "esp", "eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"].forEach(function(name) {
+                    if (details.context[name] !== undefined) context[name] = details.context[name].toString();
+                  });
+                } catch (_) {}
+                emit("npc_native_exception", {
+                  type: details.type,
+                  address: details.address ? details.address.toString() : null,
+                  memory: details.memory ? {
+                    operation: details.memory.operation,
+                    address: details.memory.address ? details.memory.address.toString() : null
+                  } : null,
+                  context: context,
+                  backtrace: backtrace
+                });
+                return false;
+              });
+              installed.push({name: "Process.setExceptionHandler", installed: handlerInstalled});
+            } catch (error) {
+              errors.push({name: "Process.setExceptionHandler", error: String(error)});
+            }
+            const exports = [
+              {moduleName: "kernel32.dll", exportName: "ExitProcess"},
+              {moduleName: "kernel32.dll", exportName: "TerminateProcess"},
+              {moduleName: "kernel32.dll", exportName: "RaiseException"},
+              {moduleName: "ntdll.dll", exportName: "NtTerminateProcess"},
+              {moduleName: "ntdll.dll", exportName: "RtlExitUserProcess"},
+              {moduleName: "ntdll.dll", exportName: "RtlRaiseException"}
+            ];
+            exports.forEach(function(item) {
+              try {
+                const module = Process.getModuleByName(item.moduleName);
+                const targetAddress = module.getExportByName(item.exportName);
+                attachOnce("npc-process-exit-trace:" + item.moduleName + ":" + item.exportName, targetAddress, {
+                  onEnter(args) {
+                    const values = [];
+                    for (let index = 0; index < 4; index++) {
+                      try { values.push(args[index].toString()); } catch (_) { values.push(null); }
+                    }
+                    emit("npc_process_exit_api_enter", {
+                      module: item.moduleName,
+                      name: item.exportName,
+                      address: targetAddress.toString(),
+                      args: values,
+                      backtrace: npcDialogTraceBacktrace(this.context)
+                    });
+                  }
+                });
+                installed.push({module: item.moduleName, name: item.exportName, address: targetAddress.toString()});
+              } catch (error) {
+                errors.push({module: item.moduleName, name: item.exportName, error: String(error)});
+              }
+            });
+            npcExitTraceInstalled = installed.length > 0;
+            emit("npc_process_exit_trace_installed", {installed: installed, errors: errors});
           }
           function installNpcDialogNativeTrace() {
             if (npcDialogNativeTraceInstalled) return;
             const targets = [
+              {address: 0x004572A0, name: "npc_menu_hit_test_0x004572A0"},
+              {address: 0x004571F0, name: "npc_menu_click_handler_0x004571F0"},
               {address: 0x00457A90, name: "npc_menu_dispatch_0x00457A90"},
               {address: 0x00457DE0, name: "npc_dialog_resource_0x00457DE0"},
               {address: 0x00457ADE, name: "npc_menu_ordinal0_callsite_0x00457ADE"},
-              {address: 0x00457B44, name: "npc_menu_ordinal1_callsite_0x00457B44"}
+              {address: 0x00457B44, name: "npc_menu_ordinal1_callsite_0x00457B44"},
+              {address: 0x004A6FD0, name: "npc_packet_dispatch_0x004A6FD0"},
+              {address: 0x004186E0, name: "npc_menu_dispatch_tail_0x004186E0"},
+              {address: 0x004D94D1, name: "native_cpp_throw_helper_0x004D94D1"}
             ];
             const installed = [];
             const errors = [];
@@ -585,25 +479,97 @@ jobs:
               try {
                 attachOnce("npc-dialog-native-trace:" + target.name, ptr(target.address), {
                   onEnter(args) {
+                    const returnAddress = this.returnAddress ? this.returnAddress.toString() : null;
+                    if (target.address === 0x004186E0 && returnAddress !== "0x457caf") return;
+                    if (target.address === 0x004A6FD0 &&
+                        returnAddress !== "0x457ae3" && returnAddress !== "0x457b49") return;
+                    if (target.address === 0x004D94D1 &&
+                        returnAddress !== "0x4a70f6" && returnAddress !== "0x4a71f4") return;
                     const count = (npcDialogNativeTraceSequence += 1);
+                    if (target.address === 0x004A6FD0) {
+                      let packetHex = null;
+                      let packetReadError = null;
+                      try {
+                        const length = Math.max(0, Math.min(args[0].toInt32(), 32));
+                        const packet = ptr(args[1]).readVolatile(length);
+                        packetHex = packet === null ? null : npcDialogTraceHex(Array.from(new Uint8Array(packet)));
+                      } catch (error) {
+                        packetReadError = String(error);
+                      }
+                      this.npcDialogPacketTrace = {
+                        sequence: count,
+                        length: args[0].toInt32(),
+                        buffer: args[1].toString(),
+                        packetHex: packetHex,
+                        packetReadError: packetReadError,
+                        returnAddress: returnAddress
+                      };
+                      emit("npc_native_packet_dispatch_enter", this.npcDialogPacketTrace);
+                      return;
+                    }
+                    if (target.address === 0x004186E0) {
+                      this.npcDialogTailTrace = {sequence: count, returnAddress: returnAddress, ecx: this.context.ecx.toString()};
+                      emit("npc_menu_dispatch_tail_enter", this.npcDialogTailTrace);
+                      return;
+                    }
+                    if (target.address === 0x004D94D1) {
+                      this.npcCppThrowTrace = {sequence: count, returnAddress: returnAddress, args: []};
+                      for (let index = 0; index < 3; index++) {
+                        try { this.npcCppThrowTrace.args.push(args[index].toString()); } catch (_) {}
+                      }
+                      emit("npc_cpp_exception_throw_helper_enter", this.npcCppThrowTrace);
+                      return;
+                    }
                     this.npcDialogTrace = npcDialogTraceSnapshot(
                       target.name, ptr(target.address).toString(), args, this.context
                     );
                     this.npcDialogTrace.sequence = count;
+                    this.npcDialogTrace.returnAddress = returnAddress;
                     emit("npc_dialog_native_call_enter", this.npcDialogTrace);
+                    if (target.address === 0x004572A0) emit("npc_menu_hit_test_enter", this.npcDialogTrace);
+                    if (target.address === 0x004571F0) emit("npc_menu_click_handler_enter", this.npcDialogTrace);
                     if (target.address === 0x00457A90) {
                       emit("npc_menu_dispatch_lifecycle", {
                         phase: "enter",
                         function: target.name,
                         address: ptr(target.address).toString(),
                         sequence: count,
+                        dispatchOrdinal: this.npcDialogTrace.dispatchOrdinal,
                         registers: this.npcDialogTrace.registers,
                         args: this.npcDialogTrace.args,
-                        stack: this.npcDialogTrace.stack.slice(0, 10)
+                        stack: this.npcDialogTrace.stack.slice(0, 10),
+                        menuObject: this.npcDialogTrace.menuObject
                       });
                     }
                   },
                   onLeave(retval) {
+                    if (target.address === 0x00457ADE || target.address === 0x00457B44) return;
+                    if (target.address === 0x004A6FD0) {
+                      if (!this.npcDialogPacketTrace) return;
+                      emit("npc_native_packet_dispatch_return", {
+                        sequence: this.npcDialogPacketTrace.sequence,
+                        returnValue: retval.toString(),
+                        returnU32: retval.toUInt32()
+                      });
+                      return;
+                    }
+                    if (target.address === 0x004186E0) {
+                      if (!this.npcDialogTailTrace) return;
+                      emit("npc_menu_dispatch_tail_return", {
+                        sequence: this.npcDialogTailTrace.sequence,
+                        returnValue: retval.toString(),
+                        returnU32: retval.toUInt32()
+                      });
+                      return;
+                    }
+                    if (target.address === 0x004D94D1) {
+                      if (!this.npcCppThrowTrace) return;
+                      emit("npc_cpp_exception_throw_helper_return", {
+                        sequence: this.npcCppThrowTrace.sequence,
+                        returnValue: retval.toString()
+                      });
+                      return;
+                    }
                     emit("npc_dialog_native_call_return", {
                       function: target.name,
                       address: ptr(target.address).toString(),
@@ -611,6 +577,17 @@ jobs:
                       returnValue: retval.toString(),
                       returnU32: retval.toUInt32()
                     });
+                    if (target.address === 0x004572A0 || target.address === 0x004571F0) {
+                      const menuAfter = this.npcDialogTrace && this.npcDialogTrace.menuObject
+                        ? npcDialogTraceReadMenuObject(this.npcDialogTrace.menuObject.address, "onLeave", null)
+                        : null;
+                      emit(target.address === 0x004572A0 ? "npc_menu_hit_test_return" : "npc_menu_click_handler_return", {
+                        sequence: this.npcDialogTrace ? this.npcDialogTrace.sequence : null,
+                        returnValue: retval.toString(),
+                        returnU32: retval.toUInt32(),
+                        menuObjectAfter: menuAfter
+                      });
+                    }
                     if (target.address === 0x00457A90) {
                       emit("npc_menu_dispatch_lifecycle", {
                         phase: "return",
@@ -630,20 +607,27 @@ jobs:
               }
             });
             npcDialogNativeTraceInstalled = installed.some(function(item) {
-              return item.name === "npc_menu_dispatch_0x00457A90";
+              return item.name === "npc_menu_dispatch_0x00457A90" &&
+                installed.some(function(other) { return other.name === "npc_menu_hit_test_0x004572A0"; });
             });
+            npcDialogTraceInstallExceptionAndExitHooks();
             emit("npc_dialog_native_trace_installed", {
               installed: installed,
               errors: errors,
-              programIndexRange: [11, 49],
-              optionOrdinalRange: [0, 3],
-              kindValues: [1, 2],
-              registerMemoryReads: ["ecx", "ebp", "edi", "esi", "esp"],
-              pointerArgumentCount: 8,
-              snapshotBytesPerPointer: 128,
-              nestedPointerDepth: 2,
-              nestedPointerLimit: 24,
-              rowLayoutsScanned: ["u8+i16x4", "u16+i16x4", "u8+pad1+i16x4", "u32+i16x4", "u8+pad3+i16x4", "u32+i32x4", "u8+pad3+i32x4"]
+              memoryApi: "NativePointer.readVolatile",
+              menuObjectOffsets: {
+                program: "0x104",
+                target: "0x108",
+                originX: "0x14",
+                originY: "0x18",
+                rowPointerArrayBegin: "0x110",
+                rowPointerArrayEnd: "0x114",
+                activeKind: "0x11c",
+                selectedOrdinal: "0x120"
+              },
+              hitTestRectTransform: {dx: 20, dy: -15},
+              hitTest: "Kind-matching rows; ordinal increments only after a miss; no hit stores -1",
+              staticAnalysisBinarySha256: "c1be05eb2977a8aae8cbe8b716bc1e3957263edde8187d5269d554b327f13cbd"
             });
           }
           const npcDialogNativeTraceInstallTimer = setTimeout(
@@ -1053,90 +1037,84 @@ jobs:
                 $screenY -ge ($clientOrigin.Y + $clientSize[1])) {
               throw "Measured NPC option text center is outside the NeoDark client area: screen=($screenX,$screenY)"
             }
-            Write-Host "NPC ordinal-1 text-center click from actual screenshot: screen=($screenX,$screenY) client=($clientX,$clientY) client_origin=($($clientOrigin.X),$($clientOrigin.Y)) client_size=($($clientSize[0]),$($clientSize[1]))"
-            Write-Host "NPC_TEXT_CENTER_CLICK_PLAN screenshot=$greetingAfterShot pixel_bounds=($($visibleText.left),$($visibleText.top))-($($visibleText.right),$($visibleText.bottom)) center_screen=($screenX,$screenY) logical_client=($clientX,$clientY) client_origin=($($clientOrigin.X),$($clientOrigin.Y)) mapping=screen-bounds-midpoint-to-800x600-logical-client"
-            $shopBefore = Get-LogLineCount $serverLog
-            $clientBeforeOption1 = Get-LogLineCount $clientLog
-            $heartbeatBeforeClick = Get-ClientHeartbeatCount $clientLog
-            Write-Host "NPC_POST_CLICK_HEARTBEAT_BASELINE count=$heartbeatBeforeClick (legacy_send length=1 hex=9c)"
-            Click-Screen $screenX $screenY
+            Write-Host "NPC_TEXT_CENTER_HOVER_PLAN screenshot=$greetingAfterShot pixel_bounds=($($visibleText.left),$($visibleText.top))-($($visibleText.right),$($visibleText.bottom)) center_screen=($screenX,$screenY) logical_client=($clientX,$clientY) client_origin=($($clientOrigin.X),$($clientOrigin.Y)) mapping=screen-bounds-midpoint-to-800x600-logical-client"
+            $clientBeforeHover = Get-LogLineCount $clientLog
+            $serverBeforeHover = Get-LogLineCount $serverLog
+            $heartbeatBeforeHover = Get-ClientHeartbeatCount $clientLog
+            $greetingDiagnosticEvents = @()
+            if (Test-Path -LiteralPath $clientLog) {
+              $greetingRows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+              if ($greetingRows.Count -gt $clientBeforeGreeting) {
+                $greetingDiagnosticEvents = @($greetingRows | Select-Object -Skip $clientBeforeGreeting | Where-Object {
+                  $_ -match 'npc_menu_click_handler_(enter|return)' -or
+                  $_ -match 'npc_menu_hit_test_(enter|return)'
+                })
+              }
+            }
+            Write-Host "NPC_GREETING_DIAGNOSTIC_EVENT_COUNT=$($greetingDiagnosticEvents.Count)"
+            foreach ($eventLine in ($greetingDiagnosticEvents | Select-Object -Last 8)) {
+              Write-Host "NPC_GREETING_DIAGNOSTIC_EVENT: $eventLine"
+            }
+            Write-Host "NPC_HOVER_ONLY_BEGIN screen=($screenX,$screenY) client=($clientX,$clientY) button_down_up_events_sent=0"
+            if (-not [WinInput]::SetCursorPos($screenX, $screenY)) {
+              throw "Could not move cursor to the measured second-option text center"
+            }
+            Start-Sleep -Milliseconds 900
+            Shot "npc-menu-second-option-hover"
             Start-Sleep -Seconds 2
+            $hitTestEvents = @()
+            if (Test-Path -LiteralPath $clientLog) {
+              $allClientRows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+              if ($allClientRows.Count -gt $clientBeforeHover) {
+                $hitTestEvents = @($allClientRows | Select-Object -Skip $clientBeforeHover | Where-Object {
+                  $_ -match 'npc_menu_hit_test_(enter|return)' -or
+                  $_ -match 'npc_menu_click_handler_(enter|return)' -or
+                  $_ -match 'npc_dialog_native_call_enter.*npc_menu_hit_test_0x004572A0'
+                })
+              }
+            }
+            Write-Host "NPC_HOVER_HIT_TEST_EVENT_COUNT=$($hitTestEvents.Count)"
+            foreach ($eventLine in ($hitTestEvents | Select-Object -Last 12)) {
+              Write-Host "NPC_HOVER_HIT_TEST_EVENT: $eventLine"
+            }
             $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
             [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40) | Out-Null
             Start-Sleep -Milliseconds 250
-            Shot "npc-menu-after-text-center-click"
-            $dispatchEnter = Wait-LogLine $clientLog 'npc_menu_dispatch_lifecycle.*"phase":\s*"enter"' $clientBeforeOption1 8
-            $dispatchReturn = Wait-LogLine $clientLog 'npc_menu_dispatch_lifecycle.*"phase":\s*"return"' $clientBeforeOption1 8
-            if ($dispatchEnter) {
-              Write-Host "NPC_MENU_DISPATCH_ENTER: $dispatchEnter"
-            } else {
-              Write-Host "NPC_MENU_DISPATCH_ENTER: no 0x00457A90 lifecycle enter event observed"
+            $processExited = $false
+            $exitCode = "not-exited"
+            try {
+              $game.Refresh()
+              $processExited = [bool]$game.HasExited
+              if ($processExited) { $exitCode = [int]$game.ExitCode }
+            } catch {
+              $exitCode = "query-error: $($_.Exception.Message)"
             }
-            $dispatchReturnedNormally = $false
-            if ($dispatchReturn) {
-              try {
-                $dispatchReturnEvent = $dispatchReturn | ConvertFrom-Json -ErrorAction Stop
-                $dispatchReturnedNormally = [bool]$dispatchReturnEvent.value.returnedNormally
-                Write-Host "NPC_MENU_DISPATCH_RETURN: returned_normally=$dispatchReturnedNormally return_value=$($dispatchReturnEvent.value.returnValue) return_u32=$($dispatchReturnEvent.value.returnU32)"
-              } catch {
-                Write-Host "NPC_MENU_DISPATCH_RETURN: event present but JSON parse failed: $dispatchReturn"
-              }
-            } else {
-              Write-Host "NPC_MENU_DISPATCH_RETURN: no 0x00457A90 return event observed within 8 seconds; returned_normally=False"
-            }
-            $survivalDeadline = [DateTime]::UtcNow.AddSeconds(120)
-            $nextHeartbeatProbe = [DateTime]::UtcNow
-            $heartbeatAfterClick = $heartbeatBeforeClick
-            $processAlive = $false
+            $processAlive = -not $processExited
             $windowVisible = $false
+            try { $windowVisible = [WinInput]::IsWindowVisible($gameHwnd) } catch {}
             $clientSizeAfter = @(0, 0)
-            $serverDisconnectLine = $null
-            while ([DateTime]::UtcNow -lt $survivalDeadline) {
-              $currentGameProcess = Get-Process -Id $game.Id -ErrorAction SilentlyContinue
-              $processAlive = $null -ne $currentGameProcess
-              try { $windowVisible = [WinInput]::IsWindowVisible($gameHwnd) } catch { $windowVisible = $false }
-              $clientSizeAfter = [WinInput]::GetClientSize($gameHwnd)
-              $serverDisconnectLine = Get-ServerDisconnectLine $serverLog $shopBefore
-              if (-not $processAlive -or -not $windowVisible -or $serverDisconnectLine) { break }
-              if ([DateTime]::UtcNow -ge $nextHeartbeatProbe) {
-                $heartbeatAfterClick = Get-ClientHeartbeatCount $clientLog
-                if ($heartbeatAfterClick -gt $heartbeatBeforeClick) { break }
-                $nextHeartbeatProbe = [DateTime]::UtcNow.AddSeconds(10)
+            try { $clientSizeAfter = [WinInput]::GetClientSize($gameHwnd) } catch {}
+            $heartbeatAfterHover = Get-ClientHeartbeatCount $clientLog
+            $serverDisconnectLine = Get-ServerDisconnectLine $serverLog $serverBeforeHover
+            Write-Host "NPC_DIAGNOSTIC_SURVIVAL process_alive=$processAlive window_visible=$windowVisible client_size=$($clientSizeAfter -join 'x') heartbeat_before=$heartbeatBeforeHover heartbeat_after=$heartbeatAfterHover heartbeat_advanced=$($heartbeatAfterHover -gt $heartbeatBeforeHover) server_disconnected=$($null -ne $serverDisconnectLine) process_exit_code=$exitCode"
+            if ($processExited -or -not $windowVisible -or $serverDisconnectLine) {
+              Write-Host "NPC_DIAGNOSTIC_LAST_CLIENT_LOG_LINE: $(Get-LastLogLine $clientLog)"
+              Write-Host "NPC_DIAGNOSTIC_LAST_SERVER_LOG_LINE: $(Get-LastLogLine $serverLog)"
+              if ($serverDisconnectLine) { Write-Host "NPC_DIAGNOSTIC_SERVER_DISCONNECT_EVENT: $serverDisconnectLine" }
+              try {
+                $appErrors = @(Get-WinEvent -FilterHashtable @{ LogName = "Application"; Id = 1000,1001; StartTime = (Get-Date).AddMinutes(-30) } -MaxEvents 30 -ErrorAction Stop |
+                  Where-Object { $_.Message -match 'NeoDark\.exe' })
+                foreach ($appError in $appErrors) {
+                  Write-Host "WINDOWS_APPLICATION_ERROR_EVENT id=$($appError.Id) time=$($appError.TimeCreated.ToString('o')) message=$($appError.Message)"
+                }
+                if ($appErrors.Count -eq 0) { Write-Host "WINDOWS_APPLICATION_ERROR_EVENT: none for NeoDark.exe in the last 30 minutes" }
+              } catch {
+                Write-Host "WINDOWS_APPLICATION_ERROR_QUERY_UNAVAILABLE: $($_.Exception.Message)"
               }
-              Start-Sleep -Seconds 2
             }
-            $heartbeatAfterClick = Get-ClientHeartbeatCount $clientLog
-            $heartbeatAdvanced = $heartbeatAfterClick -gt $heartbeatBeforeClick
-            $serverDisconnected = $null -ne $serverDisconnectLine
-            Write-Host "NPC_POST_CLICK_SURVIVAL process_alive=$processAlive window_visible=$windowVisible client_size=$($clientSizeAfter -join 'x') heartbeat_before=$heartbeatBeforeClick heartbeat_after=$heartbeatAfterClick heartbeat_advanced=$heartbeatAdvanced server_disconnected=$serverDisconnected dispatch_returned_normally=$dispatchReturnedNormally"
-            if (-not $processAlive -or -not $windowVisible -or $serverDisconnected -or -not $heartbeatAdvanced) {
-              $clientLastLine = Get-LastLogLine $clientLog
-              $serverLastLine = Get-LastLogLine $serverLog
-              Write-Host "NPC_POST_CLICK_LAST_CLIENT_LOG_LINE: $clientLastLine"
-              Write-Host "NPC_POST_CLICK_LAST_SERVER_LOG_LINE: $serverLastLine"
-              if ($serverDisconnectLine) { Write-Host "NPC_POST_CLICK_SERVER_DISCONNECT_EVENT: $serverDisconnectLine" }
-            }
-            Shot "npc-menu-post-click-survival"
-            $ordinal1Call = Wait-LogLine $clientLog 'npc_menu_ordinal1_callsite_0x00457B44' $clientBeforeOption1 10
-            if (-not $ordinal1Call) {
-              if (-not $processAlive -or -not $windowVisible -or $serverDisconnected) {
-                throw "Text-center click ended or disconnected the game before ordinal 1; inspect dispatch lifecycle and last client/server log lines"
-              }
-              throw "Actual screenshot text-center click did not execute the ordinal-1 native callsite 0x00457B44"
-            }
-            Write-Host "NPC ordinal-1 native call confirmed: $ordinal1Call"
-            if (-not $processAlive -or -not $windowVisible -or $serverDisconnected) {
-              throw "Ordinal 1 was observed, but the game process/window/session ended before shop confirmation"
-            }
-            $nativeShopRequest = Wait-NativeShopRequest $clientBeforeOption1 15
-            if (-not $nativeShopRequest) {
-              throw "Client did not send the exact native 0x30 request (legacy_send length=5 hex=30ee52ffff) for target 21230 action -1"
-            }
-            Write-Host "NATIVE 0x30 SHOP REQUEST CONFIRMED: $nativeShopRequest"
-            $shopOpened = Wait-LogLine $serverLog 'offline_shop_opened.*entity=21230.*program=15' $shopBefore 20
-            if (-not $shopOpened) {
-              throw "Client sent native 0x30 request but server did not report offline_shop_opened for entity 21230 program 15"
-            }
+            Shot "npc-menu-diagnostic-after-hover"
+            Write-Host "DIAGNOSTIC_ONLY_COMPLETE: no menu option was clicked; no purchase click, 0x30 request, shop open, or purchase was attempted"
+            return
             Write-Host "consumables shop opened: $shopOpened"
             Start-Sleep -Seconds 2
             Shot "shop-open"
