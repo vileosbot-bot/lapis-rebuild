@@ -52,13 +52,15 @@ ybcs 离线包的任何内容只允许标为 RECOVERED_SECONDARY 或 RECONSTRUCT
 4. 战斗实际使用的 damagePolicy、combatPlayerStats 是否存在、敌人 AI binding、行动槽上限与行动成本。
 5. 玩家命令数与敌方行动数分别计数；“6 个行动”目前未明确指玩家行动还是双方总行动，不能混用。
 6. 随机种子/随机状态、每次行动时间、命中/未命中、每次伤害、每个敌人的 HP 变化及死亡时点。
+7. 新建游戏还是旧存档、入场前金币字段及其来源。当前 main 的 M4_STARTING_GOLD 默认值为 20,000，而失败简报记录金币 0；若失败运行声称来自当前 main 的新建游戏，这一差异必须先解释。
 
 **发现的基线不一致：**在本方案指定的 main@4876866 上，当前 Chapter 1 Story source 1 路径并未把简报中的 20 个原表怪物装入 S42 战斗：
 
 - m4-runtime-integration.ts 的 prepareReconstructionBattle 在非 M5（Chapter 1）路径会调用 setReconstructionBattleSetup(undefined)。
-- battle.ts 的 beginBattle 在 setup 缺失时创建两个 dummy-melee / dummy-ranged 训练占位敌人，使用 P.enemyHp；不是 1+16+3 的 20 单位阵容。
+- battle.ts 的 beginBattle 在 setup 缺失时创建两个 dummy-melee / dummy-ranged 训练占位敌人，使用 P.enemyHp=90；不是 1+16+3 的 20 单位阵容。该路径也没有把玩家 combatPlayerStats 注入 BattleState。
 - S42 验收文件 A09 当前检查真实战斗在 40 个玩家行动内达到 won，但没有断言敌人数为 20、ID 分布为 1/16/3 或 HP 为 150/100/100。
 - story-battle-scenes.json 的 zone 1 模型 ID 列表不是运行时敌人 roster，也没有证明 20 个实体已绑定。
+- 当前 main 新建游戏的 M4_STARTING_GOLD=20,000；Story source 1 的奖励结算为 not-applied。失败记录金币 0 只有在旧存档本来为 0、运行版本较早或记录字段不同等情况得到核实后，才能与当前 main 对齐。
 
 因此，**若无法在目标运行版本中复现 20 个指定敌人及其原表 HP，立即停止数值实验**。不得拿两只训练 dummy 的结果解释 20 怪失败；不得把不同 commit 或不同 roster 的结果拼成同一基线。总管需先确认 2026-11-13 失败运行的 commit/资源包/roster 来源，或另行授权建立与该实测完全一致的独立实验夹具。
 
@@ -87,7 +89,7 @@ S42 A09 现有验收上限为 40 个玩家行动、行动就绪等待超时 12 �
 **非实验变量：**
 - 怪物 HP 固定为 1010=150、1001=100、1003=100；不得下调。
 - 怪物技能固定为空；本轮不通过给怪物加技能制造难度。
-- 金币 0、EXP 0/500 不作为伤害变量。当前 Story source 1 结算策略明确为 not-applied；失败时无奖励也不能说明战斗公式错误。
+- 金币 0、EXP 0/500 不作为伤害变量。当前 Story source 1 结算策略明确为 not-applied，因此它们不是伤害公式证据；但金币 0 与当前 main 新建游戏默认 20,000 不一致，必须按 G0 核实存档/版本/字段来源，不能直接忽略这项基线差异。
 - 原版服务器命中/伤害公式尚未从客户端证据恢复。S19 数值与公式属于 RECONSTRUCTION_POLICY，不是原版服务端公式。
 
 ## 2. 单变量实验矩阵
@@ -181,7 +183,7 @@ E1 的目标成长等级、E2 的目标 HP、E3/E6/E7 的新参数值，以及 E
 
 - S42 A09：web/e2e/s42-ch1-end-to-end-acceptance.spec.ts，约第 480–555 行。
 - Story source 1 与 battleZone 1：web/src/m4-runtime-integration.ts，约第 109–160、548–577、1526–1555、1801–1816 行。
-- Chapter 1 初始进度与属性：web/src/m4-runtime-integration.ts，约第 166、316 行；web/src/progression/progression.ts；web/src/progression/attribute-points.ts；data/progression/ch1-attribute-growth.json。
+- Chapter 1 初始进度、金币与属性：web/src/m4-runtime-integration.ts，约第 158–166、316 行；web/src/progression/progression.ts；web/src/progression/attribute-points.ts；data/progression/ch1-attribute-growth.json。
 - 玩家属性投影：web/src/m4-runtime-integration.ts，约第 1694–1735 行；web/src/progression/attribute-stat-policy.ts。
 - setup 与 dummy fallback：web/src/battle.ts，约第 146–267 行；web/src/scene.ts，约第 1018–1095 行。
 - 训练伤害常量：web/src/config.ts；web/src/damage-policy.ts。
