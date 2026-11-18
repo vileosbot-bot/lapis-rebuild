@@ -1,0 +1,100 @@
+name: ybcs-offline-verify
+
+on:
+  push:
+    branches: [ybcs-verify]
+    paths: ['.github/workflows/ybcs-verify.yml']
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - name: Download ybcs-offline.zip (public Drive link)
+        shell: pwsh
+        run: |
+          pip install gdown
+          gdown "https://drive.google.com/uc?export=download&id=1qNOt9-aMiN8dZsh2FOlT5rhltZCyeFvt" -O ybcs-offline.zip
+          $h = (Get-FileHash ybcs-offline.zip -Algorithm SHA256).Hash.ToLower()
+          Write-Host "SHA256: $h"
+          if ($h -ne "d79c012177c8b1701188a90825539466d28cc18dc87b3c62361b4960b315724d") { throw "SHA-256 mismatch" }
+          Write-Host "SHA OK, size:" (Get-Item ybcs-offline.zip).Length
+
+      - name: Extract package
+        shell: pwsh
+        run: |
+          Expand-Archive ybcs-offline.zip -DestinationPath ybcs
+          Write-Host "--- top level ---"
+          Get-ChildItem ybcs | Select-Object Name, Length | Format-Table -AutoSize
+          Write-Host "--- launcher cmd files ---"
+          Get-ChildItem ybcs -Filter "*.cmd" -Recurse | Select-Object FullName | Format-Table -AutoSize
+
+      - name: Pre-check (no GUI, exit code recorded)
+        shell: pwsh
+        run: |
+          cd ybcs
+          $launcher = Get-ChildItem -Filter "*单机游戏.cmd" | Select-Object -First 1
+          if (-not $launcher) { $launcher = Get-ChildItem -Filter "*.cmd" | Select-Object -First 1 }
+          Write-Host "launcher: $($launcher.Name)"
+          cmd /c "`"$($launcher.Name)`" --check --no-pause" 2>&1 | Tee-Object -FilePath ..\precheck.log
+          Write-Host "precheck exit code: $LASTEXITCODE"
+          if ($LASTEXITCODE -ne 0) { Write-Host "PRECHECK FAILED (exit $LASTEXITCODE) - see precheck.log" }
+
+      - name: Launch game and screenshot
+        shell: pwsh
+        run: |
+          cd ybcs
+          $launcher = Get-ChildItem -Filter "*单机游戏.cmd" | Select-Object -First 1
+          if (-not $launcher) { $launcher = Get-ChildItem -Filter "*.cmd" | Select-Object -First 1 }
+          New-Item -ItemType Directory -Force -Path ..\screenshots | Out-Null
+          Add-Type -AssemblyName System.Drawing
+          Add-Type -AssemblyName System.Windows.Forms
+          function Shot($name) {
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bmp = New-Object System.Drawing.Bitmap($b.Width, $b.Height)
+            $g = [System.Drawing.Graphics]::FromImage($bmp)
+            $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+            $bmp.Save("..\screenshots\$name.png")
+            $g.Dispose(); $bmp.Dispose()
+            Write-Host "shot: $name"
+          }
+          $p = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($launcher.Name)`"" -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput ..\game-stdout.log -RedirectStandardError ..\game-stderr.log
+          Write-Host "launcher pid: $($p.Id)"
+          for ($i = 1; $i -le 16; $i++) {
+            Start-Sleep -Seconds 30
+            $n = "{0:D2}" -f $i
+            Shot "shot-$n"
+            $nd = Get-Process -Name NeoDark -ErrorAction SilentlyContinue
+            if (-not $nd -and $i -ge 4) { Write-Host "NeoDark not running at shot $n; stopping loop"; break }
+          }
+          try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+          try { Get-Process -Name NeoDark -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } catch {}
+          try { Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*runtime*" } | Stop-Process -Force -ErrorAction SilentlyContinue } catch {}
+          Write-Host "--- NeoDark processes after stop ---"
+          Get-Process -Name NeoDark -ErrorAction SilentlyContinue | Select-Object Id, ProcessName | Format-Table -AutoSize
+          Write-Host "--- game stdout tail ---"
+          Get-Content ..\game-stdout.log -Tail 30 -ErrorAction SilentlyContinue
+          Write-Host "--- game stderr tail ---"
+          Get-Content ..\game-stderr.log -Tail 30 -ErrorAction SilentlyContinue
+
+      - name: Collect logs
+        shell: pwsh
+        if: always()
+        run: |
+          New-Item -ItemType Directory -Force -Path collected | Out-Null
+          Copy-Item precheck.log collected/ -ErrorAction SilentlyContinue
+          Copy-Item game-stdout.log collected/ -ErrorAction SilentlyContinue
+          Copy-Item game-stderr.log collected/ -ErrorAction SilentlyContinue
+          Copy-Item ybcs\runtime\logs\* collected/ -Recurse -ErrorAction SilentlyContinue
+          Get-ChildItem collected -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
+
+      - name: Upload artifacts (screenshots + logs)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ybcs-verify
+          path: |
+            screenshots/
+            collected/
+          retention-days: 30
