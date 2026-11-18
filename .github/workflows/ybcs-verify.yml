@@ -47,6 +47,8 @@ jobs:
           $ws = $env:GITHUB_WORKSPACE
           $shotDir = Join-Path $ws "screenshots"
           New-Item -ItemType Directory -Force -Path $shotDir | Out-Null
+          $clientLog = Join-Path $ws "ybcs\runtime\logs\ybcs-gui-client.jsonl"
+          $serverLog = Join-Path $ws "ybcs\runtime\logs\ybcs-gui-server.log"
           cd ybcs
           $launcher = Get-ChildItem -Filter "*单机游戏.cmd" | Select-Object -First 1
           if (-not $launcher) { $launcher = Get-ChildItem -Filter "*.cmd" | Select-Object -First 1 }
@@ -56,16 +58,41 @@ jobs:
           using System;
           using System.Runtime.InteropServices;
           using System.Threading;
-          public static class Mouse {
+          public static class WinInput {
+            [StructLayout(LayoutKind.Sequential)]
+            public struct POINT { public int X; public int Y; }
+            [StructLayout(LayoutKind.Sequential)]
+            public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
             [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
             [DllImport("user32.dll")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+            [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+            [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+            [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr hWnd, ref POINT point);
+            [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr hWnd, out RECT rect);
             public const uint LEFTDOWN = 0x0002;
             public const uint LEFTUP = 0x0004;
-            public static void Click(int x, int y) {
-              SetCursorPos(x, y);
+            public const uint KEYUP = 0x0002;
+            public static void PressKey(byte key) {
+              keybd_event(key, 0, 0, UIntPtr.Zero);
+              Thread.Sleep(90);
+              keybd_event(key, 0, KEYUP, UIntPtr.Zero);
+              Thread.Sleep(90);
+            }
+            public static bool ClickLogicalClient(IntPtr hwnd, int x, int y) {
+              RECT rect;
+              if (!GetClientRect(hwnd, out rect)) return false;
+              int width = rect.Right - rect.Left;
+              int height = rect.Bottom - rect.Top;
+              if (width <= 0 || height <= 0) return false;
+              POINT point = new POINT();
+              point.X = (int)Math.Round((double)x * width / 800.0);
+              point.Y = (int)Math.Round((double)y * height / 600.0);
+              if (!ClientToScreen(hwnd, ref point)) return false;
+              if (!SetCursorPos(point.X, point.Y)) return false;
               mouse_event(LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
               Thread.Sleep(120);
               mouse_event(LEFTUP, 0, 0, 0, UIntPtr.Zero);
+              return true;
             }
           }
           "@
@@ -78,14 +105,189 @@ jobs:
             $g.Dispose(); $bmp.Dispose()
             Write-Host "shot: $name"
           }
+          function Get-LogLineCount([string]$logPath) {
+            if (-not (Test-Path -LiteralPath $logPath)) { return 0 }
+            $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
+            return $rows.Count
+          }
+          function Wait-LogLine([string]$logPath, [string]$pattern, [int]$afterLine, [int]$timeoutSeconds) {
+            $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
+            while ([DateTime]::UtcNow -lt $deadline) {
+              if (Test-Path -LiteralPath $logPath) {
+                $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
+                if ($rows.Count -gt $afterLine) {
+                  for ($j = $afterLine; $j -lt $rows.Count; $j++) {
+                    if ($rows[$j] -match $pattern) { return $rows[$j] }
+                  }
+                }
+              }
+              Start-Sleep -Seconds 1
+            }
+            return $null
+          }
+          function Focus-Game {
+            [WinInput]::SetForegroundWindow($gameHwnd) | Out-Null
+            Start-Sleep -Milliseconds 150
+          }
+          function Click-Client([int]$x, [int]$y) {
+            Focus-Game
+            if (-not [WinInput]::ClickLogicalClient($gameHwnd, $x, $y)) {
+              throw "Client click failed at logical ($x,$y)"
+            }
+            Start-Sleep -Milliseconds 250
+          }
+          function Open-FullMap([int]$expectedMap) {
+            $before = Get-LogLineCount $clientLog
+            Focus-Game
+            [WinInput]::PressKey(0x4D)
+            $opened = Wait-LogLine $clientLog 'windowed_full_map_open' $before 20
+            if (-not $opened) { throw "M key did not open full map $expectedMap" }
+            $event = $opened | ConvertFrom-Json
+            if ([int]$event.value.mapWire -ne $expectedMap) {
+              throw "Full map opened on map $($event.value.mapWire), expected $expectedMap"
+            }
+            if (-not [bool]$event.value.ready) {
+              $readyAfter = Get-LogLineCount $clientLog
+              $ready = Wait-LogLine $clientLog 'windowed_full_map_ready' $readyAfter 30
+              if (-not $ready) { throw "Full map bitmap did not become ready for map $expectedMap" }
+            }
+            Write-Host "full map open: map=$expectedMap ready=$($event.value.ready)"
+          }
+          function Navigate-MapTarget([int]$mapId, [int]$targetX, [int]$targetY, [int]$clickX, [int]$clickY, [string]$shotName, [string]$nextMap) {
+            Open-FullMap $mapId
+            Shot "$shotName-fullmap"
+            $clientBefore = Get-LogLineCount $clientLog
+            $serverBefore = Get-LogLineCount $serverLog
+            Write-Host "route target: map=$mapId cell=($targetX,$targetY) fullmap_click=($clickX,$clickY)"
+            Click-Client $clickX $clickY
+            $started = Wait-LogLine $clientLog 'windowed_full_map_navigation_start' $clientBefore 20
+            if (-not $started) { throw "A-star navigation did not start on map $mapId for ($targetX,$targetY)" }
+            if ($nextMap -ne "") {
+              $routePattern = 'offline_scene_route_arrival.*target=' + [regex]::Escape("map:old:$nextMap")
+              $arrived = Wait-LogLine $serverLog $routePattern $serverBefore 240
+              if (-not $arrived) {
+                $complete = Wait-LogLine $clientLog 'windowed_full_map_navigation_complete' $clientBefore 2
+                if ($complete) {
+                  throw "Navigation completed on map $mapId but server did not report transition to $nextMap; inspect door trigger cell"
+                }
+                throw "Timed out waiting for map $mapId to transition to $nextMap"
+              }
+              Write-Host "scene route confirmed: $arrived"
+              Start-Sleep -Seconds 5
+              Shot "$shotName-arrived-$nextMap"
+            } else {
+              $complete = Wait-LogLine $clientLog 'windowed_full_map_navigation_complete' $clientBefore 240
+              if (-not $complete) { throw "A-star navigation did not complete on map $mapId at ($targetX,$targetY)" }
+              Write-Host "navigation complete: $complete"
+              Shot "$shotName-arrived"
+            }
+          }
+          function Wait-ShopPurchase([int]$itemId, [int]$afterLine) {
+            $pattern = 'offline_shop_purchase.*accepted=True.*record=\(' + $itemId + ',\s*30,\s*0,\s*0,\s*0\).*selected_count=30'
+            return Wait-LogLine $serverLog $pattern $afterLine 45
+          }
+
+          $failureReason = $null
           $p = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($launcher.Name)`"" -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput (Join-Path $ws "game-stdout.log") -RedirectStandardError (Join-Path $ws "game-stderr.log")
           Write-Host "launcher pid: $($p.Id)"
           Start-Sleep -Seconds 35
           Shot "shot-00-preclick"
-          [Mouse]::Click(625, 544)
+          Click-Client 625 544
           Write-Host "clicked Confirm at 625,544"
           Start-Sleep -Seconds 5
           Shot "shot-00-postclick"
+
+          try {
+            $game = $null
+            for ($attempt = 0; $attempt -lt 30 -and -not $game; $attempt++) {
+              $game = Get-Process -Name NeoDark -ErrorAction SilentlyContinue |
+                Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } |
+                Select-Object -First 1
+              if (-not $game) { Start-Sleep -Seconds 1 }
+            }
+            if (-not $game) { throw "NeoDark main window handle was not found" }
+            $gameHwnd = [IntPtr]$game.MainWindowHandle
+            $rect = New-Object WinInput+RECT
+            if (-not [WinInput]::GetClientRect($gameHwnd, [ref]$rect)) { throw "Cannot read NeoDark client rectangle" }
+            Write-Host "game window: pid=$($game.Id) hwnd=$gameHwnd client=$($rect.Right - $rect.Left)x$($rect.Bottom - $rect.Top)"
+            Focus-Game
+
+            Shot "route-1030-start"
+            Navigate-MapTarget 1030 6 138 122 534 "route-1030" "1020"
+            Navigate-MapTarget 1020 7 177 148 270 "route-1020" "1000"
+            Navigate-MapTarget 1000 28 116 225 226 "route-1000" "2300"
+            Navigate-MapTarget 2300 26 34 449 314 "route-2300" ""
+
+            Shot "route-2300-before-npc"
+            $menuBefore = Get-LogLineCount $serverLog
+            Write-Host "NPC interaction: map=2300 entity=21230 cell=(34,34) player_stand=(26,34) click=(656,304)"
+            Click-Client 656 304
+            $menuOpened = Wait-LogLine $serverLog 'offline_native_npc_menu_opened.*entity=21230.*program=15' $menuBefore 20
+            if (-not $menuOpened) { throw "Click at NPC 21230 did not open NPCScript program 15" }
+            Write-Host "NPC menu opened: $menuOpened"
+            Start-Sleep -Seconds 2
+            Shot "shop-npc-menu"
+
+            $shopBefore = Get-LogLineCount $serverLog
+            Focus-Game
+            [WinInput]::PressKey(0x28)
+            [WinInput]::PressKey(0x0D)
+            $shopOpened = Wait-LogLine $serverLog 'offline_shop_opened.*entity=21230.*program=15' $shopBefore 20
+            if (-not $shopOpened) { throw "NPC menu did not open consumables shop after Down+Enter; inspect shop-npc-menu screenshot and client log" }
+            Write-Host "consumables shop opened: $shopOpened"
+            Start-Sleep -Seconds 2
+            Shot "shop-open"
+            Shot "shop-before-purchase"
+
+            $redBefore = Get-LogLineCount $serverLog
+            Focus-Game
+            [WinInput]::PressKey(0x24)
+            [WinInput]::PressKey(0x0D)
+            Start-Sleep -Seconds 2
+            Shot "shop-red-quantity-dialog"
+            Focus-Game
+            [System.Windows.Forms.SendKeys]::SendWait("^a")
+            [System.Windows.Forms.SendKeys]::SendWait("30")
+            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+            $redPurchase = Wait-ShopPurchase 4001 $redBefore
+            if (-not $redPurchase) { throw "Recovery potion 4001 purchase of quantity 30 was not confirmed by server log" }
+            Write-Host "RED POTION PURCHASE CONFIRMED: $redPurchase"
+            Start-Sleep -Seconds 2
+            Shot "shop-red-purchased"
+
+            $blueBefore = Get-LogLineCount $serverLog
+            Focus-Game
+            [WinInput]::PressKey(0x24)
+            for ($k = 0; $k -lt 4; $k++) { [WinInput]::PressKey(0x28) }
+            [WinInput]::PressKey(0x0D)
+            Start-Sleep -Seconds 2
+            Shot "shop-blue-quantity-dialog"
+            Focus-Game
+            [System.Windows.Forms.SendKeys]::SendWait("^a")
+            [System.Windows.Forms.SendKeys]::SendWait("30")
+            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+            $bluePurchase = Wait-ShopPurchase 4006 $blueBefore
+            if (-not $bluePurchase) { throw "Magic potion 4006 purchase of quantity 30 was not confirmed by server log" }
+            Write-Host "BLUE POTION PURCHASE CONFIRMED: $bluePurchase"
+            Start-Sleep -Seconds 2
+            Shot "shop-blue-purchased"
+
+            Focus-Game
+            [WinInput]::PressKey(0x1B)
+            Start-Sleep -Seconds 1
+            Click-Client 350 12
+            Start-Sleep -Seconds 3
+            Shot "inventory-after-potions"
+            Focus-Game
+            [WinInput]::PressKey(0x1B)
+            Write-Host "POTION PURCHASE AUTOMATION COMPLETE: item 4001 x30 and item 4006 x30"
+          }
+          catch {
+            $failureReason = $_.Exception.Message
+            Write-Host "POTION ROUTE/AUTOMATION STOPPED: $failureReason"
+            Shot "automation-stopped"
+          }
+
           for ($i = 1; $i -le 16; $i++) {
             Start-Sleep -Seconds 30
             $n = "{0:D2}" -f $i
@@ -102,6 +304,7 @@ jobs:
           Get-Content (Join-Path $ws "game-stdout.log") -Tail 30 -ErrorAction SilentlyContinue
           Write-Host "--- game stderr tail ---"
           Get-Content (Join-Path $ws "game-stderr.log") -Tail 30 -ErrorAction SilentlyContinue
+          if ($failureReason) { throw $failureReason }
 
       - name: Collect logs
         shell: pwsh
