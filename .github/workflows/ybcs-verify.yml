@@ -69,6 +69,31 @@ jobs:
             [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
             [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr hWnd, ref POINT point);
             [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr hWnd, out RECT rect);
+            [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+            public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+            [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+            [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+            [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
+            public static IntPtr FindVisibleWindowForProcess(int pid) {
+              IntPtr found = IntPtr.Zero;
+              EnumWindowsProc callback = delegate(IntPtr hWnd, IntPtr lParam) {
+                uint ownerPid;
+                GetWindowThreadProcessId(hWnd, out ownerPid);
+                if (ownerPid == (uint)pid && IsWindowVisible(hWnd)) {
+                  found = hWnd;
+                  return false;
+                }
+                return true;
+              };
+              EnumWindows(callback, IntPtr.Zero);
+              GC.KeepAlive(callback);
+              return found;
+            }
+            public static int[] GetClientSize(IntPtr hwnd) {
+              RECT rect;
+              if (!GetClientRect(hwnd, out rect)) return new int[] { 0, 0 };
+              return new int[] { rect.Right - rect.Left, rect.Bottom - rect.Top };
+            }
             public const uint LEFTDOWN = 0x0002;
             public const uint LEFTUP = 0x0004;
             public const uint KEYUP = 0x0002;
@@ -195,16 +220,15 @@ jobs:
           try {
             $game = $null
             for ($attempt = 0; $attempt -lt 30 -and -not $game; $attempt++) {
-              $game = Get-Process -Name NeoDark -ErrorAction SilentlyContinue |
-                Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } |
-                Select-Object -First 1
+              $game = Get-Process -Name NeoDark -ErrorAction SilentlyContinue | Select-Object -First 1
               if (-not $game) { Start-Sleep -Seconds 1 }
             }
-            if (-not $game) { throw "NeoDark main window handle was not found" }
-            $gameHwnd = [IntPtr]$game.MainWindowHandle
-            $rect = New-Object WinInput+RECT
-            if (-not [WinInput]::GetClientRect($gameHwnd, [ref]$rect)) { throw "Cannot read NeoDark client rectangle" }
-            Write-Host "game window: pid=$($game.Id) hwnd=$gameHwnd client=$($rect.Right - $rect.Left)x$($rect.Bottom - $rect.Top)"
+            if (-not $game) { throw "NeoDark process was not found" }
+            $gameHwnd = [WinInput]::FindVisibleWindowForProcess([int]$game.Id)
+            if ($gameHwnd -eq [IntPtr]::Zero) { throw "No visible top-level NeoDark window found by PID $($game.Id)" }
+            $clientSize = [WinInput]::GetClientSize($gameHwnd)
+            if ($clientSize[0] -le 0 -or $clientSize[1] -le 0) { throw "NeoDark window has an invalid client size" }
+            Write-Host "game window: pid=$($game.Id) hwnd=$gameHwnd client=$($clientSize[0])x$($clientSize[1])"
             Focus-Game
             Shot "shot-00-preclick"
             Click-Client 625 544
