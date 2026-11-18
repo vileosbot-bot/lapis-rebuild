@@ -52,6 +52,23 @@ jobs:
           if (-not $launcher) { $launcher = Get-ChildItem -Filter "*.cmd" | Select-Object -First 1 }
           Add-Type -AssemblyName System.Drawing
           Add-Type -AssemblyName System.Windows.Forms
+          Add-Type @"
+          using System;
+          using System.Runtime.InteropServices;
+          using System.Threading;
+          public static class Mouse {
+            [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
+            [DllImport("user32.dll")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+            public const uint LEFTDOWN = 0x0002;
+            public const uint LEFTUP = 0x0004;
+            public static void Click(int x, int y) {
+              SetCursorPos(x, y);
+              mouse_event(LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+              Thread.Sleep(120);
+              mouse_event(LEFTUP, 0, 0, 0, UIntPtr.Zero);
+            }
+          }
+          "@
           function Shot($name) {
             $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
             $bmp = New-Object System.Drawing.Bitmap($b.Width, $b.Height)
@@ -63,6 +80,12 @@ jobs:
           }
           $p = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($launcher.Name)`"" -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput (Join-Path $ws "game-stdout.log") -RedirectStandardError (Join-Path $ws "game-stderr.log")
           Write-Host "launcher pid: $($p.Id)"
+          Start-Sleep -Seconds 35
+          Shot "shot-00-preclick"
+          [Mouse]::Click(660, 525)
+          Write-Host "clicked Confirm at 660,525"
+          Start-Sleep -Seconds 5
+          Shot "shot-00-postclick"
           for ($i = 1; $i -le 16; $i++) {
             Start-Sleep -Seconds 30
             $n = "{0:D2}" -f $i
