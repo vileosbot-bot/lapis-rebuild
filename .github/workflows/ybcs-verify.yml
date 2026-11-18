@@ -176,6 +176,168 @@ jobs:
               raise SystemExit("distance check is not bound to exact clicked NPC")
           if b"queueOfflineNpcSingleClick(" not in patched:
               raise SystemExit("original exact 0x08 sender is missing")
+          old_trace_anchor = b'''const offlineNpcSingleClickInstallTimer = setTimeout(
+  installOfflineNpcSingleClickInteraction,
+  OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
+);
+'''
+          new_trace_anchor = b'''let npcDialogNativeTraceInstalled = false;
+let npcDialogNativeTraceSequence = 0;
+function npcDialogTraceHex(bytes) {
+  return Array.from(bytes).map(function(value) {
+    return (value < 16 ? "0" : "") + value.toString(16);
+  }).join("");
+}
+function npcDialogTraceReadS16(bytes, offset) {
+  const value = bytes[offset] | (bytes[offset + 1] << 8);
+  return (value & 0x8000) !== 0 ? value - 0x10000 : value;
+}
+function npcDialogTracePointer(value) {
+  try {
+    const address = ptr(value);
+    if (address.isNull() || address.toUInt32() < 0x10000) return null;
+    const range = Process.findRangeByAddress(address);
+    if (range === null || range.protection.indexOf("r") < 0) return null;
+    const available = range.base.add(range.size).sub(address).toInt32();
+    if (available < 8) return null;
+    const length = Math.min(48, available);
+    const raw = Memory.readByteArray(address, length);
+    const bytes = Array.from(new Uint8Array(raw));
+    const rowCandidate = bytes.length >= 9 ? {
+      kind: bytes[0],
+      x: npcDialogTraceReadS16(bytes, 1),
+      y: npcDialogTraceReadS16(bytes, 3),
+      width: npcDialogTraceReadS16(bytes, 5),
+      height: npcDialogTraceReadS16(bytes, 7)
+    } : null;
+    return {
+      address: address.toString(),
+      bytesHex: npcDialogTraceHex(bytes),
+      rowCandidate: rowCandidate
+    };
+  } catch (_) {
+    return null;
+  }
+}
+function npcDialogTraceSnapshot(name, address, args, context) {
+  const registers = {};
+  const candidateWords = [];
+  ["eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "esp", "eip"].forEach(function(registerName) {
+    try {
+      const value = context[registerName].toUInt32();
+      registers[registerName] = "0x" + value.toString(16);
+      if (value <= 0xffff) candidateWords.push({source: "reg." + registerName, value: value});
+    } catch (_) {}
+  });
+  const argumentWords = [];
+  const pointerSnapshots = [];
+  for (let index = 0; index < 6; index++) {
+    try {
+      const value = args[index].toUInt32();
+      argumentWords.push({index: index, value: value, hex: "0x" + value.toString(16)});
+      if (value <= 0xffff) candidateWords.push({source: "arg" + index, value: value});
+      const snapshot = npcDialogTracePointer(ptr(value));
+      if (snapshot !== null) pointerSnapshots.push({source: "arg" + index, snapshot: snapshot});
+    } catch (_) {}
+  }
+  const stackWords = [];
+  try {
+    const esp = context.esp;
+    for (let index = 0; index < 12; index++) {
+      const value = esp.add(index * 4).readU32();
+      stackWords.push({index: index, value: value, hex: "0x" + value.toString(16)});
+      if (value <= 0xffff) candidateWords.push({source: "stack" + index, value: value});
+      if (index < 8) {
+        const snapshot = npcDialogTracePointer(ptr(value));
+        if (snapshot !== null) pointerSnapshots.push({source: "stack" + index, snapshot: snapshot});
+      }
+    }
+  } catch (_) {}
+  const programIndexCandidates = candidateWords.filter(function(item) {
+    return item.value >= 11 && item.value <= 49;
+  });
+  const optionOrdinalCandidates = candidateWords.filter(function(item) {
+    return item.value >= 0 && item.value <= 3;
+  });
+  const kindCandidates = pointerSnapshots.filter(function(item) {
+    const row = item.snapshot.rowCandidate;
+    return row !== null && (row.kind === 1 || row.kind === 2);
+  }).map(function(item) {
+    return {source: item.source, address: item.snapshot.address, row: item.snapshot.rowCandidate};
+  });
+  return {
+    function: name,
+    address: address,
+    registers: registers,
+    args: argumentWords,
+    stack: stackWords,
+    programIndexCandidates: programIndexCandidates,
+    optionOrdinalCandidates: optionOrdinalCandidates,
+    npcScriptKindRowCandidates: kindCandidates,
+    pointerSnapshots: pointerSnapshots
+  };
+}
+function installNpcDialogNativeTrace() {
+  if (npcDialogNativeTraceInstalled) return;
+  const targets = [
+    {address: 0x00457A90, name: "npc_menu_dispatch_0x00457A90"},
+    {address: 0x00457DE0, name: "npc_dialog_resource_0x00457DE0"},
+    {address: 0x00457ADE, name: "npc_menu_ordinal0_callsite_0x00457ADE"},
+    {address: 0x00457B44, name: "npc_menu_ordinal1_callsite_0x00457B44"}
+  ];
+  const installed = [];
+  const errors = [];
+  targets.forEach(function(target) {
+    try {
+      attachOnce("npc-dialog-native-trace:" + target.name, ptr(target.address), {
+        onEnter(args) {
+          const count = (npcDialogNativeTraceSequence += 1);
+          this.npcDialogTrace = npcDialogTraceSnapshot(
+            target.name, ptr(target.address).toString(), args, this.context
+          );
+          this.npcDialogTrace.sequence = count;
+          emit("npc_dialog_native_call_enter", this.npcDialogTrace);
+        },
+        onLeave(retval) {
+          emit("npc_dialog_native_call_return", {
+            function: target.name,
+            address: ptr(target.address).toString(),
+            sequence: this.npcDialogTrace ? this.npcDialogTrace.sequence : null,
+            returnValue: retval.toString(),
+            returnU32: retval.toUInt32()
+          });
+        }
+      });
+      installed.push({name: target.name, address: ptr(target.address).toString()});
+    } catch (error) {
+      errors.push({name: target.name, address: ptr(target.address).toString(), error: String(error)});
+    }
+  });
+  npcDialogNativeTraceInstalled = installed.some(function(item) {
+    return item.name === "npc_menu_dispatch_0x00457A90";
+  });
+  emit("npc_dialog_native_trace_installed", {
+    installed: installed,
+    errors: errors,
+    programIndexRange: [11, 49],
+    optionOrdinalRange: [0, 3],
+    kindValues: [1, 2],
+    snapshotBytesPerPointer: 48
+  });
+}
+const npcDialogNativeTraceInstallTimer = setTimeout(
+  installNpcDialogNativeTrace,
+  5000
+);
+const offlineNpcSingleClickInstallTimer = setTimeout(
+  installOfflineNpcSingleClickInteraction,
+  OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
+);
+'''
+          if patched.count(old_trace_anchor) != 1:
+              raise SystemExit(f"NPC native trace insertion anchor count must be 1, got {patched.count(old_trace_anchor)}")
+          patched = patched.replace(old_trace_anchor, new_trace_anchor, 1)
+          compile(patched.decode("utf-8"), str(path), "exec")
           path.write_bytes(patched)
           print(f"NPC interaction hook patched: {path}; {len(original)} -> {len(patched)} bytes")
           print("Added click-cell/target probe and native-selection diagnostic; exact 0x08 sender and <9 range gate retained.")
@@ -357,6 +519,45 @@ jobs:
             $pattern = 'offline_shop_purchase.*accepted=True.*record=\(' + $itemId + ',\s*30,\s*0,\s*0,\s*0\).*selected_count=30'
             return Wait-LogLine $serverLog $pattern $afterLine 45
           }
+          function Get-DialogMenuDiff([string]$beforePath, [string]$afterPath) {
+            $before = [System.Drawing.Bitmap]::FromFile($beforePath)
+            $after = [System.Drawing.Bitmap]::FromFile($afterPath)
+            try {
+              if ($before.Width -lt 562 -or $after.Width -lt 562 -or
+                  $before.Height -lt 604 -or $after.Height -lt 604) {
+                throw "NPC dialog screenshot dimensions are smaller than the measured 1024x768 layout"
+              }
+              $regions = @(
+                @{ name = "greeting"; left = 361; top = 555; width = 200; height = 12 },
+                @{ name = "option1"; left = 361; top = 573; width = 200; height = 12 },
+                @{ name = "option2"; left = 361; top = 591; width = 200; height = 12 }
+              )
+              $counts = @{}
+              foreach ($region in $regions) {
+                $changed = 0
+                for ($y = $region.top; $y -lt ($region.top + $region.height); $y++) {
+                  for ($x = $region.left; $x -lt ($region.left + $region.width); $x++) {
+                    $a = $before.GetPixel($x, $y)
+                    $b = $after.GetPixel($x, $y)
+                    $delta = [Math]::Abs([int]$a.R - [int]$b.R) +
+                      [Math]::Abs([int]$a.G - [int]$b.G) +
+                      [Math]::Abs([int]$a.B - [int]$b.B)
+                    if ($delta -ge 80) { $changed++ }
+                  }
+                }
+                $counts[$region.name] = $changed
+              }
+              return [pscustomobject]@{
+                greeting = [int]$counts["greeting"]
+                option1 = [int]$counts["option1"]
+                option2 = [int]$counts["option2"]
+              }
+            }
+            finally {
+              $before.Dispose()
+              $after.Dispose()
+            }
+          }
 
           $failureReason = $null
           $p = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($launcher.Name)`"" -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput (Join-Path $ws "game-stdout.log") -RedirectStandardError (Join-Path $ws "game-stderr.log")
@@ -398,152 +599,39 @@ jobs:
             Start-Sleep -Seconds 2
             Shot "shop-npc-menu"
 
+            $greetingBefore = Get-LogLineCount $serverLog
+            $clientBeforeGreeting = Get-LogLineCount $clientLog
+            $greetingBeforeShot = Join-Path $shotDir "shop-npc-menu.png"
+            if (-not (Test-Path -LiteralPath $greetingBeforeShot)) {
+              Shot "npc-greeting-before-click"
+              $greetingBeforeShot = Join-Path $shotDir "npc-greeting-before-click.png"
+            }
+            Write-Host "NPC greeting click basis: Run #14 1024x768 screenshot; game client screen origin=(43,66); visible greeting glyph bounds approximately x=361..451 y=553..563; physical client click=(362,492) maps to screen=(405,558)"
+            Click-Client 362 492
+            Start-Sleep -Seconds 3
+            Shot "npc-greeting-after-click"
+            $greetingAfterShot = Join-Path $shotDir "npc-greeting-after-click.png"
+            $dialogueResolved = Wait-LogLine $serverLog 'offline_native_npc_menu_dialogue_resolved.*entity=21230.*program=15' $greetingBefore 2
+            $ordinal0Call = Wait-LogLine $clientLog 'npc_menu_ordinal0_callsite_0x00457ADE' $clientBeforeGreeting 1
+            $menuDiff = Get-DialogMenuDiff $greetingBeforeShot $greetingAfterShot
+            Write-Host "NPC dialog pixel diff against pre-click screenshot: greeting=$($menuDiff.greeting) option1=$($menuDiff.option1) option2=$($menuDiff.option2)"
+            if ($dialogueResolved -or $ordinal0Call) {
+              Write-Host "Greeting-area click selected the ordinal-0 dialogue route; do not click another menu item in this run"
+              throw "Greeting-area click dispatched ordinal 0 dialogue; inspect 49/09 and 07/01 evidence before any further input"
+            }
+            if ($menuDiff.option1 -lt 20 -or $menuDiff.option2 -lt 20) {
+              throw "Greeting-area click did not visibly reveal both selectable menu rows; no option or purchase click attempted"
+            }
+            Write-Host "NPC selectable menu rows detected in screenshot: option1=$($menuDiff.option1) option2=$($menuDiff.option2)"
+            Shot "npc-menu-options-visible"
+            Write-Host "NPC ordinal-1 hit basis: dialog origin inferred from Run #14 screenshot and NPCScript row 0 (150,17); dialog origin logical client=(168,472); row 2 (150,35) center logical client=(418,513), screen=(461,579)"
             $shopBefore = Get-LogLineCount $serverLog
-            Add-Type @"
-          using System;
-          using System.Text;
-          using System.Runtime.InteropServices;
-          using System.Threading;
-          public static class NpcMenuInput {
-            [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-            public delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);
-            [DllImport("user32.dll")]
-            public static extern bool EnumChildWindows(IntPtr parent, EnumChildProc callback, IntPtr lParam);
-            [DllImport("user32.dll", CharSet=CharSet.Unicode)]
-            public static extern int GetClassNameW(IntPtr hWnd, StringBuilder name, int maxCount);
-            [DllImport("user32.dll")]
-            public static extern bool IsWindowVisible(IntPtr hWnd);
-            [DllImport("user32.dll", CharSet=CharSet.Unicode)]
-            public static extern int GetWindowTextLengthW(IntPtr hWnd);
-            [DllImport("user32.dll", CharSet=CharSet.Unicode)]
-            public static extern int GetWindowTextW(IntPtr hWnd, StringBuilder text, int maxCount);
-            [StructLayout(LayoutKind.Sequential)]
-            public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
-            [DllImport("user32.dll")]
-            public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
-            [DllImport("user32.dll")]
-            public static extern IntPtr GetParent(IntPtr hWnd);
-            [DllImport("user32.dll")]
-            public static extern IntPtr GetWindow(IntPtr hWnd, uint command);
-            [DllImport("user32.dll")]
-            public static extern bool EnumWindows(EnumChildProc callback, IntPtr lParam);
-            [DllImport("user32.dll")]
-            public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-            [DllImport("user32.dll", CharSet=CharSet.Unicode)]
-            public static extern IntPtr SendMessageW(IntPtr hWnd, uint message, UIntPtr wParam, IntPtr lParam);
-            [DllImport("user32.dll")]
-            public static extern uint MapVirtualKeyW(uint code, uint mapType);
-            public static IntPtr FindAfxInputView(IntPtr parent) {
-              IntPtr first = IntPtr.Zero;
-              IntPtr visible = IntPtr.Zero;
-              EnumChildProc callback = delegate(IntPtr hWnd, IntPtr lParam) {
-                StringBuilder name = new StringBuilder(128);
-                GetClassNameW(hWnd, name, name.Capacity);
-                if (name.ToString() == "AfxWnd42s") {
-                  if (first == IntPtr.Zero) first = hWnd;
-                  if (IsWindowVisible(hWnd)) {
-                    visible = hWnd;
-                    return false;
-                  }
-                }
-                return true;
-              };
-              EnumChildWindows(parent, callback, IntPtr.Zero);
-              GC.KeepAlive(callback);
-              return visible != IntPtr.Zero ? visible : first;
-            }
-            public static string ClassName(IntPtr hWnd) {
-              StringBuilder name = new StringBuilder(128);
-              GetClassNameW(hWnd, name, name.Capacity);
-              return name.ToString();
-            }
-            private static string HwndText(IntPtr hWnd) {
-              return hWnd == IntPtr.Zero ? "0" : "0x" + hWnd.ToInt64().ToString("X");
-            }
-            private static void AppendWindowRow(StringBuilder output, string scope, IntPtr hWnd) {
-              StringBuilder className = new StringBuilder(128);
-              GetClassNameW(hWnd, className, className.Capacity);
-              int textLength = GetWindowTextLengthW(hWnd);
-              StringBuilder caption = new StringBuilder(Math.Max(256, Math.Min(textLength + 1, 2048)));
-              GetWindowTextW(hWnd, caption, caption.Capacity);
-              string safeCaption = caption.ToString().Replace("\t", " ").Replace("\r", " ").Replace("\n", " ");
-              RECT rect;
-              string bounds = GetWindowRect(hWnd, out rect)
-                ? String.Format("{0},{1},{2},{3}; size={4}x{5}", rect.Left, rect.Top, rect.Right, rect.Bottom, rect.Right - rect.Left, rect.Bottom - rect.Top)
-                : "unavailable";
-              output.Append(scope).Append('\t')
-                .Append(HwndText(hWnd)).Append('\t')
-                .Append(HwndText(GetParent(hWnd))).Append('\t')
-                .Append(HwndText(GetWindow(hWnd, 4))).Append('\t')
-                .Append(IsWindowVisible(hWnd) ? "true" : "false").Append('\t')
-                .Append(className.ToString().Replace("\t", " ")).Append('\t')
-                .Append(safeCaption).Append('\t')
-                .Append(bounds).AppendLine();
-            }
-            public static string DumpWindowTree(IntPtr root, int processId) {
-              StringBuilder output = new StringBuilder();
-              output.AppendLine("SCOPE\tHWND\tPARENT_OR_OWNER\tOWNER\tVISIBLE\tCLASS\tTEXT\tSCREEN_RECT");
-              AppendWindowRow(output, "MAIN", root);
-              int childCount = 0;
-              EnumChildProc childCallback = delegate(IntPtr hWnd, IntPtr lParam) {
-                AppendWindowRow(output, "CHILD", hWnd);
-                childCount++;
-                return true;
-              };
-              EnumChildWindows(root, childCallback, IntPtr.Zero);
-              GC.KeepAlive(childCallback);
-              int processTopLevelCount = 0;
-              EnumChildProc topLevelCallback = delegate(IntPtr hWnd, IntPtr lParam) {
-                uint ownerPid;
-                GetWindowThreadProcessId(hWnd, out ownerPid);
-                if (ownerPid == (uint)processId && hWnd != root) {
-                  AppendWindowRow(output, "PROCESS_TOPLEVEL", hWnd);
-                  processTopLevelCount++;
-                }
-                return true;
-              };
-              EnumWindows(topLevelCallback, IntPtr.Zero);
-              GC.KeepAlive(topLevelCallback);
-              output.AppendLine("CHILD_COUNT\t" + childCount);
-              output.AppendLine("PROCESS_TOPLEVEL_COUNT\t" + processTopLevelCount);
-              return output.ToString();
-            }
-            public static bool SendKey(IntPtr hWnd, int virtualKey) {
-              if (hWnd == IntPtr.Zero) return false;
-              uint scan = MapVirtualKeyW((uint)virtualKey, 0);
-              uint flags = 1u | ((scan & 0xffu) << 16);
-              if (virtualKey == 0x28) flags |= 0x01000000u;
-              IntPtr downLParam = new IntPtr((long)flags);
-              IntPtr upLParam = new IntPtr((long)(flags | 0xC0000000u));
-              SendMessageW(hWnd, 0x0100, new UIntPtr((uint)virtualKey), downLParam);
-              Thread.Sleep(100);
-              SendMessageW(hWnd, 0x0101, new UIntPtr((uint)virtualKey), upLParam);
-              Thread.Sleep(100);
-              return true;
-            }
-          }
-          "@
-            $windowTree = [NpcMenuInput]::DumpWindowTree($gameHwnd, [int]$game.Id)
-            $windowTreePath = Join-Path $ws "npc-window-tree.txt"
-            [System.IO.File]::WriteAllText($windowTreePath, $windowTree, [System.Text.Encoding]::UTF8)
-            Write-Host "--- NPC WINDOW TREE BEGIN ---"
-            Write-Host $windowTree
-            Write-Host "--- NPC WINDOW TREE END ---"
-            Write-Host "NPC window tree artifact: $windowTreePath; chars=$($windowTree.Length)"
-            Shot "npc-dialog-window-tree"
-            throw "DIAGNOSTIC_ONLY: Run #14 captured NPC dialog window tree; no menu input or purchase attempted"
-            $menuInputHwnd = [NpcMenuInput]::FindAfxInputView($gameHwnd)
-            if ($menuInputHwnd -eq [IntPtr]::Zero) { throw "NPC menu AfxWnd42s input view was not found" }
-            Write-Host "NPC menu input target: hwnd=$menuInputHwnd class=$([NpcMenuInput]::ClassName($menuInputHwnd))"
-            Focus-Game
-            if (-not [NpcMenuInput]::SendKey($menuInputHwnd, 0x28)) { throw "Could not send Down to native NPC menu input view" }
-            Write-Host "NPC menu navigation: Down once to ordinal 1 (购买消耗品)"
-            Start-Sleep -Milliseconds 300
-            Shot "shop-menu-second-option"
-            if (-not [NpcMenuInput]::SendKey($menuInputHwnd, 0x0D)) { throw "Could not send Enter to native NPC menu input view" }
-            Write-Host "NPC menu navigation: Enter sent directly to AfxWnd42s, bypassing world-chat Return hook"
+            $clientBeforeOption1 = Get-LogLineCount $clientLog
+            Click-Client 418 513
+            $ordinal1Call = Wait-LogLine $clientLog 'npc_menu_ordinal1_callsite_0x00457B44' $clientBeforeOption1 5
+            if (-not $ordinal1Call) { Write-Host "NPC ordinal-1 callsite hook was not observed within 5 seconds; checking server confirmation" }
             $shopOpened = Wait-LogLine $serverLog 'offline_shop_opened.*entity=21230.*program=15' $shopBefore 20
-            if (-not $shopOpened) { throw "NPC menu did not open consumables shop after direct AfxWnd42s Down+Enter; inspect shop-menu-second-option and client/server logs" }
+            if (-not $shopOpened) { throw "Physical click at NPCScript ordinal-1 row did not open shop; inspect native call diagnostics and npc-menu-options-visible screenshot" }
             Write-Host "consumables shop opened: $shopOpened"
             Start-Sleep -Seconds 2
             Shot "shop-open"
