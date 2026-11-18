@@ -177,163 +177,163 @@ jobs:
           if b"queueOfflineNpcSingleClick(" not in patched:
               raise SystemExit("original exact 0x08 sender is missing")
           old_trace_anchor = b'''const offlineNpcSingleClickInstallTimer = setTimeout(
-  installOfflineNpcSingleClickInteraction,
-  OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
-);
-'''
-          new_trace_anchor = b'''let npcDialogNativeTraceInstalled = false;
-let npcDialogNativeTraceSequence = 0;
-function npcDialogTraceHex(bytes) {
-  return Array.from(bytes).map(function(value) {
-    return (value < 16 ? "0" : "") + value.toString(16);
-  }).join("");
-}
-function npcDialogTraceReadS16(bytes, offset) {
-  const value = bytes[offset] | (bytes[offset + 1] << 8);
-  return (value & 0x8000) !== 0 ? value - 0x10000 : value;
-}
-function npcDialogTracePointer(value) {
-  try {
-    const address = ptr(value);
-    if (address.isNull() || address.toUInt32() < 0x10000) return null;
-    const range = Process.findRangeByAddress(address);
-    if (range === null || range.protection.indexOf("r") < 0) return null;
-    const available = range.base.add(range.size).sub(address).toInt32();
-    if (available < 8) return null;
-    const length = Math.min(48, available);
-    const raw = Memory.readByteArray(address, length);
-    const bytes = Array.from(new Uint8Array(raw));
-    const rowCandidate = bytes.length >= 9 ? {
-      kind: bytes[0],
-      x: npcDialogTraceReadS16(bytes, 1),
-      y: npcDialogTraceReadS16(bytes, 3),
-      width: npcDialogTraceReadS16(bytes, 5),
-      height: npcDialogTraceReadS16(bytes, 7)
-    } : null;
-    return {
-      address: address.toString(),
-      bytesHex: npcDialogTraceHex(bytes),
-      rowCandidate: rowCandidate
-    };
-  } catch (_) {
-    return null;
-  }
-}
-function npcDialogTraceSnapshot(name, address, args, context) {
-  const registers = {};
-  const candidateWords = [];
-  ["eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "esp", "eip"].forEach(function(registerName) {
-    try {
-      const value = context[registerName].toUInt32();
-      registers[registerName] = "0x" + value.toString(16);
-      if (value <= 0xffff) candidateWords.push({source: "reg." + registerName, value: value});
-    } catch (_) {}
-  });
-  const argumentWords = [];
-  const pointerSnapshots = [];
-  for (let index = 0; index < 6; index++) {
-    try {
-      const value = args[index].toUInt32();
-      argumentWords.push({index: index, value: value, hex: "0x" + value.toString(16)});
-      if (value <= 0xffff) candidateWords.push({source: "arg" + index, value: value});
-      const snapshot = npcDialogTracePointer(ptr(value));
-      if (snapshot !== null) pointerSnapshots.push({source: "arg" + index, snapshot: snapshot});
-    } catch (_) {}
-  }
-  const stackWords = [];
-  try {
-    const esp = context.esp;
-    for (let index = 0; index < 12; index++) {
-      const value = esp.add(index * 4).readU32();
-      stackWords.push({index: index, value: value, hex: "0x" + value.toString(16)});
-      if (value <= 0xffff) candidateWords.push({source: "stack" + index, value: value});
-      if (index < 8) {
-        const snapshot = npcDialogTracePointer(ptr(value));
-        if (snapshot !== null) pointerSnapshots.push({source: "stack" + index, snapshot: snapshot});
-      }
-    }
-  } catch (_) {}
-  const programIndexCandidates = candidateWords.filter(function(item) {
-    return item.value >= 11 && item.value <= 49;
-  });
-  const optionOrdinalCandidates = candidateWords.filter(function(item) {
-    return item.value >= 0 && item.value <= 3;
-  });
-  const kindCandidates = pointerSnapshots.filter(function(item) {
-    const row = item.snapshot.rowCandidate;
-    return row !== null && (row.kind === 1 || row.kind === 2);
-  }).map(function(item) {
-    return {source: item.source, address: item.snapshot.address, row: item.snapshot.rowCandidate};
-  });
-  return {
-    function: name,
-    address: address,
-    registers: registers,
-    args: argumentWords,
-    stack: stackWords,
-    programIndexCandidates: programIndexCandidates,
-    optionOrdinalCandidates: optionOrdinalCandidates,
-    npcScriptKindRowCandidates: kindCandidates,
-    pointerSnapshots: pointerSnapshots
-  };
-}
-function installNpcDialogNativeTrace() {
-  if (npcDialogNativeTraceInstalled) return;
-  const targets = [
-    {address: 0x00457A90, name: "npc_menu_dispatch_0x00457A90"},
-    {address: 0x00457DE0, name: "npc_dialog_resource_0x00457DE0"},
-    {address: 0x00457ADE, name: "npc_menu_ordinal0_callsite_0x00457ADE"},
-    {address: 0x00457B44, name: "npc_menu_ordinal1_callsite_0x00457B44"}
-  ];
-  const installed = [];
-  const errors = [];
-  targets.forEach(function(target) {
-    try {
-      attachOnce("npc-dialog-native-trace:" + target.name, ptr(target.address), {
-        onEnter(args) {
-          const count = (npcDialogNativeTraceSequence += 1);
-          this.npcDialogTrace = npcDialogTraceSnapshot(
-            target.name, ptr(target.address).toString(), args, this.context
+            installOfflineNpcSingleClickInteraction,
+            OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
           );
-          this.npcDialogTrace.sequence = count;
-          emit("npc_dialog_native_call_enter", this.npcDialogTrace);
-        },
-        onLeave(retval) {
-          emit("npc_dialog_native_call_return", {
-            function: target.name,
-            address: ptr(target.address).toString(),
-            sequence: this.npcDialogTrace ? this.npcDialogTrace.sequence : null,
-            returnValue: retval.toString(),
-            returnU32: retval.toUInt32()
-          });
-        }
-      });
-      installed.push({name: target.name, address: ptr(target.address).toString()});
-    } catch (error) {
-      errors.push({name: target.name, address: ptr(target.address).toString(), error: String(error)});
-    }
-  });
-  npcDialogNativeTraceInstalled = installed.some(function(item) {
-    return item.name === "npc_menu_dispatch_0x00457A90";
-  });
-  emit("npc_dialog_native_trace_installed", {
-    installed: installed,
-    errors: errors,
-    programIndexRange: [11, 49],
-    optionOrdinalRange: [0, 3],
-    kindValues: [1, 2],
-    snapshotBytesPerPointer: 48
-  });
-}
-const npcDialogNativeTraceInstallTimer = setTimeout(
-  installNpcDialogNativeTrace,
-  5000
-);
-const offlineNpcSingleClickInstallTimer = setTimeout(
-  installOfflineNpcSingleClickInteraction,
-  OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
-);
-'''
+          '''
+          new_trace_anchor = b'''let npcDialogNativeTraceInstalled = false;
+          let npcDialogNativeTraceSequence = 0;
+          function npcDialogTraceHex(bytes) {
+            return Array.from(bytes).map(function(value) {
+              return (value < 16 ? "0" : "") + value.toString(16);
+            }).join("");
+          }
+          function npcDialogTraceReadS16(bytes, offset) {
+            const value = bytes[offset] | (bytes[offset + 1] << 8);
+            return (value & 0x8000) !== 0 ? value - 0x10000 : value;
+          }
+          function npcDialogTracePointer(value) {
+            try {
+              const address = ptr(value);
+              if (address.isNull() || address.toUInt32() < 0x10000) return null;
+              const range = Process.findRangeByAddress(address);
+              if (range === null || range.protection.indexOf("r") < 0) return null;
+              const available = range.base.add(range.size).sub(address).toInt32();
+              if (available < 8) return null;
+              const length = Math.min(48, available);
+              const raw = Memory.readByteArray(address, length);
+              const bytes = Array.from(new Uint8Array(raw));
+              const rowCandidate = bytes.length >= 9 ? {
+                kind: bytes[0],
+                x: npcDialogTraceReadS16(bytes, 1),
+                y: npcDialogTraceReadS16(bytes, 3),
+                width: npcDialogTraceReadS16(bytes, 5),
+                height: npcDialogTraceReadS16(bytes, 7)
+              } : null;
+              return {
+                address: address.toString(),
+                bytesHex: npcDialogTraceHex(bytes),
+                rowCandidate: rowCandidate
+              };
+            } catch (_) {
+              return null;
+            }
+          }
+          function npcDialogTraceSnapshot(name, address, args, context) {
+            const registers = {};
+            const candidateWords = [];
+            ["eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "esp", "eip"].forEach(function(registerName) {
+              try {
+                const value = context[registerName].toUInt32();
+                registers[registerName] = "0x" + value.toString(16);
+                if (value <= 0xffff) candidateWords.push({source: "reg." + registerName, value: value});
+              } catch (_) {}
+            });
+            const argumentWords = [];
+            const pointerSnapshots = [];
+            for (let index = 0; index < 6; index++) {
+              try {
+                const value = args[index].toUInt32();
+                argumentWords.push({index: index, value: value, hex: "0x" + value.toString(16)});
+                if (value <= 0xffff) candidateWords.push({source: "arg" + index, value: value});
+                const snapshot = npcDialogTracePointer(ptr(value));
+                if (snapshot !== null) pointerSnapshots.push({source: "arg" + index, snapshot: snapshot});
+              } catch (_) {}
+            }
+            const stackWords = [];
+            try {
+              const esp = context.esp;
+              for (let index = 0; index < 12; index++) {
+                const value = esp.add(index * 4).readU32();
+                stackWords.push({index: index, value: value, hex: "0x" + value.toString(16)});
+                if (value <= 0xffff) candidateWords.push({source: "stack" + index, value: value});
+                if (index < 8) {
+                  const snapshot = npcDialogTracePointer(ptr(value));
+                  if (snapshot !== null) pointerSnapshots.push({source: "stack" + index, snapshot: snapshot});
+                }
+              }
+            } catch (_) {}
+            const programIndexCandidates = candidateWords.filter(function(item) {
+              return item.value >= 11 && item.value <= 49;
+            });
+            const optionOrdinalCandidates = candidateWords.filter(function(item) {
+              return item.value >= 0 && item.value <= 3;
+            });
+            const kindCandidates = pointerSnapshots.filter(function(item) {
+              const row = item.snapshot.rowCandidate;
+              return row !== null && (row.kind === 1 || row.kind === 2);
+            }).map(function(item) {
+              return {source: item.source, address: item.snapshot.address, row: item.snapshot.rowCandidate};
+            });
+            return {
+              function: name,
+              address: address,
+              registers: registers,
+              args: argumentWords,
+              stack: stackWords,
+              programIndexCandidates: programIndexCandidates,
+              optionOrdinalCandidates: optionOrdinalCandidates,
+              npcScriptKindRowCandidates: kindCandidates,
+              pointerSnapshots: pointerSnapshots
+            };
+          }
+          function installNpcDialogNativeTrace() {
+            if (npcDialogNativeTraceInstalled) return;
+            const targets = [
+              {address: 0x00457A90, name: "npc_menu_dispatch_0x00457A90"},
+              {address: 0x00457DE0, name: "npc_dialog_resource_0x00457DE0"},
+              {address: 0x00457ADE, name: "npc_menu_ordinal0_callsite_0x00457ADE"},
+              {address: 0x00457B44, name: "npc_menu_ordinal1_callsite_0x00457B44"}
+            ];
+            const installed = [];
+            const errors = [];
+            targets.forEach(function(target) {
+              try {
+                attachOnce("npc-dialog-native-trace:" + target.name, ptr(target.address), {
+                  onEnter(args) {
+                    const count = (npcDialogNativeTraceSequence += 1);
+                    this.npcDialogTrace = npcDialogTraceSnapshot(
+                      target.name, ptr(target.address).toString(), args, this.context
+                    );
+                    this.npcDialogTrace.sequence = count;
+                    emit("npc_dialog_native_call_enter", this.npcDialogTrace);
+                  },
+                  onLeave(retval) {
+                    emit("npc_dialog_native_call_return", {
+                      function: target.name,
+                      address: ptr(target.address).toString(),
+                      sequence: this.npcDialogTrace ? this.npcDialogTrace.sequence : null,
+                      returnValue: retval.toString(),
+                      returnU32: retval.toUInt32()
+                    });
+                  }
+                });
+                installed.push({name: target.name, address: ptr(target.address).toString()});
+              } catch (error) {
+                errors.push({name: target.name, address: ptr(target.address).toString(), error: String(error)});
+              }
+            });
+            npcDialogNativeTraceInstalled = installed.some(function(item) {
+              return item.name === "npc_menu_dispatch_0x00457A90";
+            });
+            emit("npc_dialog_native_trace_installed", {
+              installed: installed,
+              errors: errors,
+              programIndexRange: [11, 49],
+              optionOrdinalRange: [0, 3],
+              kindValues: [1, 2],
+              snapshotBytesPerPointer: 48
+            });
+          }
+          const npcDialogNativeTraceInstallTimer = setTimeout(
+            installNpcDialogNativeTrace,
+            5000
+          );
+          const offlineNpcSingleClickInstallTimer = setTimeout(
+            installOfflineNpcSingleClickInteraction,
+            OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
+          );
+          '''
           if patched.count(old_trace_anchor) != 1:
               raise SystemExit(f"NPC native trace insertion anchor count must be 1, got {patched.count(old_trace_anchor)}")
           patched = patched.replace(old_trace_anchor, new_trace_anchor, 1)
