@@ -591,6 +591,17 @@ jobs:
                     );
                     this.npcDialogTrace.sequence = count;
                     emit("npc_dialog_native_call_enter", this.npcDialogTrace);
+                    if (target.address === 0x00457A90) {
+                      emit("npc_menu_dispatch_lifecycle", {
+                        phase: "enter",
+                        function: target.name,
+                        address: ptr(target.address).toString(),
+                        sequence: count,
+                        registers: this.npcDialogTrace.registers,
+                        args: this.npcDialogTrace.args,
+                        stack: this.npcDialogTrace.stack.slice(0, 10)
+                      });
+                    }
                   },
                   onLeave(retval) {
                     emit("npc_dialog_native_call_return", {
@@ -600,6 +611,17 @@ jobs:
                       returnValue: retval.toString(),
                       returnU32: retval.toUInt32()
                     });
+                    if (target.address === 0x00457A90) {
+                      emit("npc_menu_dispatch_lifecycle", {
+                        phase: "return",
+                        function: target.name,
+                        address: ptr(target.address).toString(),
+                        sequence: this.npcDialogTrace ? this.npcDialogTrace.sequence : null,
+                        returnedNormally: true,
+                        returnValue: retval.toString(),
+                        returnU32: retval.toUInt32()
+                      });
+                    }
                   }
                 });
                 installed.push({name: target.name, address: ptr(target.address).toString()});
@@ -749,6 +771,60 @@ jobs:
               Start-Sleep -Seconds 1
             }
             return $null
+          }
+          function Wait-NativeShopRequest([int]$afterLine, [int]$timeoutSeconds) {
+            $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
+            while ([DateTime]::UtcNow -lt $deadline) {
+              if (Test-Path -LiteralPath $clientLog) {
+                $rows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+                if ($rows.Count -gt $afterLine) {
+                  for ($j = $afterLine; $j -lt $rows.Count; $j++) {
+                    try {
+                      $event = $rows[$j] | ConvertFrom-Json -ErrorAction Stop
+                      if ($event.kind -eq "legacy_send" -and
+                          [int]$event.value.length -eq 5 -and
+                          ([string]$event.value.hex).ToLowerInvariant() -eq "30ee52ffff") {
+                        return $rows[$j]
+                      }
+                    } catch {}
+                  }
+                }
+              }
+              Start-Sleep -Seconds 1
+            }
+            return $null
+          }
+          function Get-ClientHeartbeatCount([string]$logPath) {
+            if (-not (Test-Path -LiteralPath $logPath)) { return 0 }
+            $count = 0
+            $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
+            foreach ($line in $rows) {
+              try {
+                $event = $line | ConvertFrom-Json -ErrorAction Stop
+                if ($event.kind -eq "legacy_send" -and
+                    [int]$event.value.length -eq 1 -and
+                    ([string]$event.value.hex).ToLowerInvariant() -eq "9c") {
+                  $count++
+                }
+              } catch {}
+            }
+            return $count
+          }
+          function Get-ServerDisconnectLine([string]$logPath, [int]$afterLine) {
+            if (-not (Test-Path -LiteralPath $logPath)) { return $null }
+            $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
+            for ($j = $afterLine; $j -lt $rows.Count; $j++) {
+              if ($rows[$j] -match 'transport disconnect|session-v2 close .*status=disconnected') {
+                return $rows[$j]
+              }
+            }
+            return $null
+          }
+          function Get-LastLogLine([string]$logPath) {
+            if (-not (Test-Path -LiteralPath $logPath)) { return "<missing log>" }
+            $rows = @(Get-Content -LiteralPath $logPath -Tail 1 -ErrorAction SilentlyContinue)
+            if ($rows.Count -eq 0) { return "<empty log>" }
+            return [string]$rows[$rows.Count - 1]
           }
           function Focus-Game {
             [WinInput]::SetForegroundWindow($gameHwnd) | Out-Null
@@ -978,22 +1054,83 @@ jobs:
               throw "Measured NPC option text center is outside the NeoDark client area: screen=($screenX,$screenY)"
             }
             Write-Host "NPC ordinal-1 text-center click from actual screenshot: screen=($screenX,$screenY) client=($clientX,$clientY) client_origin=($($clientOrigin.X),$($clientOrigin.Y)) client_size=($($clientSize[0]),$($clientSize[1]))"
+            Write-Host "NPC_TEXT_CENTER_CLICK_PLAN screenshot=$greetingAfterShot pixel_bounds=($($visibleText.left),$($visibleText.top))-($($visibleText.right),$($visibleText.bottom)) center_screen=($screenX,$screenY) logical_client=($clientX,$clientY) client_origin=($($clientOrigin.X),$($clientOrigin.Y)) mapping=screen-bounds-midpoint-to-800x600-logical-client"
             $shopBefore = Get-LogLineCount $serverLog
             $clientBeforeOption1 = Get-LogLineCount $clientLog
+            $heartbeatBeforeClick = Get-ClientHeartbeatCount $clientLog
+            Write-Host "NPC_POST_CLICK_HEARTBEAT_BASELINE count=$heartbeatBeforeClick (legacy_send length=1 hex=9c)"
             Click-Screen $screenX $screenY
             Start-Sleep -Seconds 2
             $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
             [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40) | Out-Null
             Start-Sleep -Milliseconds 250
             Shot "npc-menu-after-text-center-click"
+            $dispatchEnter = Wait-LogLine $clientLog 'npc_menu_dispatch_lifecycle.*"phase":\s*"enter"' $clientBeforeOption1 8
+            $dispatchReturn = Wait-LogLine $clientLog 'npc_menu_dispatch_lifecycle.*"phase":\s*"return"' $clientBeforeOption1 8
+            if ($dispatchEnter) {
+              Write-Host "NPC_MENU_DISPATCH_ENTER: $dispatchEnter"
+            } else {
+              Write-Host "NPC_MENU_DISPATCH_ENTER: no 0x00457A90 lifecycle enter event observed"
+            }
+            $dispatchReturnedNormally = $false
+            if ($dispatchReturn) {
+              try {
+                $dispatchReturnEvent = $dispatchReturn | ConvertFrom-Json -ErrorAction Stop
+                $dispatchReturnedNormally = [bool]$dispatchReturnEvent.value.returnedNormally
+                Write-Host "NPC_MENU_DISPATCH_RETURN: returned_normally=$dispatchReturnedNormally return_value=$($dispatchReturnEvent.value.returnValue) return_u32=$($dispatchReturnEvent.value.returnU32)"
+              } catch {
+                Write-Host "NPC_MENU_DISPATCH_RETURN: event present but JSON parse failed: $dispatchReturn"
+              }
+            } else {
+              Write-Host "NPC_MENU_DISPATCH_RETURN: no 0x00457A90 return event observed within 8 seconds; returned_normally=False"
+            }
+            $survivalDeadline = [DateTime]::UtcNow.AddSeconds(120)
+            $nextHeartbeatProbe = [DateTime]::UtcNow
+            $heartbeatAfterClick = $heartbeatBeforeClick
+            $processAlive = $false
+            $windowVisible = $false
+            $clientSizeAfter = @(0, 0)
+            $serverDisconnectLine = $null
+            while ([DateTime]::UtcNow -lt $survivalDeadline) {
+              $currentGameProcess = Get-Process -Id $game.Id -ErrorAction SilentlyContinue
+              $processAlive = $null -ne $currentGameProcess
+              try { $windowVisible = [WinInput]::IsWindowVisible($gameHwnd) } catch { $windowVisible = $false }
+              $clientSizeAfter = [WinInput]::GetClientSize($gameHwnd)
+              $serverDisconnectLine = Get-ServerDisconnectLine $serverLog $shopBefore
+              if (-not $processAlive -or -not $windowVisible -or $serverDisconnectLine) { break }
+              if ([DateTime]::UtcNow -ge $nextHeartbeatProbe) {
+                $heartbeatAfterClick = Get-ClientHeartbeatCount $clientLog
+                if ($heartbeatAfterClick -gt $heartbeatBeforeClick) { break }
+                $nextHeartbeatProbe = [DateTime]::UtcNow.AddSeconds(10)
+              }
+              Start-Sleep -Seconds 2
+            }
+            $heartbeatAfterClick = Get-ClientHeartbeatCount $clientLog
+            $heartbeatAdvanced = $heartbeatAfterClick -gt $heartbeatBeforeClick
+            $serverDisconnected = $null -ne $serverDisconnectLine
+            Write-Host "NPC_POST_CLICK_SURVIVAL process_alive=$processAlive window_visible=$windowVisible client_size=$($clientSizeAfter -join 'x') heartbeat_before=$heartbeatBeforeClick heartbeat_after=$heartbeatAfterClick heartbeat_advanced=$heartbeatAdvanced server_disconnected=$serverDisconnected dispatch_returned_normally=$dispatchReturnedNormally"
+            if (-not $processAlive -or -not $windowVisible -or $serverDisconnected -or -not $heartbeatAdvanced) {
+              $clientLastLine = Get-LastLogLine $clientLog
+              $serverLastLine = Get-LastLogLine $serverLog
+              Write-Host "NPC_POST_CLICK_LAST_CLIENT_LOG_LINE: $clientLastLine"
+              Write-Host "NPC_POST_CLICK_LAST_SERVER_LOG_LINE: $serverLastLine"
+              if ($serverDisconnectLine) { Write-Host "NPC_POST_CLICK_SERVER_DISCONNECT_EVENT: $serverDisconnectLine" }
+            }
+            Shot "npc-menu-post-click-survival"
             $ordinal1Call = Wait-LogLine $clientLog 'npc_menu_ordinal1_callsite_0x00457B44' $clientBeforeOption1 10
             if (-not $ordinal1Call) {
+              if (-not $processAlive -or -not $windowVisible -or $serverDisconnected) {
+                throw "Text-center click ended or disconnected the game before ordinal 1; inspect dispatch lifecycle and last client/server log lines"
+              }
               throw "Actual screenshot text-center click did not execute the ordinal-1 native callsite 0x00457B44"
             }
             Write-Host "NPC ordinal-1 native call confirmed: $ordinal1Call"
-            $nativeShopRequest = Wait-LogLine $clientLog '"kind":\s*"legacy_send".*"length":\s*5.*"hex":\s*"30ee52ffff"' $clientBeforeOption1 15
+            if (-not $processAlive -or -not $windowVisible -or $serverDisconnected) {
+              throw "Ordinal 1 was observed, but the game process/window/session ended before shop confirmation"
+            }
+            $nativeShopRequest = Wait-NativeShopRequest $clientBeforeOption1 15
             if (-not $nativeShopRequest) {
-              throw "Client did not send the exact native 0x30 request 30ee52ffff for target 21230 action -1"
+              throw "Client did not send the exact native 0x30 request (legacy_send length=5 hex=30ee52ffff) for target 21230 action -1"
             }
             Write-Host "NATIVE 0x30 SHOP REQUEST CONFIRMED: $nativeShopRequest"
             $shopOpened = Wait-LogLine $serverLog 'offline_shop_opened.*entity=21230.*program=15' $shopBefore 20
