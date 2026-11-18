@@ -259,7 +259,7 @@ jobs:
             Shot "route-2300-before-npc"
             $menuBefore = Get-LogLineCount $serverLog
             Write-Host "NPC interaction: map=2300 entity=21230 cell=(34,34) player_stand=(26,34) click=(656,304)"
-            Click-Client 656 304
+            Click-Client 652 277
             $menuOpened = Wait-LogLine $serverLog 'offline_native_npc_menu_opened.*entity=21230.*program=15' $menuBefore 20
             if (-not $menuOpened) { throw "Click at NPC 21230 did not open NPCScript program 15" }
             Write-Host "NPC menu opened: $menuOpened"
