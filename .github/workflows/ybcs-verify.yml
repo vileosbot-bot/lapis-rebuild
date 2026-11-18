@@ -82,8 +82,8 @@ jobs:
           Write-Host "launcher pid: $($p.Id)"
           Start-Sleep -Seconds 35
           Shot "shot-00-preclick"
-          [Mouse]::Click(660, 525)
-          Write-Host "clicked Confirm at 660,525"
+          [Mouse]::Click(625, 544)
+          Write-Host "clicked Confirm at 625,544"
           Start-Sleep -Seconds 5
           Shot "shot-00-postclick"
           for ($i = 1; $i -le 16; $i++) {
