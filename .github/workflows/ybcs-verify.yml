@@ -44,10 +44,12 @@ jobs:
       - name: Launch game and screenshot
         shell: pwsh
         run: |
+          $ws = $env:GITHUB_WORKSPACE
+          $shotDir = Join-Path $ws "screenshots"
+          New-Item -ItemType Directory -Force -Path $shotDir | Out-Null
           cd ybcs
           $launcher = Get-ChildItem -Filter "*单机游戏.cmd" | Select-Object -First 1
           if (-not $launcher) { $launcher = Get-ChildItem -Filter "*.cmd" | Select-Object -First 1 }
-          New-Item -ItemType Directory -Force -Path ..\screenshots | Out-Null
           Add-Type -AssemblyName System.Drawing
           Add-Type -AssemblyName System.Windows.Forms
           function Shot($name) {
@@ -55,11 +57,11 @@ jobs:
             $bmp = New-Object System.Drawing.Bitmap($b.Width, $b.Height)
             $g = [System.Drawing.Graphics]::FromImage($bmp)
             $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
-            $bmp.Save("..\screenshots\$name.png")
+            $bmp.Save((Join-Path $shotDir "$name.png"))
             $g.Dispose(); $bmp.Dispose()
             Write-Host "shot: $name"
           }
-          $p = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($launcher.Name)`"" -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput ..\game-stdout.log -RedirectStandardError ..\game-stderr.log
+          $p = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($launcher.Name)`"" -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput (Join-Path $ws "game-stdout.log") -RedirectStandardError (Join-Path $ws "game-stderr.log")
           Write-Host "launcher pid: $($p.Id)"
           for ($i = 1; $i -le 16; $i++) {
             Start-Sleep -Seconds 30
@@ -74,9 +76,9 @@ jobs:
           Write-Host "--- NeoDark processes after stop ---"
           Get-Process -Name NeoDark -ErrorAction SilentlyContinue | Select-Object Id, ProcessName | Format-Table -AutoSize
           Write-Host "--- game stdout tail ---"
-          Get-Content ..\game-stdout.log -Tail 30 -ErrorAction SilentlyContinue
+          Get-Content (Join-Path $ws "game-stdout.log") -Tail 30 -ErrorAction SilentlyContinue
           Write-Host "--- game stderr tail ---"
-          Get-Content ..\game-stderr.log -Tail 30 -ErrorAction SilentlyContinue
+          Get-Content (Join-Path $ws "game-stderr.log") -Tail 30 -ErrorAction SilentlyContinue
 
       - name: Collect logs
         shell: pwsh
