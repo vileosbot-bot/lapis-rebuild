@@ -61,6 +61,7 @@ jobs:
           Write-Host "STATIC_DISPATCH_ANALYSIS binary=NeoDark.exe image_base=0x00400000 architecture=PE32"
           Write-Host "STATIC_HIT_TEST 0x004572A0: x_rel=arg0-[this+0x14]; y_rel=arg1-[this+0x18]; rows=[this+0x110..this+0x114] pointer array; row.Kind=[row+0]; active_kind=[this+0x11c]; RECT=[row+0x4]; transform=(dx=+20,dy=-15) via [0x004E2478]; point-in-rect via [0x004E2510]; hit stores ordinal at [this+0x120], no hit stores -1 at 0x004573C2"
           Write-Host "STATIC_ORDINAL_RULE: only rows whose Kind equals [this+0x11c] are eligible; eligible ordinal starts at 0 and increments after each miss; first containing RECT wins"
+          Write-Host "STATIC_PROGRAM15_RESOURCE: ordinal0=进行对话 (49 09 dialogue request); ordinal1=购买消耗品 (30 target/action service request); ordinal2=不需要; resource program=15; selectable_count=3"
           Write-Host "STATIC_CLICK_HANDLER 0x004571F0: if [this+0x11c]==2 then push [this+0x120] and call 0x00457A90"
           Write-Host "STATIC_DISPATCH 0x00457A90: ordinal=[esp+0x4]; range 0..3; jump table=[0x00457CB8+ordinal*4]"
           Write-Host "STATIC_ORDINAL0 0x00457ADE: packet=[0x49,0x09,word([this+0x108])] length=4; call target=0x004A6FD0"
@@ -306,12 +307,22 @@ jobs:
                 rowArrayStatus = "invalid-vector-bounds";
               }
               const hitRows = rows.filter(function(row) { return row.containsPoint; });
+              const firstRow = rows.find(function(row) {
+                return row.eligibleForCurrentState && row.ordinal === 0;
+              });
               const secondRow = rows.find(function(row) {
                 return row.eligibleForCurrentState && row.ordinal === 1;
               });
-              let suggestedHitTestPoint = null;
+              let suggestedOrdinal0HitTestPoint = null;
+              if (firstRow !== undefined) {
+                suggestedOrdinal0HitTestPoint = {
+                  x: fields.originX + Math.floor((firstRow.hitRectAfterNativeOffset.left + firstRow.hitRectAfterNativeOffset.right) / 2),
+                  y: fields.originY + Math.floor((firstRow.hitRectAfterNativeOffset.top + firstRow.hitRectAfterNativeOffset.bottom) / 2)
+                };
+              }
+              let suggestedOrdinal1HitTestPoint = null;
               if (secondRow !== undefined) {
-                suggestedHitTestPoint = {
+                suggestedOrdinal1HitTestPoint = {
                   x: fields.originX + Math.floor((secondRow.hitRectAfterNativeOffset.left + secondRow.hitRectAfterNativeOffset.right) / 2),
                   y: fields.originY + Math.floor((secondRow.hitRectAfterNativeOffset.top + secondRow.hitRectAfterNativeOffset.bottom) / 2)
                 };
@@ -328,7 +339,8 @@ jobs:
                 relativePoint: relativePoint,
                 predictedOrdinal: hitRows.length > 0 ? hitRows[0].ordinal : null,
                 containingRows: hitRows.map(function(row) { return row.rowIndex; }),
-                suggestedOrdinal1HitTestPoint: suggestedHitTestPoint
+                suggestedOrdinal0HitTestPoint: suggestedOrdinal0HitTestPoint,
+                suggestedOrdinal1HitTestPoint: suggestedOrdinal1HitTestPoint
               };
             } catch (error) {
               return {status: "read-error", source: source, address: addressText, error: String(error)};
@@ -585,6 +597,12 @@ jobs:
                         sequence: this.npcDialogTrace ? this.npcDialogTrace.sequence : null,
                         returnValue: retval.toString(),
                         returnU32: retval.toUInt32(),
+                        point: this.npcDialogTrace && this.npcDialogTrace.menuObject
+                          ? this.npcDialogTrace.menuObject.point
+                          : null,
+                        predictedOrdinal: this.npcDialogTrace && this.npcDialogTrace.menuObject
+                          ? this.npcDialogTrace.menuObject.predictedOrdinal
+                          : null,
                         menuObjectAfter: menuAfter
                       });
                     }
@@ -1037,72 +1055,157 @@ jobs:
                 $screenY -ge ($clientOrigin.Y + $clientSize[1])) {
               throw "Measured NPC option text center is outside the NeoDark client area: screen=($screenX,$screenY)"
             }
-            Write-Host "NPC_TEXT_CENTER_HOVER_PLAN screenshot=$greetingAfterShot pixel_bounds=($($visibleText.left),$($visibleText.top))-($($visibleText.right),$($visibleText.bottom)) center_screen=($screenX,$screenY) logical_client=($clientX,$clientY) client_origin=($($clientOrigin.X),$($clientOrigin.Y)) mapping=screen-bounds-midpoint-to-800x600-logical-client"
-            $clientBeforeHover = Get-LogLineCount $clientLog
-            $serverBeforeHover = Get-LogLineCount $serverLog
-            $heartbeatBeforeHover = Get-ClientHeartbeatCount $clientLog
-            $greetingDiagnosticEvents = @()
-            if (Test-Path -LiteralPath $clientLog) {
-              $greetingRows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
-              if ($greetingRows.Count -gt $clientBeforeGreeting) {
-                $greetingDiagnosticEvents = @($greetingRows | Select-Object -Skip $clientBeforeGreeting | Where-Object {
-                  $_ -match 'npc_menu_click_handler_(enter|return)' -or
-                  $_ -match 'npc_menu_hit_test_(enter|return)'
-                })
+            Write-Host "NPC_TEXT_CENTER_MEASURED screenshot=$greetingAfterShot pixel_bounds=($($visibleText.left),$($visibleText.top))-($($visibleText.right),$($visibleText.bottom)) old_center_screen=($screenX,$screenY) old_center_client=($clientX,$clientY)"
+            Write-Host "NPC_DIAGNOSTIC_ACTION: exactly one non-purchase ordinal-0 dialogue click; ordinal 1 (购买消耗品) will not be clicked"
+            $menuEvidence = $null
+            $menuEvidenceDeadline = [DateTime]::UtcNow.AddSeconds(8)
+            while ([DateTime]::UtcNow -lt $menuEvidenceDeadline -and $null -eq $menuEvidence) {
+              if (Test-Path -LiteralPath $clientLog) {
+                $rows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+                for ($j = $clientBeforeGreeting; $j -lt $rows.Count; $j++) {
+                  try {
+                    $event = $rows[$j] | ConvertFrom-Json -ErrorAction Stop
+                    if ($event.kind -ne "npc_menu_hit_test_return" -and
+                        $event.kind -ne "npc_menu_click_handler_return") { continue }
+                    $menu = $event.value.menuObjectAfter
+                    if ($null -eq $menu -or $null -eq $menu.fields) { continue }
+                    if ([int]$menu.fields.program -ne 15 -or
+                        [int]$menu.fields.target -ne 21230 -or
+                        [int]$menu.fields.state -ne 2 -or
+                        $null -eq $menu.suggestedOrdinal0HitTestPoint) { continue }
+                    $menuEvidence = $menu
+                    break
+                  } catch {}
+                }
               }
+              if ($null -eq $menuEvidence) { Start-Sleep -Milliseconds 200 }
             }
-            Write-Host "NPC_GREETING_DIAGNOSTIC_EVENT_COUNT=$($greetingDiagnosticEvents.Count)"
-            foreach ($eventLine in ($greetingDiagnosticEvents | Select-Object -Last 8)) {
-              Write-Host "NPC_GREETING_DIAGNOSTIC_EVENT: $eventLine"
+            if ($null -eq $menuEvidence) {
+              throw "Could not read the live program-15 Kind-2 ordinal-0 hit rectangle; no menu click attempted"
             }
-            Write-Host "NPC_HOVER_ONLY_BEGIN screen=($screenX,$screenY) client=($clientX,$clientY) button_down_up_events_sent=0"
-            if (-not [WinInput]::SetCursorPos($screenX, $screenY)) {
-              throw "Could not move cursor to the measured second-option text center"
+            $dialoguePoint = $menuEvidence.suggestedOrdinal0HitTestPoint
+            $dialogueClientX = [int]$dialoguePoint.x
+            $dialogueClientY = [int]$dialoguePoint.y
+            $dialoguePhysicalX = [int][Math]::Round($dialogueClientX * $clientSize[0] / 800.0)
+            $dialoguePhysicalY = [int][Math]::Round($dialogueClientY * $clientSize[1] / 600.0)
+            $dialogueScreenPoint = New-Object WinInput+POINT
+            $dialogueScreenPoint.X = $dialoguePhysicalX
+            $dialogueScreenPoint.Y = $dialoguePhysicalY
+            if (-not [WinInput]::ClientToScreen($gameHwnd, [ref]$dialogueScreenPoint)) {
+              throw "Could not map runtime-derived ordinal-0 point to screen coordinates; no menu click attempted"
+            }
+            $dialogueScreenX = [int]$dialogueScreenPoint.X
+            $dialogueScreenY = [int]$dialogueScreenPoint.Y
+            Write-Host "NPC_ORDINAL0_RUNTIME_POINT program=$($menuEvidence.fields.program) target=$($menuEvidence.fields.target) state=$($menuEvidence.fields.state) selected_before=$($menuEvidence.fields.selectedOrdinal) client=($dialogueClientX,$dialogueClientY) screen=($dialogueScreenX,$dialogueScreenY) source=live-native-menu-object-row-0-hit-rectangle"
+            $clientBeforeOrdinal0Hover = Get-LogLineCount $clientLog
+            if (-not [WinInput]::SetCursorPos($dialogueScreenX, $dialogueScreenY)) {
+              throw "Could not move cursor to runtime-derived ordinal-0 hit point; no menu click attempted"
             }
             Start-Sleep -Milliseconds 900
-            Shot "npc-menu-second-option-hover"
-            Start-Sleep -Seconds 2
-            $hitTestEvents = @()
-            if (Test-Path -LiteralPath $clientLog) {
-              $allClientRows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
-              if ($allClientRows.Count -gt $clientBeforeHover) {
-                $hitTestEvents = @($allClientRows | Select-Object -Skip $clientBeforeHover | Where-Object {
-                  $_ -match 'npc_menu_hit_test_(enter|return)' -or
-                  $_ -match 'npc_menu_click_handler_(enter|return)' -or
-                  $_ -match 'npc_dialog_native_call_enter.*npc_menu_hit_test_0x004572A0'
-                })
+            Shot "npc-menu-ordinal0-hover"
+            function Wait-NpcHitTestOrdinal(
+              [string]$logPath,
+              [int]$afterLine,
+              [int]$expectedOrdinal,
+              [int]$expectedX,
+              [int]$expectedY,
+              [int]$timeoutSeconds
+            ) {
+              $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
+              while ([DateTime]::UtcNow -lt $deadline) {
+                if (Test-Path -LiteralPath $logPath) {
+                  $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
+                  for ($j = $afterLine; $j -lt $rows.Count; $j++) {
+                    try {
+                      $event = $rows[$j] | ConvertFrom-Json -ErrorAction Stop
+                      if ($event.kind -ne "npc_menu_hit_test_return") { continue }
+                      $value = $event.value
+                      $menu = $value.menuObjectAfter
+                      if ($null -eq $menu -or $null -eq $menu.fields -or $null -eq $value.point) { continue }
+                      if ([int]$value.point.x -ne $expectedX -or [int]$value.point.y -ne $expectedY) { continue }
+                      if ([int]$menu.fields.program -ne 15 -or
+                          [int]$menu.fields.target -ne 21230 -or
+                          [int]$menu.fields.state -ne 2 -or
+                          [int]$menu.fields.selectedOrdinal -ne $expectedOrdinal -or
+                          [int]$value.predictedOrdinal -ne $expectedOrdinal) { continue }
+                      return $rows[$j]
+                    } catch {}
+                  }
+                }
+                Start-Sleep -Milliseconds 200
               }
+              return $null
             }
-            Write-Host "NPC_HOVER_HIT_TEST_EVENT_COUNT=$($hitTestEvents.Count)"
-            foreach ($eventLine in ($hitTestEvents | Select-Object -Last 12)) {
-              Write-Host "NPC_HOVER_HIT_TEST_EVENT: $eventLine"
+            $ordinal0HitTest = Wait-NpcHitTestOrdinal $clientLog $clientBeforeOrdinal0Hover 0 $dialogueClientX $dialogueClientY 8
+            if (-not $ordinal0HitTest) {
+              Write-Host "NPC_ORDINAL0_HOVER_CONFIRMATION: not observed; no menu click attempted"
+              throw "Runtime-derived ordinal-0 point did not produce a native selectedOrdinal=0 hit-test confirmation"
             }
-            $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-            [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40) | Out-Null
+            Write-Host "NPC_ORDINAL0_HOVER_CONFIRMED: $ordinal0HitTest"
+            Shot "npc-menu-ordinal0-hover-confirmed"
+            $clientBeforeOrdinal0Click = Get-LogLineCount $clientLog
+            $serverBeforeOrdinal0Click = Get-LogLineCount $serverLog
+            $heartbeatBeforeOrdinal0Click = Get-ClientHeartbeatCount $clientLog
+            Write-Host "NPC_ORDINAL0_CLICK_BEGIN label=进行对话 logical_client=($dialogueClientX,$dialogueClientY) screen=($dialogueScreenX,$dialogueScreenY) pre_click_selectedOrdinal=0"
+            Click-Screen $dialogueScreenX $dialogueScreenY
             Start-Sleep -Milliseconds 250
+            Shot "npc-menu-ordinal0-after-click"
+            $dispatchEnter = Wait-LogLine $clientLog 'npc_menu_dispatch_lifecycle.*"phase":\s*"enter"' $clientBeforeOrdinal0Click 8
+            $dispatchReturn = Wait-LogLine $clientLog 'npc_menu_dispatch_lifecycle.*"phase":\s*"return"' $clientBeforeOrdinal0Click 8
+            $packetDispatch = Wait-LogLine $clientLog 'npc_native_packet_dispatch_enter' $clientBeforeOrdinal0Click 5
+            $dialogueSend = Wait-LogLine $clientLog 'legacy_send.*"hex":\s*"4909ee52"' $clientBeforeOrdinal0Click 5
+            $dialogueResolved = Wait-LogLine $serverLog 'offline_native_npc_menu_dialogue_resolved.*entity=21230.*program=15' $serverBeforeOrdinal0Click 8
+            $dialogueRejected = Wait-LogLine $serverLog 'offline_native_npc_menu_action_rejected.*request=49/09' $serverBeforeOrdinal0Click 3
+            if ($dispatchEnter) { Write-Host "NPC_ORDINAL0_DISPATCH_ENTER: $dispatchEnter" }
+            else { Write-Host "NPC_ORDINAL0_DISPATCH_ENTER: not observed" }
+            if ($dispatchReturn) { Write-Host "NPC_ORDINAL0_DISPATCH_RETURN: $dispatchReturn" }
+            else { Write-Host "NPC_ORDINAL0_DISPATCH_RETURN: no normal return observed within 8 seconds" }
+            if ($packetDispatch) { Write-Host "NPC_ORDINAL0_PACKET_DISPATCH: $packetDispatch" }
+            else { Write-Host "NPC_ORDINAL0_PACKET_DISPATCH: 0x004A6FD0 entry not observed" }
+            if ($dialogueSend) { Write-Host "NPC_ORDINAL0_49_09_SEND: $dialogueSend" }
+            else { Write-Host "NPC_ORDINAL0_49_09_SEND: no exact 4909ee52 send observed" }
+            if ($dialogueResolved) { Write-Host "NPC_ORDINAL0_SERVER_DIALOGUE_RESOLVED: $dialogueResolved" }
+            if ($dialogueRejected) { Write-Host "NPC_ORDINAL0_SERVER_DIALOGUE_REJECTED: $dialogueRejected" }
+            $survivalDeadline = [DateTime]::UtcNow.AddSeconds(20)
             $processExited = $false
             $exitCode = "not-exited"
-            try {
-              $game.Refresh()
-              $processExited = [bool]$game.HasExited
-              if ($processExited) { $exitCode = [int]$game.ExitCode }
-            } catch {
-              $exitCode = "query-error: $($_.Exception.Message)"
-            }
-            $processAlive = -not $processExited
             $windowVisible = $false
-            try { $windowVisible = [WinInput]::IsWindowVisible($gameHwnd) } catch {}
-            $clientSizeAfter = @(0, 0)
-            try { $clientSizeAfter = [WinInput]::GetClientSize($gameHwnd) } catch {}
-            $heartbeatAfterHover = Get-ClientHeartbeatCount $clientLog
-            $serverDisconnectLine = Get-ServerDisconnectLine $serverLog $serverBeforeHover
-            Write-Host "NPC_DIAGNOSTIC_SURVIVAL process_alive=$processAlive window_visible=$windowVisible client_size=$($clientSizeAfter -join 'x') heartbeat_before=$heartbeatBeforeHover heartbeat_after=$heartbeatAfterHover heartbeat_advanced=$($heartbeatAfterHover -gt $heartbeatBeforeHover) server_disconnected=$($null -ne $serverDisconnectLine) process_exit_code=$exitCode"
-            if ($processExited -or -not $windowVisible -or $serverDisconnectLine) {
-              Write-Host "NPC_DIAGNOSTIC_LAST_CLIENT_LOG_LINE: $(Get-LastLogLine $clientLog)"
-              Write-Host "NPC_DIAGNOSTIC_LAST_SERVER_LOG_LINE: $(Get-LastLogLine $serverLog)"
-              if ($serverDisconnectLine) { Write-Host "NPC_DIAGNOSTIC_SERVER_DISCONNECT_EVENT: $serverDisconnectLine" }
+            $serverDisconnectLine = $null
+            while ([DateTime]::UtcNow -lt $survivalDeadline) {
               try {
-                $appErrors = @(Get-WinEvent -FilterHashtable @{ LogName = "Application"; Id = 1000,1001; StartTime = (Get-Date).AddMinutes(-30) } -MaxEvents 30 -ErrorAction Stop |
+                $game.Refresh()
+                $processExited = [bool]$game.HasExited
+                if ($processExited) { $exitCode = [int]$game.ExitCode }
+              } catch {
+                $exitCode = "query-error: $($_.Exception.Message)"
+              }
+              $windowVisible = $false
+              try { $windowVisible = [WinInput]::IsWindowVisible($gameHwnd) } catch {}
+              $serverDisconnectLine = Get-ServerDisconnectLine $serverLog $serverBeforeOrdinal0Click
+              if ($processExited -or $serverDisconnectLine) { break }
+              Start-Sleep -Seconds 1
+            }
+            $heartbeatAfterOrdinal0Click = Get-ClientHeartbeatCount $clientLog
+            $dispatchReturnedNormally = $null -ne $dispatchReturn
+            Write-Host "NPC_ORDINAL0_RESULT process_alive=$(-not $processExited) process_exit_code=$exitCode window_visible=$windowVisible heartbeat_before=$heartbeatBeforeOrdinal0Click heartbeat_after=$heartbeatAfterOrdinal0Click heartbeat_advanced=$($heartbeatAfterOrdinal0Click -gt $heartbeatBeforeOrdinal0Click) dispatch_returned_normally=$dispatchReturnedNormally packet_dispatch_seen=$($null -ne $packetDispatch) legacy_49_09_sent=$($null -ne $dialogueSend) server_dialogue_resolved=$($null -ne $dialogueResolved) server_dialogue_rejected=$($null -ne $dialogueRejected) server_disconnected=$($null -ne $serverDisconnectLine)"
+            $clientRowsAfterClick = @()
+            if (Test-Path -LiteralPath $clientLog) {
+              $allClientRows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+              if ($allClientRows.Count -gt $clientBeforeOrdinal0Click) {
+                $clientRowsAfterClick = @($allClientRows | Select-Object -Skip $clientBeforeOrdinal0Click)
+              }
+            }
+            foreach ($eventLine in ($clientRowsAfterClick | Where-Object {
+              $_ -match 'npc_native_exception|npc_process_exit_api_enter|npc_native_packet_dispatch|npc_cpp_exception_throw_helper|npc_menu_dispatch_tail_|npc_menu_dispatch_lifecycle|legacy_send'
+            } | Select-Object -Last 30)) {
+              Write-Host "NPC_ORDINAL0_NATIVE_EVENT: $eventLine"
+            }
+            if ($processExited -or $serverDisconnectLine) {
+              Write-Host "NPC_ORDINAL0_LAST_CLIENT_LOG_LINE: $(Get-LastLogLine $clientLog)"
+              Write-Host "NPC_ORDINAL0_LAST_SERVER_LOG_LINE: $(Get-LastLogLine $serverLog)"
+              if ($serverDisconnectLine) { Write-Host "NPC_ORDINAL0_SERVER_DISCONNECT_EVENT: $serverDisconnectLine" }
+              try {
+                $appErrors = @(Get-WinEvent -FilterHashtable @{ LogName = "Application"; Id = 1000,1001,1026; StartTime = (Get-Date).AddMinutes(-30) } -MaxEvents 30 -ErrorAction Stop |
                   Where-Object { $_.Message -match 'NeoDark\.exe' })
                 foreach ($appError in $appErrors) {
                   Write-Host "WINDOWS_APPLICATION_ERROR_EVENT id=$($appError.Id) time=$($appError.TimeCreated.ToString('o')) message=$($appError.Message)"
@@ -1112,80 +1215,22 @@ jobs:
                 Write-Host "WINDOWS_APPLICATION_ERROR_QUERY_UNAVAILABLE: $($_.Exception.Message)"
               }
             }
-            Shot "npc-menu-diagnostic-after-hover"
-            Write-Host "DIAGNOSTIC_ONLY_COMPLETE: no menu option was clicked; no purchase click, 0x30 request, shop open, or purchase was attempted"
+            Shot "npc-menu-ordinal0-final"
+            Write-Host "DIAGNOSTIC_ONLY_COMPLETE: exactly one ordinal-0 dialogue click; ordinal-1 purchase option never clicked; no 0x30 request, shop open, or purchase attempted"
+            try { Stop-Process -Id $game.Id -Force -ErrorAction SilentlyContinue } catch {}
+            try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+            try { Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*runtime*" } | Stop-Process -Force -ErrorAction SilentlyContinue } catch {}
             return
-            Write-Host "consumables shop opened: $shopOpened"
-            Start-Sleep -Seconds 2
-            Shot "shop-open"
-            Shot "shop-before-purchase"
-
-            $redBefore = Get-LogLineCount $serverLog
-            Focus-Game
-            [WinInput]::PressKey(0x24)
-            [WinInput]::PressKey(0x0D)
-            Start-Sleep -Seconds 2
-            Shot "shop-red-quantity-dialog"
-            Focus-Game
-            [System.Windows.Forms.SendKeys]::SendWait("^a")
-            [System.Windows.Forms.SendKeys]::SendWait("30")
-            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
-            $redPurchase = Wait-ShopPurchase 4001 $redBefore
-            if (-not $redPurchase) { throw "Recovery potion 4001 purchase of quantity 30 was not confirmed by server log" }
-            Write-Host "RED POTION PURCHASE CONFIRMED: $redPurchase"
-            Start-Sleep -Seconds 2
-            Shot "shop-red-purchased"
-
-            $blueBefore = Get-LogLineCount $serverLog
-            Focus-Game
-            [WinInput]::PressKey(0x24)
-            for ($k = 0; $k -lt 4; $k++) { [WinInput]::PressKey(0x28) }
-            [WinInput]::PressKey(0x0D)
-            Start-Sleep -Seconds 2
-            Shot "shop-blue-quantity-dialog"
-            Focus-Game
-            [System.Windows.Forms.SendKeys]::SendWait("^a")
-            [System.Windows.Forms.SendKeys]::SendWait("30")
-            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
-            $bluePurchase = Wait-ShopPurchase 4006 $blueBefore
-            if (-not $bluePurchase) { throw "Magic potion 4006 purchase of quantity 30 was not confirmed by server log" }
-            Write-Host "BLUE POTION PURCHASE CONFIRMED: $bluePurchase"
-            Start-Sleep -Seconds 2
-            Shot "shop-blue-purchased"
-
-            Focus-Game
-            [WinInput]::PressKey(0x1B)
-            Start-Sleep -Seconds 1
-            Click-Client 350 12
-            Start-Sleep -Seconds 3
-            Shot "inventory-after-potions"
-            Focus-Game
-            [WinInput]::PressKey(0x1B)
-            Write-Host "POTION PURCHASE AUTOMATION COMPLETE: item 4001 x30 and item 4006 x30"
           }
           catch {
             $failureReason = $_.Exception.Message
-            Write-Host "POTION ROUTE/AUTOMATION STOPPED: $failureReason"
+            Write-Host "NPC_ORDINAL0_DIAGNOSTIC_STOPPED: $failureReason"
             Shot "automation-stopped"
+            try { Stop-Process -Id $game.Id -Force -ErrorAction SilentlyContinue } catch {}
+            try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+            try { Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*runtime*" } | Stop-Process -Force -ErrorAction SilentlyContinue } catch {}
+            throw $failureReason
           }
-
-          for ($i = 1; $i -le 16; $i++) {
-            Start-Sleep -Seconds 30
-            $n = "{0:D2}" -f $i
-            Shot "shot-$n"
-            $nd = Get-Process -Name NeoDark -ErrorAction SilentlyContinue
-            if (-not $nd -and $i -ge 4) { Write-Host "NeoDark not running at shot $n; stopping loop"; break }
-          }
-          try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
-          try { Get-Process -Name NeoDark -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } catch {}
-          try { Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*runtime*" } | Stop-Process -Force -ErrorAction SilentlyContinue } catch {}
-          Write-Host "--- NeoDark processes after stop ---"
-          Get-Process -Name NeoDark -ErrorAction SilentlyContinue | Select-Object Id, ProcessName | Format-Table -AutoSize
-          Write-Host "--- game stdout tail ---"
-          Get-Content (Join-Path $ws "game-stdout.log") -Tail 30 -ErrorAction SilentlyContinue
-          Write-Host "--- game stderr tail ---"
-          Get-Content (Join-Path $ws "game-stderr.log") -Tail 30 -ErrorAction SilentlyContinue
-          if ($failureReason) { throw $failureReason }
 
       - name: Collect logs
         shell: pwsh
