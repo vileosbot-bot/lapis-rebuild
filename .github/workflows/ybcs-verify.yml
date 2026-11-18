@@ -119,6 +119,13 @@ jobs:
               mouse_event(LEFTUP, 0, 0, 0, UIntPtr.Zero);
               return true;
             }
+            public static bool ClickScreen(int x, int y) {
+              if (!SetCursorPos(x, y)) return false;
+              mouse_event(LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+              Thread.Sleep(120);
+              mouse_event(LEFTUP, 0, 0, 0, UIntPtr.Zero);
+              return true;
+            }
           }
           "@
           function Shot($name) {
@@ -158,6 +165,13 @@ jobs:
             Focus-Game
             if (-not [WinInput]::ClickLogicalClient($gameHwnd, $x, $y)) {
               throw "Client click failed at logical ($x,$y)"
+            }
+            Start-Sleep -Milliseconds 250
+          }
+          function Click-Screen([int]$x, [int]$y) {
+            Focus-Game
+            if (-not [WinInput]::ClickScreen($x, $y)) {
+              throw "Screen click failed at absolute ($x,$y)"
             }
             Start-Sleep -Milliseconds 250
           }
@@ -231,7 +245,7 @@ jobs:
             Write-Host "game window: pid=$($game.Id) hwnd=$gameHwnd client=$($clientSize[0])x$($clientSize[1])"
             Focus-Game
             Shot "shot-00-preclick"
-            Click-Client 625 544
+            Click-Screen 625 544
             Write-Host "clicked Confirm at 625,544"
             Start-Sleep -Seconds 5
             Shot "shot-00-postclick"
