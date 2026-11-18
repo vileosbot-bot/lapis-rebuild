@@ -399,11 +399,75 @@ jobs:
             Shot "shop-npc-menu"
 
             $shopBefore = Get-LogLineCount $serverLog
+            Add-Type @"
+          using System;
+          using System.Text;
+          using System.Runtime.InteropServices;
+          using System.Threading;
+          public static class NpcMenuInput {
+            [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+            public delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);
+            [DllImport("user32.dll")]
+            public static extern bool EnumChildWindows(IntPtr parent, EnumChildProc callback, IntPtr lParam);
+            [DllImport("user32.dll", CharSet=CharSet.Unicode)]
+            public static extern int GetClassNameW(IntPtr hWnd, StringBuilder name, int maxCount);
+            [DllImport("user32.dll")]
+            public static extern bool IsWindowVisible(IntPtr hWnd);
+            [DllImport("user32.dll", CharSet=CharSet.Unicode)]
+            public static extern IntPtr SendMessageW(IntPtr hWnd, uint message, UIntPtr wParam, IntPtr lParam);
+            [DllImport("user32.dll")]
+            public static extern uint MapVirtualKeyW(uint code, uint mapType);
+            public static IntPtr FindAfxInputView(IntPtr parent) {
+              IntPtr first = IntPtr.Zero;
+              IntPtr visible = IntPtr.Zero;
+              EnumChildProc callback = delegate(IntPtr hWnd, IntPtr lParam) {
+                StringBuilder name = new StringBuilder(128);
+                GetClassNameW(hWnd, name, name.Capacity);
+                if (name.ToString() == "AfxWnd42s") {
+                  if (first == IntPtr.Zero) first = hWnd;
+                  if (IsWindowVisible(hWnd)) {
+                    visible = hWnd;
+                    return false;
+                  }
+                }
+                return true;
+              };
+              EnumChildWindows(parent, callback, IntPtr.Zero);
+              GC.KeepAlive(callback);
+              return visible != IntPtr.Zero ? visible : first;
+            }
+            public static string ClassName(IntPtr hWnd) {
+              StringBuilder name = new StringBuilder(128);
+              GetClassNameW(hWnd, name, name.Capacity);
+              return name.ToString();
+            }
+            public static bool SendKey(IntPtr hWnd, int virtualKey) {
+              if (hWnd == IntPtr.Zero) return false;
+              uint scan = MapVirtualKeyW((uint)virtualKey, 0);
+              uint flags = 1u | ((scan & 0xffu) << 16);
+              if (virtualKey == 0x28) flags |= 0x01000000u;
+              IntPtr downLParam = new IntPtr((long)flags);
+              IntPtr upLParam = new IntPtr((long)(flags | 0xC0000000u));
+              SendMessageW(hWnd, 0x0100, new UIntPtr((uint)virtualKey), downLParam);
+              Thread.Sleep(100);
+              SendMessageW(hWnd, 0x0101, new UIntPtr((uint)virtualKey), upLParam);
+              Thread.Sleep(100);
+              return true;
+            }
+          }
+"@
+            $menuInputHwnd = [NpcMenuInput]::FindAfxInputView($gameHwnd)
+            if ($menuInputHwnd -eq [IntPtr]::Zero) { throw "NPC menu AfxWnd42s input view was not found" }
+            Write-Host "NPC menu input target: hwnd=$menuInputHwnd class=$([NpcMenuInput]::ClassName($menuInputHwnd))"
             Focus-Game
-            [WinInput]::PressKey(0x28)
-            [WinInput]::PressKey(0x0D)
+            if (-not [NpcMenuInput]::SendKey($menuInputHwnd, 0x28)) { throw "Could not send Down to native NPC menu input view" }
+            Write-Host "NPC menu navigation: Down once to ordinal 1 (购买消耗品)"
+            Start-Sleep -Milliseconds 300
+            Shot "shop-menu-second-option"
+            if (-not [NpcMenuInput]::SendKey($menuInputHwnd, 0x0D)) { throw "Could not send Enter to native NPC menu input view" }
+            Write-Host "NPC menu navigation: Enter sent directly to AfxWnd42s, bypassing world-chat Return hook"
             $shopOpened = Wait-LogLine $serverLog 'offline_shop_opened.*entity=21230.*program=15' $shopBefore 20
-            if (-not $shopOpened) { throw "NPC menu did not open consumables shop after Down+Enter; inspect shop-npc-menu screenshot and client log" }
+            if (-not $shopOpened) { throw "NPC menu did not open consumables shop after direct AfxWnd42s Down+Enter; inspect shop-menu-second-option and client/server logs" }
             Write-Host "consumables shop opened: $shopOpened"
             Start-Sleep -Seconds 2
             Shot "shop-open"
