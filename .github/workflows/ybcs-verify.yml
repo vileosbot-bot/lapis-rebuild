@@ -50,6 +50,138 @@ jobs:
           $clientLog = Join-Path $ws "ybcs\runtime\logs\ybcs-gui-client.jsonl"
           $serverLog = Join-Path $ws "ybcs\runtime\logs\ybcs-gui-server.log"
           cd ybcs
+          $npcPatch = @'
+          from pathlib import Path
+
+          path = Path("src/legacy_gui_runtime/ybcs_emulated_launcher.py")
+          original = path.read_bytes()
+
+          old_enter = b'''      onEnter(args) {
+                  this.offlineNpcClick = null;
+                  const scene = this.context.ecx;
+                  const relativePoint = args[0];
+                  const target = offlineNpcWorldEntityAt(scene, relativePoint);
+                  if (target === null) return;
+                  const mapWire = safeS16(ptr(0x004F48B4));
+                  const entityId = safeU16(target.add(0xB4));
+                  const row = offlineNpcSingleClickRow(mapWire, entityId);
+                  if (row === null) return;
+                  this.offlineNpcClick = {
+                    target: target,
+                    row: row,
+                    mapWire: mapWire
+                  };
+                },
+          '''
+          new_enter = b'''      onEnter(args) {
+                  this.offlineNpcClick = null;
+                  const scene = this.context.ecx;
+                  const relativePoint = args[0];
+                  const relativeX = safeDword(relativePoint, true);
+                  const relativeY = safeDword(relativePoint.add(4), true);
+                  const sceneOffsetX = safeDword(scene.add(0x25C4), true);
+                  const sceneOffsetY = safeDword(scene.add(0x25C8), true);
+                  let clickedCell = null;
+                  if (relativeX !== null && relativeY !== null &&
+                      sceneOffsetX !== null && sceneOffsetY !== null) {
+                    clickedCell = offlineNpcScreenToCell(
+                      relativeX + sceneOffsetX, relativeY + sceneOffsetY
+                    );
+                  }
+                  const target = offlineNpcWorldEntityAt(scene, relativePoint);
+                  const mapWire = safeS16(ptr(0x004F48B4));
+                  const entityId = target === null ? null : safeU16(target.add(0xB4));
+                  const row = target === null
+                    ? null
+                    : offlineNpcSingleClickRow(mapWire, entityId);
+                  emit("offline_npc_single_click_probe", {
+                    mapWire: mapWire,
+                    relativeX: relativeX,
+                    relativeY: relativeY,
+                    sceneOffsetX: sceneOffsetX,
+                    sceneOffsetY: sceneOffsetY,
+                    clickedCell: clickedCell,
+                    targetFound: target !== null,
+                    targetEntityId: entityId,
+                    targetCell: target === null ? null : [
+                      safeDword(target.add(0xD4), true),
+                      safeDword(target.add(0xD8), true)
+                    ],
+                    rowFound: row !== null
+                  });
+                  if (target === null || row === null) return;
+                  this.offlineNpcClick = {
+                    target: target,
+                    row: row,
+                    mapWire: mapWire
+                  };
+                },
+          '''
+
+          old_leave = b'''      onLeave() {
+                  if (this.offlineNpcClick === null) return;
+                  const click = this.offlineNpcClick;
+                  const selected = selectedWorldEntity();
+                  if (selected === null || !selected.equals(click.target)) return;
+                  const self = offlineNpcCurrentSelf();
+                  if (self === null || self.equals(selected)) return;
+                  const distance = offlineNpcInteractionDistance(self, selected);
+                  const accepted = distance !== null &&
+                    distance < OFFLINE_NPC_SINGLE_CLICK_DISTANCE;
+          '''
+          new_leave = b'''      onLeave() {
+                  if (this.offlineNpcClick === null) return;
+                  const click = this.offlineNpcClick;
+                  const nativeSelected = selectedWorldEntity();
+                  const nativeSelectionMatches = nativeSelected !== null &&
+                    nativeSelected.equals(click.target);
+                  const self = offlineNpcCurrentSelf();
+                  const distance = self === null || self.equals(click.target)
+                    ? null
+                    : offlineNpcInteractionDistance(self, click.target);
+                  emit("offline_npc_single_click_candidate", {
+                    mapWire: click.mapWire,
+                    entityId: click.row.entityId,
+                    role: click.row.role,
+                    nativeSelectedEntityId: nativeSelected === null
+                      ? null
+                      : safeS16(nativeSelected.add(0xB4)),
+                    nativeSelectionMatches: nativeSelectionMatches,
+                    sceneSelectedId: safeDword(ptr(0x00A399D8).add(0x800), true),
+                    playerCell: self === null ? null : [
+                      safeDword(self.add(0xD4), true),
+                      safeDword(self.add(0xD8), true)
+                    ],
+                    targetCell: [
+                      safeDword(click.target.add(0xD4), true),
+                      safeDword(click.target.add(0xD8), true)
+                    ],
+                    distance: distance,
+                    exclusiveDistanceLimit: OFFLINE_NPC_SINGLE_CLICK_DISTANCE
+                  });
+                  if (distance === null) return;
+                  const accepted = distance < OFFLINE_NPC_SINGLE_CLICK_DISTANCE;
+          '''
+
+          if original.count(old_enter) != 1:
+              raise SystemExit(f"NPC onEnter anchor count must be 1, got {original.count(old_enter)}")
+          if original.count(old_leave) != 1:
+              raise SystemExit(f"NPC onLeave anchor count must be 1, got {original.count(old_leave)}")
+
+          patched = original.replace(old_enter, new_enter, 1).replace(old_leave, new_leave, 1)
+          compile(patched.decode("utf-8"), str(path), "exec")
+          if b"if (selected === null || !selected.equals(click.target)) return;" in patched:
+              raise SystemExit("stale selected-world-entity gate remains")
+          if b"offlineNpcInteractionDistance(self, click.target)" not in patched:
+              raise SystemExit("distance check is not bound to exact clicked NPC")
+          if b"queueOfflineNpcSingleClick(" not in patched:
+              raise SystemExit("original exact 0x08 sender is missing")
+          path.write_bytes(patched)
+          print(f"NPC interaction hook patched: {path}; {len(original)} -> {len(patched)} bytes")
+          print("Added click-cell/target probe and native-selection diagnostic; exact 0x08 sender and <9 range gate retained.")
+          '@
+          $npcPatch | python -
+          if ($LASTEXITCODE -ne 0) { throw "NPC interaction source patch failed" }
           $launcher = Get-ChildItem -Filter "*单机游戏.cmd" | Select-Object -First 1
           if (-not $launcher) { $launcher = Get-ChildItem -Filter "*.cmd" | Select-Object -First 1 }
           Add-Type -AssemblyName System.Drawing
@@ -258,7 +390,7 @@ jobs:
 
             Shot "route-2300-before-npc"
             $menuBefore = Get-LogLineCount $serverLog
-            Write-Host "NPC interaction: map=2300 entity=21230 cell=(34,34) player_stand=(26,34) click=(656,304)"
+            Write-Host "NPC interaction: map=2300 entity=21230 cell=(34,34) player_stand=(26,34) click_client=(652,277)"
             Click-Client 652 277
             $menuOpened = Wait-LogLine $serverLog 'offline_native_npc_menu_opened.*entity=21230.*program=15' $menuBefore 20
             if (-not $menuOpened) { throw "Click at NPC 21230 did not open NPCScript program 15" }
