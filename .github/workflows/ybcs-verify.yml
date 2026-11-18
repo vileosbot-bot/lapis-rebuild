@@ -455,7 +455,7 @@ jobs:
               return true;
             }
           }
-"@
+          "@
             $menuInputHwnd = [NpcMenuInput]::FindAfxInputView($gameHwnd)
             if ($menuInputHwnd -eq [IntPtr]::Zero) { throw "NPC menu AfxWnd42s input view was not found" }
             Write-Host "NPC menu input target: hwnd=$menuInputHwnd class=$([NpcMenuInput]::ClassName($menuInputHwnd))"
