@@ -414,6 +414,22 @@ jobs:
             [DllImport("user32.dll")]
             public static extern bool IsWindowVisible(IntPtr hWnd);
             [DllImport("user32.dll", CharSet=CharSet.Unicode)]
+            public static extern int GetWindowTextLengthW(IntPtr hWnd);
+            [DllImport("user32.dll", CharSet=CharSet.Unicode)]
+            public static extern int GetWindowTextW(IntPtr hWnd, StringBuilder text, int maxCount);
+            [StructLayout(LayoutKind.Sequential)]
+            public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+            [DllImport("user32.dll")]
+            public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+            [DllImport("user32.dll")]
+            public static extern IntPtr GetParent(IntPtr hWnd);
+            [DllImport("user32.dll")]
+            public static extern IntPtr GetWindow(IntPtr hWnd, uint command);
+            [DllImport("user32.dll")]
+            public static extern bool EnumWindows(EnumChildProc callback, IntPtr lParam);
+            [DllImport("user32.dll")]
+            public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+            [DllImport("user32.dll", CharSet=CharSet.Unicode)]
             public static extern IntPtr SendMessageW(IntPtr hWnd, uint message, UIntPtr wParam, IntPtr lParam);
             [DllImport("user32.dll")]
             public static extern uint MapVirtualKeyW(uint code, uint mapType);
@@ -441,6 +457,57 @@ jobs:
               GetClassNameW(hWnd, name, name.Capacity);
               return name.ToString();
             }
+            private static string HwndText(IntPtr hWnd) {
+              return hWnd == IntPtr.Zero ? "0" : "0x" + hWnd.ToInt64().ToString("X");
+            }
+            private static void AppendWindowRow(StringBuilder output, string scope, IntPtr hWnd) {
+              StringBuilder className = new StringBuilder(128);
+              GetClassNameW(hWnd, className, className.Capacity);
+              int textLength = GetWindowTextLengthW(hWnd);
+              StringBuilder caption = new StringBuilder(Math.Max(256, Math.Min(textLength + 1, 2048)));
+              GetWindowTextW(hWnd, caption, caption.Capacity);
+              string safeCaption = caption.ToString().Replace("\t", " ").Replace("\r", " ").Replace("\n", " ");
+              RECT rect;
+              string bounds = GetWindowRect(hWnd, out rect)
+                ? String.Format("{0},{1},{2},{3}; size={4}x{5}", rect.Left, rect.Top, rect.Right, rect.Bottom, rect.Right - rect.Left, rect.Bottom - rect.Top)
+                : "unavailable";
+              output.Append(scope).Append('\t')
+                .Append(HwndText(hWnd)).Append('\t')
+                .Append(HwndText(GetParent(hWnd))).Append('\t')
+                .Append(HwndText(GetWindow(hWnd, 4))).Append('\t')
+                .Append(IsWindowVisible(hWnd) ? "true" : "false").Append('\t')
+                .Append(className.ToString().Replace("\t", " ")).Append('\t')
+                .Append(safeCaption).Append('\t')
+                .Append(bounds).AppendLine();
+            }
+            public static string DumpWindowTree(IntPtr root, int processId) {
+              StringBuilder output = new StringBuilder();
+              output.AppendLine("SCOPE\tHWND\tPARENT_OR_OWNER\tOWNER\tVISIBLE\tCLASS\tTEXT\tSCREEN_RECT");
+              AppendWindowRow(output, "MAIN", root);
+              int childCount = 0;
+              EnumChildProc childCallback = delegate(IntPtr hWnd, IntPtr lParam) {
+                AppendWindowRow(output, "CHILD", hWnd);
+                childCount++;
+                return true;
+              };
+              EnumChildWindows(root, childCallback, IntPtr.Zero);
+              GC.KeepAlive(childCallback);
+              int processTopLevelCount = 0;
+              EnumChildProc topLevelCallback = delegate(IntPtr hWnd, IntPtr lParam) {
+                uint ownerPid;
+                GetWindowThreadProcessId(hWnd, out ownerPid);
+                if (ownerPid == (uint)processId && hWnd != root) {
+                  AppendWindowRow(output, "PROCESS_TOPLEVEL", hWnd);
+                  processTopLevelCount++;
+                }
+                return true;
+              };
+              EnumWindows(topLevelCallback, IntPtr.Zero);
+              GC.KeepAlive(topLevelCallback);
+              output.AppendLine("CHILD_COUNT\t" + childCount);
+              output.AppendLine("PROCESS_TOPLEVEL_COUNT\t" + processTopLevelCount);
+              return output.ToString();
+            }
             public static bool SendKey(IntPtr hWnd, int virtualKey) {
               if (hWnd == IntPtr.Zero) return false;
               uint scan = MapVirtualKeyW((uint)virtualKey, 0);
@@ -456,6 +523,15 @@ jobs:
             }
           }
           "@
+            $windowTree = [NpcMenuInput]::DumpWindowTree($gameHwnd, [int]$game.Id)
+            $windowTreePath = Join-Path $ws "npc-window-tree.txt"
+            [System.IO.File]::WriteAllText($windowTreePath, $windowTree, [System.Text.Encoding]::UTF8)
+            Write-Host "--- NPC WINDOW TREE BEGIN ---"
+            Write-Host $windowTree
+            Write-Host "--- NPC WINDOW TREE END ---"
+            Write-Host "NPC window tree artifact: $windowTreePath; chars=$($windowTree.Length)"
+            Shot "npc-dialog-window-tree"
+            throw "DIAGNOSTIC_ONLY: Run #14 captured NPC dialog window tree; no menu input or purchase attempted"
             $menuInputHwnd = [NpcMenuInput]::FindAfxInputView($gameHwnd)
             if ($menuInputHwnd -eq [IntPtr]::Zero) { throw "NPC menu AfxWnd42s input view was not found" }
             Write-Host "NPC menu input target: hwnd=$menuInputHwnd class=$([NpcMenuInput]::ClassName($menuInputHwnd))"
@@ -548,6 +624,7 @@ jobs:
           Copy-Item precheck.log collected/ -ErrorAction SilentlyContinue
           Copy-Item game-stdout.log collected/ -ErrorAction SilentlyContinue
           Copy-Item game-stderr.log collected/ -ErrorAction SilentlyContinue
+          Copy-Item npc-window-tree.txt collected/ -ErrorAction SilentlyContinue
           Copy-Item ybcs\runtime\logs\* collected/ -Recurse -ErrorAction SilentlyContinue
           Get-ChildItem collected -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
 
