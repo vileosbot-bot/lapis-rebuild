@@ -1362,8 +1362,11 @@ jobs:
             });
           }
           npcDialogTraceInstallMemoryApiHooks();
-          npcDialogTraceEmitMemoryMapSnapshot("frida-script-loaded-before-process-resume");
-          npcDialogTraceProbeActivationContext("frida-script-loaded-before-process-resume");
+          emit("npc_memory_full_snapshot_skipped", {
+            reason: "Activation Context mapping was already established by Run #23 and Run #24; avoid blocking the suspended process before resume",
+            target: "0x001A0000",
+            protectionChange: "none"
+          });
           const npcDialogNativeTraceInstallTimer = setTimeout(
             installNpcDialogNativeTrace,
             5000
