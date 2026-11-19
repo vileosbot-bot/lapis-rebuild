@@ -248,19 +248,19 @@ jobs:
                   attachOnce("ybcs-render-surface:" + method.name + ":" + address.toString(), address, {
                     onEnter(args) {
                       this.ybcsRenderStarted = Date.now();
-                      this.ybcsRenderThis = this.context.ecx ? this.context.ecx.toString() : null;
+                      this.ybcsRenderThis = args[0] ? args[0].toString() : null;
                       this.ybcsRenderArgs = [];
                       const take = method.name === "Blt" ? 5 :
                         method.name === "BltFast" ? 6 :
                         method.name === "Flip" ? 3 :
-                        method.name === "Lock" ? 4 : 2;
+                        method.name === "Lock" ? 5 : 2;
                       for (let i = 0; i < take; i++) {
                         try { this.ybcsRenderArgs.push(args[i] ? args[i].toString() : null); }
                         catch (_) { this.ybcsRenderArgs.push(null); }
                       }
                       if (method.name === "Lock") {
                         try {
-                          this.ybcsRenderDesc = args[1];
+                          this.ybcsRenderDesc = args[2];
                           this.ybcsRenderLockDescBefore = {
                             width: ybcsRenderDiagReadU32(args[1], 12),
                             height: ybcsRenderDiagReadU32(args[1], 8),
@@ -340,17 +340,17 @@ jobs:
                   attachOnce("ybcs-render-dd:" + method.name + ":" + address.toString(), address, {
                     onEnter(args) {
                       this.ybcsRenderStarted = Date.now();
-                      this.ybcsRenderThis = this.context.ecx ? this.context.ecx.toString() : null;
+                      this.ybcsRenderThis = args[0] ? args[0].toString() : null;
                       this.ybcsRenderArgs = [];
-                      const take = method.name === "CreateSurface" ? 3 :
-                        method.name === "SetCooperativeLevel" ? 2 : 4;
+                      const take = method.name === "CreateSurface" ? 4 :
+                        method.name === "SetCooperativeLevel" ? 3 : 6;
                       for (let i = 0; i < take; i++) {
                         try { this.ybcsRenderArgs.push(args[i] ? args[i].toString() : null); }
                         catch (_) { this.ybcsRenderArgs.push(null); }
                       }
                       if (method.name === "CreateSurface") {
                         try {
-                          const desc = args[0];
+                          const desc = args[1];
                           this.ybcsRenderSurfaceDesc = {
                             size: desc.readU32(),
                             flags: desc.add(4).readU32(),
@@ -370,7 +370,7 @@ jobs:
                         } catch (error) {
                           this.ybcsRenderSurfaceDesc = {error: String(error)};
                         }
-                        this.ybcsRenderSurfaceOut = args[1];
+                        this.ybcsRenderSurfaceOut = args[2];
                       }
                     },
                     onLeave(retval) {
@@ -1933,6 +1933,37 @@ jobs:
             [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr hWnd, ref POINT point);
             [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr hWnd, out RECT rect);
             [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+            [StructLayout(LayoutKind.Sequential)]
+            public struct GUITHREADINFO {
+              public int cbSize;
+              public uint flags;
+              public IntPtr hwndActive;
+              public IntPtr hwndFocus;
+              public IntPtr hwndCapture;
+              public IntPtr hwndMenuOwner;
+              public IntPtr hwndMoveSize;
+              public IntPtr hwndCaret;
+              public RECT rcCaret;
+            }
+            [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+            [DllImport("user32.dll")] public static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO info);
+            public static string[] GetFocusSnapshot(IntPtr hwnd) {
+              uint gamePid = 0;
+              uint foregroundPid = 0;
+              uint gameThread = GetWindowThreadProcessId(hwnd, out gamePid);
+              IntPtr foreground = GetForegroundWindow();
+              uint foregroundThread = foreground == IntPtr.Zero ? 0 : GetWindowThreadProcessId(foreground, out foregroundPid);
+              GUITHREADINFO info = new GUITHREADINFO();
+              info.cbSize = Marshal.SizeOf(typeof(GUITHREADINFO));
+              bool available = GetGUIThreadInfo(gameThread, ref info);
+              return new string[] {
+                gameThread.ToString(), gamePid.ToString(),
+                foregroundThread.ToString(), foregroundPid.ToString(),
+                foreground.ToString(), available.ToString(),
+                info.hwndActive.ToString(), info.hwndFocus.ToString(),
+                info.hwndCapture.ToString(), info.hwndMenuOwner.ToString()
+              };
+            }
             public static int[] GetWindowMetrics(IntPtr hwnd) {
               RECT clientRect;
               RECT windowRect;
@@ -2240,9 +2271,19 @@ jobs:
             $evidenceRows | Set-Content -LiteralPath $diagnosticPath -Encoding utf8
             foreach ($evidenceRow in $evidenceRows) { Write-Host $evidenceRow }
           }
+          function Write-FocusDiagnostic([string]$phase) {
+            try {
+              $focus = [WinInput]::GetFocusSnapshot($gameHwnd)
+              Write-Host "YBCS_FOCUS_DIAGNOSTIC: phase=$phase game_thread=$($focus[0]) game_pid=$($focus[1]) foreground_thread=$($focus[2]) foreground_pid=$($focus[3]) foreground_hwnd=$($focus[4]) gui_info_available=$($focus[5]) active_hwnd=$($focus[6]) focus_hwnd=$($focus[7]) capture_hwnd=$($focus[8]) menu_owner_hwnd=$($focus[9]) game_hwnd=$gameHwnd"
+            } catch {
+              Write-Host "YBCS_FOCUS_DIAGNOSTIC_ERROR: phase=$phase error=$($_.Exception.Message)"
+            }
+          }
           function Focus-Game {
-            [WinInput]::SetForegroundWindow($gameHwnd) | Out-Null
+            $foregroundSet = [WinInput]::SetForegroundWindow($gameHwnd)
             Start-Sleep -Milliseconds 150
+            Write-Host "YBCS_FOCUS_SET_FOREGROUND: hwnd=$gameHwnd result=$foregroundSet"
+            Write-FocusDiagnostic "Focus-Game"
           }
           function Click-Client([int]$x, [int]$y) {
             Focus-Game
@@ -2261,7 +2302,10 @@ jobs:
           function Open-FullMap([int]$expectedMap) {
             $before = Get-LogLineCount $clientLog
             Focus-Game
+            Write-FocusDiagnostic "before-map-key-$expectedMap"
+            Write-Host "YBCS_MAP_KEY_BEGIN: map=$expectedMap key=0x4D"
             [WinInput]::PressKey(0x4D)
+            Write-FocusDiagnostic "after-map-key-$expectedMap"
             $opened = Wait-LogLine $clientLog 'windowed_full_map_open' $before 20
             if (-not $opened) { throw "M key did not open full map $expectedMap" }
             $event = $opened | ConvertFrom-Json
