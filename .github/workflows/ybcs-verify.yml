@@ -2462,16 +2462,9 @@ jobs:
             $targetThread = [uint32]$before[0]
             $currentThread = [WinInput]::GetCurrentThreadId()
             if ($before[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$' -and (([uint32]$before[10] -band 1) -ne 0)) {
-              Write-Host "YBCS_CHAT_EDIT_ACTIVE_CONFIRMED: hwnd=$($before[7]) class=$($before[11]) gui_flags=$($before[10]); sending exactly one Escape before restoring game view focus"
-              [WinInput]::PressKey(0x1B)
-              Start-Sleep -Milliseconds 200
-              $afterEscape = [WinInput]::GetFocusSnapshot($gameHwnd)
-              Write-Host "YBCS_FOCUS_AFTER_SINGLE_ESCAPE: focus_hwnd=$($afterEscape[7]) class=$($afterEscape[11]) gui_flags=$($afterEscape[10])"
-              if ($afterEscape[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$' -and (([uint32]$afterEscape[10] -band 1) -ne 0)) {
-                Write-Host "YBCS_CHAT_EDIT_REMAINS_AFTER_SINGLE_ESCAPE: hwnd=$($afterEscape[7]) class=$($afterEscape[11]) gui_flags=$($afterEscape[10]); no second Escape will be sent; attempting explicit SetFocus to the verified game view HWND"
-              }
+              Write-Host "YBCS_CHAT_EDIT_ACTIVE_CONFIRMED: hwnd=$($before[7]) class=$($before[11]) gui_flags=$($before[10]); suppressing Escape to avoid opening the in-game settings/menu panel; transferring focus directly to verified game view"
             } elseif ($before[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$') {
-              Write-Host "YBCS_CHAT_EDIT_NOT_ACTIVE: focus HWND is an Edit control but GUI_CARET is not set; Escape was not sent"
+              Write-Host "YBCS_CHAT_EDIT_NOT_ACTIVE: focus HWND is an Edit control but GUI_CARET is not set; Escape suppressed; transferring focus directly to verified game view"
             }
             [WinInput]::SetForegroundWindow($gameHwnd) | Out-Null
             [WinInput]::SetActiveWindow($gameHwnd) | Out-Null
