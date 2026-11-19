@@ -2212,6 +2212,8 @@ jobs:
             $sawWorldFocus = $false
             $worldStateSamples = 0
             $firstWorldStateAt = $null
+            $sceneTransitionReleased = $false
+            $sceneTransitionReleasedAt = $null
             $mapReady = $false
             $mapPrefetch = $false
             $lastView = $null
@@ -2239,6 +2241,12 @@ jobs:
                         "windowed_full_map_prefetch" {
                           if ([int]$event.value.mapWire -eq $toMap) { $mapPrefetch = $true }
                         }
+                        "scene_transition_composite_guard_released" {
+                          if ([int]$event.value.targetMapWire -eq $toMap) {
+                            $sceneTransitionReleased = $true
+                            $sceneTransitionReleasedAt = [DateTime]::UtcNow
+                          }
+                        }
                         "windowed_full_map_ready" {
                           if ([int]$event.value.mapWire -eq $toMap) { $mapReady = $true }
                         }
@@ -2260,7 +2268,7 @@ jobs:
                   $processedLine = $rows.Count
                 }
               }
-              $worldStable = $worldStateSamples -ge 2 -and $null -ne $firstWorldStateAt -and ([DateTime]::UtcNow - $firstWorldStateAt).TotalSeconds -ge 2
+              $worldStable = $worldStateSamples -ge 1 -and $sceneTransitionReleased -and $null -ne $sceneTransitionReleasedAt -and ([DateTime]::UtcNow - $sceneTransitionReleasedAt).TotalSeconds -ge 2
               if ($sawNavigationComplete -and $sawMapClose -and -not $mapUiOpen -and $sawWorldFocus -and $worldStable -and $mapPrefetch -and $mapReady) {
                 if ([string]::IsNullOrWhiteSpace($lastView)) {
                   throw "Target world focus event did not provide view HWND after map transition; no second M sent"
@@ -2270,7 +2278,7 @@ jobs:
                 if (-not $probe.valid) {
                   throw "Target world state and map ready, but client frame is not valid after transition; no M sent"
                 }
-                Write-Host "YBCS_MAP_TRANSITION_STABLE: from_map=$fromMap to_map=$toMap map_close=$sawMapClose map_ui_open=$mapUiOpen map_ui_map=$mapUiMap world_focus=$sawWorldFocus view=$lastView world_state_samples=$worldStateSamples world_state_stable_seconds=$([Math]::Round(([DateTime]::UtcNow-$firstWorldStateAt).TotalSeconds,1)) map_prefetch=$mapPrefetch map_ready=$mapReady frame_non_black=$($probe.nonBlackSamples)/$($probe.sampledPixels)"
+                Write-Host "YBCS_MAP_TRANSITION_STABLE: from_map=$fromMap to_map=$toMap map_close=$sawMapClose map_ui_open=$mapUiOpen map_ui_map=$mapUiMap world_focus=$sawWorldFocus view=$lastView world_state_samples=$worldStateSamples world_state_samples=$worldStateSamples scene_transition_released=$sceneTransitionReleased scene_stable_seconds=$([Math]::Round(([DateTime]::UtcNow-$sceneTransitionReleasedAt).TotalSeconds,1)) map_prefetch=$mapPrefetch map_ready=$mapReady frame_non_black=$($probe.nonBlackSamples)/$($probe.sampledPixels)"
                 Write-Host "YBCS_MAP_UI_CLOSED_CONFIRMED: previous_map=$fromMap last_ui_open=$mapUiOpen last_ui_map=$mapUiMap"
                 Write-Host "YBCS_TARGET_MAP_READY_CONFIRMED: map=$toMap"
                 Ensure-GameKeyboardFocus
@@ -2280,7 +2288,7 @@ jobs:
             }
             $lastProbe = Capture-ClientFrameProbe $gameHwnd "map-transition-$fromMap-to-$toMap-timeout"
             Write-FocusDiagnostic "map-transition-$fromMap-to-$toMap-timeout"
-            Write-Host "YBCS_MAP_TRANSITION_TIMEOUT: from_map=$fromMap to_map=$toMap navigation_complete=$sawNavigationComplete source_map_close=$sawMapClose map_ui_open=$mapUiOpen map_ui_map=$mapUiMap world_focus=$sawWorldFocus world_state_samples=$worldStateSamples map_prefetch=$mapPrefetch map_ready=$mapReady frame=$($lastProbe | ConvertTo-Json -Compress)"
+            Write-Host "YBCS_MAP_TRANSITION_TIMEOUT: from_map=$fromMap to_map=$toMap navigation_complete=$sawNavigationComplete source_map_close=$sawMapClose map_ui_open=$mapUiOpen map_ui_map=$mapUiMap world_focus=$sawWorldFocus world_state_samples=$worldStateSamples scene_transition_released=$sceneTransitionReleased map_prefetch=$mapPrefetch map_ready=$mapReady frame=$($lastProbe | ConvertTo-Json -Compress)"
             throw "Map transition from $fromMap to $toMap did not reach stable world and target-map-ready state within $timeoutSeconds seconds; no M sent"
           }
           function Wait-NativeShopRequest([int]$afterLine, [int]$timeoutSeconds) {
