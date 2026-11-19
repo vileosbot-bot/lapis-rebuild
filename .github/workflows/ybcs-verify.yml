@@ -1921,6 +1921,7 @@ jobs:
           using System;
           using System.Runtime.InteropServices;
           using System.Threading;
+          using System.Text;
           public static class WinInput {
             [StructLayout(LayoutKind.Sequential)]
             public struct POINT { public int X; public int Y; }
@@ -1947,6 +1948,12 @@ jobs:
             }
             [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
             [DllImport("user32.dll")] public static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO info);
+            [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr hWnd);
+            [DllImport("user32.dll")] public static extern IntPtr GetFocus();
+            [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+            [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+            [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
+            [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
             public static string[] GetFocusSnapshot(IntPtr hwnd) {
               uint gamePid = 0;
               uint foregroundPid = 0;
@@ -1956,12 +1963,19 @@ jobs:
               GUITHREADINFO info = new GUITHREADINFO();
               info.cbSize = Marshal.SizeOf(typeof(GUITHREADINFO));
               bool available = GetGUIThreadInfo(gameThread, ref info);
+              StringBuilder focusClass = new StringBuilder(256);
+              StringBuilder focusTitle = new StringBuilder(512);
+              if (info.hwndFocus != IntPtr.Zero) {
+                GetClassName(info.hwndFocus, focusClass, focusClass.Capacity);
+                GetWindowText(info.hwndFocus, focusTitle, focusTitle.Capacity);
+              }
               return new string[] {
                 gameThread.ToString(), gamePid.ToString(),
                 foregroundThread.ToString(), foregroundPid.ToString(),
                 foreground.ToString(), available.ToString(),
                 info.hwndActive.ToString(), info.hwndFocus.ToString(),
-                info.hwndCapture.ToString(), info.hwndMenuOwner.ToString()
+                info.hwndCapture.ToString(), info.hwndMenuOwner.ToString(),
+                info.flags.ToString(), focusClass.ToString(), focusTitle.ToString()
               };
             }
             public static int[] GetWindowMetrics(IntPtr hwnd) {
@@ -2124,6 +2138,58 @@ jobs:
             }
             return $null
           }
+          function Wait-WorldEntered([int]$clientAfter,[int]$serverAfter,[int]$stdoutAfter,[int]$timeoutSeconds) {
+            $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
+            $stdoutPath = Join-Path $ws "game-stdout.log"
+            $lastProgressShot = [DateTime]::UtcNow
+            $lastProbe = $null
+            $worldEvent = $null
+            $worldEventSource = $null
+            Write-Host "YBCS_WAIT_WORLD_BEGIN: timeout_seconds=$timeoutSeconds accepted_markers=world_state,windowed_world_gameplay_focus,world_entered"
+            while ([DateTime]::UtcNow -lt $deadline) {
+              $sources = @(
+                @{ Path=$clientLog; After=$clientAfter; Name="client" },
+                @{ Path=$serverLog; After=$serverAfter; Name="server" },
+                @{ Path=$stdoutPath; After=$stdoutAfter; Name="stdout" }
+              )
+              foreach ($source in $sources) {
+                if (-not (Test-Path -LiteralPath $source.Path)) { continue }
+                $rows = @(Get-Content -LiteralPath $source.Path -ErrorAction SilentlyContinue)
+                if ($rows.Count -le [int]$source.After) { continue }
+                for ($j=[int]$source.After; $j -lt $rows.Count; $j++) {
+                  if ($rows[$j] -match '(?i)world_state|windowed_world_gameplay_focus|world_entered') {
+                    $worldEvent = $rows[$j]
+                    $worldEventSource = [string]$source.Name
+                    break
+                  }
+                }
+                if ($null -ne $worldEvent) { break }
+              }
+              if ($null -ne $worldEvent) {
+                $lastProbe = Capture-ClientFrameProbe $gameHwnd "world-entered-client-frame"
+                if (-not $lastProbe.valid) {
+                  throw "World-state event arrived but client-area frame probe is not valid; no M key sent. source=$worldEventSource event=$worldEvent probe=$($lastProbe | ConvertTo-Json -Compress)"
+                }
+                Shot "world-entered"
+                $elapsed = [Math]::Round(($timeoutSeconds - ($deadline - [DateTime]::UtcNow).TotalSeconds),1)
+                Write-Host "YBCS_WORLD_ENTERED: source=$worldEventSource elapsed_seconds=$elapsed event=$worldEvent"
+                Write-Host "YBCS_WORLD_SCREEN_PROBE: $($lastProbe | ConvertTo-Json -Compress)"
+                return $worldEvent
+              }
+              if (([DateTime]::UtcNow - $lastProgressShot).TotalSeconds -ge 30) {
+                $lastProbe = Capture-ClientFrameProbe $gameHwnd $null
+                Shot "wait-world-progress"
+                Write-Host "YBCS_WAIT_WORLD_PROGRESS: elapsed_seconds=$([Math]::Round(($timeoutSeconds - ($deadline - [DateTime]::UtcNow).TotalSeconds),1)) client_non_black=$($lastProbe.nonBlackSamples)/$($lastProbe.sampledPixels) client=$($lastProbe.width)x$($lastProbe.height)"
+                $lastProgressShot = [DateTime]::UtcNow
+              }
+              Start-Sleep -Seconds 2
+            }
+            $lastProbe = Capture-ClientFrameProbe $gameHwnd "world-wait-timeout"
+            Shot "world-wait-timeout"
+            Write-FocusDiagnostic "world-wait-timeout"
+            Write-Host "YBCS_WAIT_WORLD_TIMEOUT: timeout_seconds=$timeoutSeconds client_probe=$($lastProbe | ConvertTo-Json -Compress)"
+            throw "Game did not enter world within $timeoutSeconds seconds after channel confirmation; M was not sent"
+          }
           function Wait-NativeShopRequest([int]$afterLine, [int]$timeoutSeconds) {
             $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
             while ([DateTime]::UtcNow -lt $deadline) {
@@ -2274,7 +2340,7 @@ jobs:
           function Write-FocusDiagnostic([string]$phase) {
             try {
               $focus = [WinInput]::GetFocusSnapshot($gameHwnd)
-              Write-Host "YBCS_FOCUS_DIAGNOSTIC: phase=$phase game_thread=$($focus[0]) game_pid=$($focus[1]) foreground_thread=$($focus[2]) foreground_pid=$($focus[3]) foreground_hwnd=$($focus[4]) gui_info_available=$($focus[5]) active_hwnd=$($focus[6]) focus_hwnd=$($focus[7]) capture_hwnd=$($focus[8]) menu_owner_hwnd=$($focus[9]) game_hwnd=$gameHwnd"
+              Write-Host "YBCS_FOCUS_DIAGNOSTIC: phase=$phase game_thread=$($focus[0]) game_pid=$($focus[1]) foreground_thread=$($focus[2]) foreground_pid=$($focus[3]) foreground_hwnd=$($focus[4]) gui_info_available=$($focus[5]) active_hwnd=$($focus[6]) focus_hwnd=$($focus[7]) capture_hwnd=$($focus[8]) menu_owner_hwnd=$($focus[9]) gui_flags=$($focus[10]) focus_class=$($focus[11]) focus_title=$($focus[12]) game_hwnd=$gameHwnd"
             } catch {
               Write-Host "YBCS_FOCUS_DIAGNOSTIC_ERROR: phase=$phase error=$($_.Exception.Message)"
             }
@@ -2284,6 +2350,56 @@ jobs:
             Start-Sleep -Milliseconds 150
             Write-Host "YBCS_FOCUS_SET_FOREGROUND: hwnd=$gameHwnd result=$foregroundSet"
             Write-FocusDiagnostic "Focus-Game"
+          }
+          function Ensure-GameKeyboardFocus {
+            $before = [WinInput]::GetFocusSnapshot($gameHwnd)
+            $targetThread = [uint32]$before[0]
+            $currentThread = [WinInput]::GetCurrentThreadId()
+            $attached = $false
+            try {
+              [WinInput]::SetForegroundWindow($gameHwnd) | Out-Null
+              if ($currentThread -ne $targetThread) {
+                $attached = [WinInput]::AttachThreadInput($currentThread, $targetThread, $true)
+                if (-not $attached) { throw "AttachThreadInput failed before SetFocus" }
+              }
+              [WinInput]::SetFocus($gameHwnd) | Out-Null
+              Start-Sleep -Milliseconds 150
+            } finally {
+              if ($attached) { [WinInput]::AttachThreadInput($currentThread, $targetThread, $false) | Out-Null }
+            }
+            $after = [WinInput]::GetFocusSnapshot($gameHwnd)
+            Write-Host "YBCS_KEYBOARD_FOCUS_AFTER_SET: before_hwnd=$($before[7]) before_class=$($before[11]) before_flags=$($before[10]) game_hwnd=$gameHwnd after_hwnd=$($after[7]) after_class=$($after[11]) after_flags=$($after[10]) foreground_hwnd=$($after[4])"
+            if ($after[7] -ne $gameHwnd.ToString()) {
+              $focusIsEdit = $after[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$'
+              $caretActive = (([uint32]$after[10] -band 1) -ne 0)
+              if ($focusIsEdit -and $caretActive) {
+                Write-Host "YBCS_CHAT_EDIT_ACTIVE_CONFIRMED: hwnd=$($after[7]) class=$($after[11]) gui_flags=$($after[10]); sending exactly one Escape to close active chat input"
+                [WinInput]::PressKey(0x1B)
+                Start-Sleep -Milliseconds 250
+                $attached = $false
+                try {
+                  if ($currentThread -ne $targetThread) {
+                    $attached = [WinInput]::AttachThreadInput($currentThread, $targetThread, $true)
+                    if (-not $attached) { throw "AttachThreadInput failed after Escape" }
+                  }
+                  [WinInput]::SetFocus($gameHwnd) | Out-Null
+                  Start-Sleep -Milliseconds 150
+                } finally {
+                  if ($attached) { [WinInput]::AttachThreadInput($currentThread, $targetThread, $false) | Out-Null }
+                }
+                $after = [WinInput]::GetFocusSnapshot($gameHwnd)
+                Write-Host "YBCS_KEYBOARD_FOCUS_AFTER_SINGLE_ESCAPE: focus_hwnd=$($after[7]) focus_class=$($after[11]) gui_flags=$($after[10]) game_hwnd=$gameHwnd"
+              } elseif ($focusIsEdit) {
+                Write-Host "YBCS_CHAT_EDIT_NOT_ACTIVE: focus HWND is Edit but GUI_CARET is not set; Escape was not sent"
+              }
+            }
+            if ($after[7] -ne $gameHwnd.ToString()) {
+              throw "Keyboard focus verification failed: focus HWND $($after[7]) does not equal game HWND $gameHwnd; M was not sent"
+            }
+            if ($after[4] -ne $gameHwnd.ToString()) {
+              throw "Foreground HWND verification failed: foreground HWND $($after[4]) does not equal game HWND $gameHwnd; M was not sent"
+            }
+            Write-Host "YBCS_KEYBOARD_FOCUS_VERIFIED: foreground_hwnd=$($after[4]) focus_hwnd=$($after[7]) game_hwnd=$gameHwnd chat_edit_active=False"
           }
           function Click-Client([int]$x, [int]$y) {
             Focus-Game
@@ -2301,7 +2417,7 @@ jobs:
           }
           function Open-FullMap([int]$expectedMap) {
             $before = Get-LogLineCount $clientLog
-            Focus-Game
+            Ensure-GameKeyboardFocus
             Write-FocusDiagnostic "before-map-key-$expectedMap"
             Write-Host "YBCS_MAP_KEY_BEGIN: map=$expectedMap key=0x4D"
             [WinInput]::PressKey(0x4D)
@@ -2613,11 +2729,14 @@ jobs:
             Write-Host "YBCS_HOOK_RESTORE_COMPLETE: memory_api=$memoryApiLine native_trace=$nativeTraceLine"
             Focus-Game
             Shot "shot-00-preclick"
+            $worldClientBefore = Get-LogLineCount $clientLog
+            $worldServerBefore = Get-LogLineCount $serverLog
+            $worldStdoutBefore = Get-LogLineCount (Join-Path $ws "game-stdout.log")
             Click-Screen 625 544
             Write-Host "clicked Confirm at 625,544"
-            Start-Sleep -Seconds 5
             Shot "shot-00-postclick"
-            Focus-Game
+            $worldEvent = Wait-WorldEntered $worldClientBefore $worldServerBefore $worldStdoutBefore 300
+            Write-Host "YBCS_WORLD_WAIT_COMPLETE: confirmed_world_event=$worldEvent"
             Shot "route-1030-start"
             Navigate-MapTarget 1030 6 138 122 534 "route-1030" "1020"
             Navigate-MapTarget 1020 7 177 148 270 "route-1020" "1000"
