@@ -50,6 +50,22 @@ jobs:
           $clientLog = Join-Path $ws "ybcs\runtime\logs\ybcs-gui-client.jsonl"
           $serverLog = Join-Path $ws "ybcs\runtime\logs\ybcs-gui-server.log"
           cd ybcs
+          $memoryPattern = 'VirtualAlloc|VirtualProtect|MapViewOfFile|PAGE_READONLY|PAGE_READWRITE|CreateFileMapping|NtAllocateVirtualMemory|NtMapViewOfSection|NtProtectVirtualMemory|mmap|Memory\.protect|Memory\.alloc|Process\.enumerateRanges|0x1a0000'
+          $memorySourceFiles = @(
+            "src\legacy_gui_runtime\ybcs_emulated_launcher.py",
+            "src\legacy_gui_runtime\ybcs_session_adapter.py",
+            "src\offline_server\listener.py",
+            "src\offline_server\session_adapter.py"
+          ) + @(Get-ChildItem "src\offline_server" -Recurse -File -Filter "*.py" | ForEach-Object { $_.FullName.Substring($ws.Length + 1) })
+          foreach ($sourceFile in ($memorySourceFiles | Select-Object -Unique)) {
+            $sourcePath = Join-Path $ws $sourceFile
+            if (-not (Test-Path -LiteralPath $sourcePath)) { continue }
+            $hits = @(Select-String -LiteralPath $sourcePath -Pattern $memoryPattern -AllMatches)
+            Write-Host "SOURCE_MEMORY_SCAN path=$sourceFile hit_count=$($hits.Count)"
+            foreach ($hit in $hits) {
+              Write-Host "SOURCE_MEMORY_HIT path=$sourceFile line=$($hit.LineNumber) text=$($hit.Line.Trim())"
+            }
+          }
           $neodarkPath = Join-Path $ws "ybcs\runtime\client\NeoDark.exe"
           if (-not (Test-Path -LiteralPath $neodarkPath)) { throw "NeoDark.exe missing from the verified offline package: $neodarkPath" }
           $neoHash = (Get-FileHash -LiteralPath $neodarkPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -229,7 +245,12 @@ jobs:
                 address: addressText,
                 base: range.base.toString(),
                 size: range.size,
-                protection: range.protection
+                protection: range.protection,
+                file: range.file ? {
+                  path: range.file.path || null,
+                  offset: range.file.offset,
+                  size: range.file.size
+                } : null
               };
             } catch (error) {
               return {status: "range-query-error", address: addressText, error: String(error)};
@@ -251,6 +272,474 @@ jobs:
             } catch (error) {
               return {status: "read-error", address: addressText, error: String(error)};
             }
+          }
+          let npcMemoryApiTraceInstalled = false;
+          let npcMemoryMapSnapshotSequence = 0;
+          let npcMemoryMenuSnapshotEmitted = false;
+          let npcMemoryDisassemblyEmitted = false;
+          const npcMemorySectionMetadata = {};
+          const NPC_MEMORY_TARGET = 0x001A0000;
+          let npcVirtualQuery = null;
+          let npcMappedFileName = null;
+          let npcMemoryInfoBuffer = null;
+          let npcMappedFileBuffer = null;
+          function npcDialogTraceMemoryProtectionName(value) {
+            const base = value & 0xff;
+            const names = {
+              0x01: "PAGE_NOACCESS",
+              0x02: "PAGE_READONLY",
+              0x04: "PAGE_READWRITE",
+              0x08: "PAGE_WRITECOPY",
+              0x10: "PAGE_EXECUTE",
+              0x20: "PAGE_EXECUTE_READ",
+              0x40: "PAGE_EXECUTE_READWRITE",
+              0x80: "PAGE_EXECUTE_WRITECOPY"
+            };
+            const flags = [];
+            if (names[base]) flags.push(names[base]);
+            if (value & 0x100) flags.push("PAGE_GUARD");
+            if (value & 0x200) flags.push("PAGE_NOCACHE");
+            if (value & 0x400) flags.push("PAGE_WRITECOMBINE");
+            return flags.length ? flags.join("|") : "0x" + value.toString(16);
+          }
+          function npcDialogTraceMemoryTypeName(value) {
+            if (value === 0x01000000) return "MEM_IMAGE";
+            if (value === 0x00040000) return "MEM_MAPPED";
+            if (value === 0x00020000) return "MEM_PRIVATE";
+            return "0x" + value.toString(16);
+          }
+          function npcDialogTraceMemoryStateName(value) {
+            if (value === 0x1000) return "MEM_COMMIT";
+            if (value === 0x2000) return "MEM_RESERVE";
+            if (value === 0x10000) return "MEM_FREE";
+            return "0x" + value.toString(16);
+          }
+          function npcDialogTraceInitVirtualQuery() {
+            if (npcVirtualQuery !== null) return true;
+            try {
+              if (Process.pointerSize !== 4) {
+                emit("npc_memory_virtual_query_unavailable", {
+                  reason: "NeoDark diagnostic expects PE32 but Process.pointerSize is not 4",
+                  pointerSize: Process.pointerSize
+                });
+                return false;
+              }
+              const kernel32 = Process.getModuleByName("kernel32.dll");
+              const virtualQueryAddress = kernel32.getExportByName("VirtualQuery");
+              npcVirtualQuery = new NativeFunction(
+                virtualQueryAddress, "uint", ["pointer", "pointer", "uint"]
+              );
+              npcMemoryInfoBuffer = Memory.alloc(28);
+              npcMemoryInfoBuffer.writeByteArray(new Array(28).fill(0));
+              try {
+                const mappedFileAddress = kernel32.getExportByName("K32GetMappedFileNameW");
+                npcMappedFileName = new NativeFunction(
+                  mappedFileAddress, "uint", ["pointer", "pointer", "pointer", "uint"]
+                );
+                npcMappedFileBuffer = Memory.alloc(2048);
+              } catch (mappedError) {
+                npcMappedFileName = null;
+                emit("npc_memory_mapped_file_api_unavailable", String(mappedError));
+              }
+              emit("npc_memory_virtual_query_ready", {
+                api: virtualQueryAddress.toString(),
+                pointerSize: Process.pointerSize,
+                mbiSize: 28,
+                mappedFileApi: npcMappedFileName !== null
+              });
+              return true;
+            } catch (error) {
+              emit("npc_memory_virtual_query_init_error", String(error));
+              return false;
+            }
+          }
+          function npcDialogTraceMappedFilePath(address) {
+            if (npcMappedFileName === null || npcMappedFileBuffer === null) return null;
+            try {
+              npcMappedFileBuffer.writeByteArray(new Array(2048).fill(0));
+              const length = npcMappedFileName(
+                ptr(0xffffffff), ptr(address), npcMappedFileBuffer, 1024
+              );
+              return length > 0 ? npcMappedFileBuffer.readUtf16String() : null;
+            } catch (error) {
+              return "query-error: " + String(error);
+            }
+          }
+          function npcDialogTraceQueryMemoryRegion(value) {
+            let addressText = null;
+            try {
+              if (!npcDialogTraceInitVirtualQuery()) return {status: "virtual-query-unavailable"};
+              const address = ptr(value);
+              addressText = address.toString();
+              const returned = npcVirtualQuery(address, npcMemoryInfoBuffer, 28);
+              if (returned === 0) return {status: "VirtualQuery-returned-zero", address: addressText};
+              const base = npcMemoryInfoBuffer.readU32();
+              const allocationBase = npcMemoryInfoBuffer.add(4).readU32();
+              const allocationProtect = npcMemoryInfoBuffer.add(8).readU32();
+              const regionSize = npcMemoryInfoBuffer.add(12).readU32();
+              const state = npcMemoryInfoBuffer.add(16).readU32();
+              const protect = npcMemoryInfoBuffer.add(20).readU32();
+              const type = npcMemoryInfoBuffer.add(24).readU32();
+              const range = Process.findRangeByAddress(address);
+              const module = Process.findModuleByAddress(address);
+              const rangeFile = range && range.file ? {
+                path: range.file.path || null,
+                offset: range.file.offset,
+                size: range.file.size
+              } : null;
+              return {
+                status: "queried",
+                address: addressText,
+                base: "0x" + base.toString(16),
+                allocationBase: "0x" + allocationBase.toString(16),
+                allocationProtect: "0x" + allocationProtect.toString(16),
+                allocationProtectName: npcDialogTraceMemoryProtectionName(allocationProtect),
+                regionSize: regionSize,
+                state: "0x" + state.toString(16),
+                stateName: npcDialogTraceMemoryStateName(state),
+                protect: "0x" + protect.toString(16),
+                protectName: npcDialogTraceMemoryProtectionName(protect),
+                type: "0x" + type.toString(16),
+                typeName: npcDialogTraceMemoryTypeName(type),
+                mappedFilePath: npcDialogTraceMappedFilePath(address),
+                fridaRange: range ? {
+                  base: range.base.toString(),
+                  size: range.size,
+                  protection: range.protection,
+                  file: rangeFile
+                } : null,
+                module: module ? {
+                  name: module.name,
+                  base: module.base.toString(),
+                  size: module.size,
+                  path: module.path
+                } : null
+              };
+            } catch (error) {
+              return {status: "query-error", address: addressText, error: String(error)};
+            }
+          }
+          function npcDialogTraceEmitMemoryMapSnapshot(phase) {
+            try {
+              if (!npcDialogTraceInitVirtualQuery()) return;
+              const records = [];
+              const counts = {
+                MEM_FREE: 0,
+                MEM_RESERVE: 0,
+                MEM_COMMIT: 0,
+                MEM_IMAGE: 0,
+                MEM_MAPPED: 0,
+                MEM_PRIVATE: 0
+              };
+              let current = 0;
+              let endAddress = 0;
+              let stoppedReason = "address-space-end";
+              let skippedLowAddress = false;
+              for (let index = 0; index < 20000 && current < 0x80000000; index++) {
+                const returned = npcVirtualQuery(ptr(current), npcMemoryInfoBuffer, 28);
+                if (returned === 0) {
+                  if (current === 0 && records.length === 0) {
+                    current = 0x10000;
+                    skippedLowAddress = true;
+                    continue;
+                  }
+                  stoppedReason = "VirtualQuery-returned-zero-at-0x" + current.toString(16);
+                  break;
+                }
+                const base = npcMemoryInfoBuffer.readU32();
+                const allocationBase = npcMemoryInfoBuffer.add(4).readU32();
+                const allocationProtect = npcMemoryInfoBuffer.add(8).readU32();
+                const regionSize = npcMemoryInfoBuffer.add(12).readU32();
+                const state = npcMemoryInfoBuffer.add(16).readU32();
+                const protect = npcMemoryInfoBuffer.add(20).readU32();
+                const type = npcMemoryInfoBuffer.add(24).readU32();
+                if (regionSize === 0) {
+                  stoppedReason = "zero-region-size-at-0x" + current.toString(16);
+                  break;
+                }
+                const record = {
+                  base: "0x" + base.toString(16),
+                  allocationBase: "0x" + allocationBase.toString(16),
+                  allocationProtect: "0x" + allocationProtect.toString(16),
+                  regionSize: regionSize,
+                  state: "0x" + state.toString(16),
+                  stateName: npcDialogTraceMemoryStateName(state),
+                  protect: "0x" + protect.toString(16),
+                  protectName: npcDialogTraceMemoryProtectionName(protect),
+                  type: "0x" + type.toString(16),
+                  typeName: npcDialogTraceMemoryTypeName(type)
+                };
+                records.push(record);
+                if (record.stateName === "MEM_FREE") counts.MEM_FREE++;
+                else if (record.stateName === "MEM_RESERVE") counts.MEM_RESERVE++;
+                else if (record.stateName === "MEM_COMMIT") counts.MEM_COMMIT++;
+                if (record.typeName === "MEM_IMAGE") counts.MEM_IMAGE++;
+                else if (record.typeName === "MEM_MAPPED") counts.MEM_MAPPED++;
+                else if (record.typeName === "MEM_PRIVATE") counts.MEM_PRIVATE++;
+                const next = base + regionSize;
+                if (next <= current) {
+                  stoppedReason = "non-advancing-region-at-0x" + current.toString(16);
+                  break;
+                }
+                current = next;
+                endAddress = current;
+              }
+              const sequence = ++npcMemoryMapSnapshotSequence;
+              const target = npcDialogTraceQueryMemoryRegion(ptr(NPC_MEMORY_TARGET));
+              const targetBytes = npcDialogTraceReadProbe(ptr(NPC_MEMORY_TARGET), 64);
+              const chunkSize = 64;
+              const chunkCount = Math.ceil(records.length / chunkSize);
+              emit("npc_process_memory_map_snapshot_begin", {
+                phase: phase,
+                sequence: sequence,
+                pointerSize: Process.pointerSize,
+                startAddress: "0x0",
+                endAddress: "0x" + endAddress.toString(16),
+                regionCount: records.length,
+                chunkCount: chunkCount,
+                skippedLowAddress: skippedLowAddress
+              });
+              for (let chunk = 0; chunk < chunkCount; chunk++) {
+                emit("npc_process_memory_map_snapshot_chunk", {
+                  phase: phase,
+                  sequence: sequence,
+                  chunk: chunk,
+                  chunkCount: chunkCount,
+                  regions: records.slice(chunk * chunkSize, (chunk + 1) * chunkSize)
+                });
+              }
+              emit("npc_process_memory_map_snapshot_end", {
+                phase: phase,
+                sequence: sequence,
+                regionCount: records.length,
+                endAddress: "0x" + endAddress.toString(16),
+                stoppedReason: stoppedReason,
+                stateRegionCounts: {
+                  free: counts.MEM_FREE,
+                  reserve: counts.MEM_RESERVE,
+                  commit: counts.MEM_COMMIT
+                },
+                typeRegionCounts: {
+                  image: counts.MEM_IMAGE,
+                  mapped: counts.MEM_MAPPED,
+                  private: counts.MEM_PRIVATE
+                },
+                targetRegion: target,
+                targetFirst64Bytes: targetBytes
+              });
+            } catch (error) {
+              emit("npc_process_memory_map_snapshot_error", {
+                phase: phase,
+                error: String(error)
+              });
+            }
+          }
+          function npcDialogTraceRangeContainsTarget(base, size) {
+            try {
+              const start = ptr(base).toUInt32();
+              return size > 0 && start <= NPC_MEMORY_TARGET &&
+                NPC_MEMORY_TARGET < start + size;
+            } catch (_) {
+              return false;
+            }
+          }
+          function npcDialogTraceInstallMemoryApiHooks() {
+            if (npcMemoryApiTraceInstalled) return;
+            const installed = [];
+            const errors = [];
+            try {
+              const ntdll = Process.getModuleByName("ntdll.dll");
+              const createSection = ntdll.getExportByName("NtCreateSection");
+              attachOnce("npc-memory-api:NtCreateSection", createSection, {
+                onEnter(args) {
+                  this.handleOut = args[0];
+                  this.fileHandle = args[6].toString();
+                  this.pageProtection = args[4].toUInt32();
+                  this.allocationAttributes = args[5].toUInt32();
+                  this.maximumSizeHex = null;
+                  try {
+                    this.maximumSizeHex = npcDialogTraceHex(
+                      Array.from(new Uint8Array(args[3].readVolatile(8)))
+                    );
+                  } catch (_) {}
+                  this.backtrace = npcDialogTraceBacktrace(this.context).slice(0, 10);
+                },
+                onLeave(retval) {
+                  if (retval.toInt32() < 0) return;
+                  try {
+                    const handle = this.handleOut.readPointer().toString();
+                    npcMemorySectionMetadata[handle] = {
+                      fileHandle: this.fileHandle,
+                      pageProtection: this.pageProtection,
+                      allocationAttributes: this.allocationAttributes,
+                      maximumSizeHex: this.maximumSizeHex,
+                      returnAddress: this.returnAddress ? this.returnAddress.toString() : null,
+                      backtrace: this.backtrace
+                    };
+                  } catch (_) {}
+                }
+              });
+              installed.push("NtCreateSection");
+              const mapView = ntdll.getExportByName("NtMapViewOfSection");
+              attachOnce("npc-memory-api:NtMapViewOfSection", mapView, {
+                onEnter(args) {
+                  this.sectionHandle = args[0].toString();
+                  this.baseOut = args[2];
+                  this.sizeOut = args[6];
+                  this.requestedBase = null;
+                  this.requestedSize = null;
+                  this.win32Protect = args[9].toUInt32();
+                  this.returnAddress = this.returnAddress ? this.returnAddress.toString() : null;
+                  try { this.requestedBase = args[2].readPointer().toString(); } catch (_) {}
+                  try { this.requestedSize = args[6].readU32(); } catch (_) {}
+                  this.backtrace = npcDialogTraceBacktrace(this.context).slice(0, 10);
+                },
+                onLeave(retval) {
+                  if (retval.toInt32() < 0) return;
+                  try {
+                    const base = this.baseOut.readPointer();
+                    const size = this.sizeOut.readU32();
+                    if (!npcDialogTraceRangeContainsTarget(base, size)) return;
+                    emit("npc_memory_nt_map_view_of_section_target", {
+                      sectionHandle: this.sectionHandle,
+                      sectionCreate: npcMemorySectionMetadata[this.sectionHandle] || null,
+                      requestedBase: this.requestedBase,
+                      requestedSize: this.requestedSize,
+                      actualBase: base.toString(),
+                      actualSize: size,
+                      win32Protect: "0x" + this.win32Protect.toString(16),
+                      win32ProtectName: npcDialogTraceMemoryProtectionName(this.win32Protect),
+                      returnAddress: this.returnAddress,
+                      backtrace: this.backtrace
+                    });
+                  } catch (error) {
+                    emit("npc_memory_nt_map_view_of_section_read_error", String(error));
+                  }
+                }
+              });
+              installed.push("NtMapViewOfSection");
+              const allocate = ntdll.getExportByName("NtAllocateVirtualMemory");
+              attachOnce("npc-memory-api:NtAllocateVirtualMemory", allocate, {
+                onEnter(args) {
+                  this.baseOut = args[1];
+                  this.sizeOut = args[3];
+                  this.allocationType = args[4].toUInt32();
+                  this.protect = args[5].toUInt32();
+                  this.returnAddress = this.returnAddress ? this.returnAddress.toString() : null;
+                  this.backtrace = npcDialogTraceBacktrace(this.context).slice(0, 10);
+                },
+                onLeave(retval) {
+                  if (retval.toInt32() < 0) return;
+                  try {
+                    const base = this.baseOut.readPointer();
+                    const size = this.sizeOut.readU32();
+                    if (!npcDialogTraceRangeContainsTarget(base, size)) return;
+                    emit("npc_memory_nt_allocate_virtual_memory_target", {
+                      actualBase: base.toString(),
+                      actualSize: size,
+                      allocationType: "0x" + this.allocationType.toString(16),
+                      protect: "0x" + this.protect.toString(16),
+                      protectName: npcDialogTraceMemoryProtectionName(this.protect),
+                      returnAddress: this.returnAddress,
+                      backtrace: this.backtrace
+                    });
+                  } catch (error) {
+                    emit("npc_memory_nt_allocate_virtual_memory_read_error", String(error));
+                  }
+                }
+              });
+              installed.push("NtAllocateVirtualMemory");
+              const protect = ntdll.getExportByName("NtProtectVirtualMemory");
+              attachOnce("npc-memory-api:NtProtectVirtualMemory", protect, {
+                onEnter(args) {
+                  this.baseIn = args[1];
+                  this.sizeIn = args[2];
+                  this.newProtect = args[3].toUInt32();
+                  this.oldProtectOut = args[4];
+                  this.returnAddress = this.returnAddress ? this.returnAddress.toString() : null;
+                  this.backtrace = npcDialogTraceBacktrace(this.context).slice(0, 10);
+                  try {
+                    this.requestedBase = args[1].readPointer().toString();
+                    this.requestedSize = args[2].readU32();
+                  } catch (_) {}
+                },
+                onLeave(retval) {
+                  if (retval.toInt32() < 0) return;
+                  try {
+                    const base = this.baseIn.readPointer();
+                    const size = this.sizeIn.readU32();
+                    if (!npcDialogTraceRangeContainsTarget(base, size)) return;
+                    let oldProtect = null;
+                    try { oldProtect = this.oldProtectOut.readU32(); } catch (_) {}
+                    emit("npc_memory_nt_protect_virtual_memory_target", {
+                      requestedBase: this.requestedBase,
+                      requestedSize: this.requestedSize,
+                      actualBase: base.toString(),
+                      actualSize: size,
+                      oldProtect: oldProtect === null ? null : "0x" + oldProtect.toString(16),
+                      newProtect: "0x" + this.newProtect.toString(16),
+                      newProtectName: npcDialogTraceMemoryProtectionName(this.newProtect),
+                      returnAddress: this.returnAddress,
+                      backtrace: this.backtrace
+                    });
+                  } catch (error) {
+                    emit("npc_memory_nt_protect_virtual_memory_read_error", String(error));
+                  }
+                }
+              });
+              installed.push("NtProtectVirtualMemory");
+            } catch (error) {
+              errors.push(String(error));
+            }
+            npcMemoryApiTraceInstalled = installed.length > 0;
+            emit("npc_memory_api_trace_installed", {
+              installed: installed,
+              errors: errors,
+              target: "0x001A0000",
+              targetSize: 16384,
+              hooksInstalledBeforeProcessResume: true
+            });
+          }
+          function npcDialogTraceDisassemble(start, length, label) {
+            const instructions = [];
+            let cursor = ptr(start);
+            const end = start + length;
+            try {
+              while (cursor.toUInt32() < end && instructions.length < 160) {
+                const instruction = Instruction.parse(cursor);
+                instructions.push({
+                  address: instruction.address.toString(),
+                  mnemonic: instruction.mnemonic,
+                  operands: instruction.opStr,
+                  size: instruction.size
+                });
+                const next = instruction.next;
+                if (next.toUInt32() <= cursor.toUInt32()) break;
+                cursor = next;
+                if (instruction.mnemonic === "ret" || instruction.mnemonic === "retf") break;
+              }
+              emit("npc_native_disassembly", {
+                label: label,
+                start: "0x" + start.toString(16),
+                length: length,
+                instructionCount: instructions.length,
+                instructions: instructions
+              });
+            } catch (error) {
+              emit("npc_native_disassembly_error", {
+                label: label,
+                start: "0x" + start.toString(16),
+                instructionsDecoded: instructions.length,
+                partialInstructions: instructions,
+                error: String(error)
+              });
+            }
+          }
+          function npcDialogTraceEmitNativeCopyDisassembly() {
+            if (npcMemoryDisassemblyEmitted) return;
+            npcMemoryDisassemblyEmitted = true;
+            npcDialogTraceDisassemble(0x004A6FD0, 0x100, "packet-dispatch-0x004A6FD0");
+            npcDialogTraceDisassemble(0x004A7A70, 0x140, "copy-function-0x004A7A70");
           }
           function npcDialogTraceReadMenuObject(value, source, point) {
             let addressText = null;
@@ -474,6 +963,9 @@ jobs:
                     esi: esiAddress ? npcDialogTraceMemoryRange(esiAddress) : null,
                     edi: ediAddress ? npcDialogTraceMemoryRange(ediAddress) : null
                   },
+                  virtualQueryFaultRegion: faultAddress
+                    ? npcDialogTraceQueryMemoryRegion(faultAddress)
+                    : null,
                   memoryProbes: {
                     esi: esiAddress ? npcDialogTraceReadProbe(esiAddress, 16) : null,
                     edi: ediAddress ? npcDialogTraceReadProbe(ediAddress, 16) : null
@@ -531,6 +1023,7 @@ jobs:
               {address: 0x00457ADE, name: "npc_menu_ordinal0_callsite_0x00457ADE"},
               {address: 0x00457B44, name: "npc_menu_ordinal1_callsite_0x00457B44"},
               {address: 0x004A6FD0, name: "npc_packet_dispatch_0x004A6FD0"},
+              {address: 0x004A7A70, name: "npc_native_copy_buffer_0x004A7A70"},
               {address: 0x004186E0, name: "npc_menu_dispatch_tail_0x004186E0"},
               {address: 0x004D94D1, name: "native_cpp_throw_helper_0x004D94D1"}
             ];
@@ -658,6 +1151,18 @@ jobs:
                           : null,
                         menuObjectAfter: menuAfter
                       });
+                      if (target.address === 0x004571F0 &&
+                          !npcMemoryMenuSnapshotEmitted &&
+                          menuAfter && menuAfter.fields &&
+                          menuAfter.fields.program === 15 &&
+                          menuAfter.fields.target === 21230 &&
+                          menuAfter.fields.state === 2) {
+                        npcMemoryMenuSnapshotEmitted = true;
+                        setTimeout(function() {
+                          npcDialogTraceEmitMemoryMapSnapshot("pre-ordinal1-click");
+                          npcDialogTraceEmitNativeCopyDisassembly();
+                        }, 0);
+                      }
                     }
                     if (target.address === 0x00457A90) {
                       emit("npc_menu_dispatch_lifecycle", {
@@ -701,6 +1206,8 @@ jobs:
               staticAnalysisBinarySha256: "c1be05eb2977a8aae8cbe8b716bc1e3957263edde8187d5269d554b327f13cbd"
             });
           }
+          npcDialogTraceInstallMemoryApiHooks();
+          npcDialogTraceEmitMemoryMapSnapshot("frida-script-loaded-before-process-resume");
           const npcDialogNativeTraceInstallTimer = setTimeout(
             installNpcDialogNativeTrace,
             5000
@@ -1222,6 +1729,19 @@ jobs:
             }
             Write-Host "NPC_ORDINAL1_HOVER_CONFIRMED program=$($ordinal1HoverMenu.fields.program) target=$($ordinal1HoverMenu.fields.target) state=$($ordinal1HoverMenu.fields.state) selectedOrdinal=$preClickSelectedOrdinal predictedOrdinal=$preClickPredictedOrdinal logical_client=($clientX,$clientY) screen=($screenX,$screenY) heartbeat_before=$heartbeatBeforeOrdinal1Hover heartbeat_after=$(Get-ClientHeartbeatCount $clientLog)"
             Write-Host "NPC_ORDINAL1_PRECLICK_GATE: selectedOrdinal=1 AND predictedOrdinal=1 AND program=15 AND target=21230 AND state=2; all checks passed"
+            $memoryMapSnapshot = Wait-LogLine $clientLog 'npc_process_memory_map_snapshot_end.*"phase":"pre-ordinal1-click"' $clientBeforeOrdinal1Hover 15
+            if (-not $memoryMapSnapshot) {
+              throw "Pre-click VirtualQuery full memory map snapshot did not complete; no purchase click attempted"
+            }
+            Write-Host "MEMORY_DIAGNOSTIC_MAP_COMPLETE: $memoryMapSnapshot"
+            $packetDisassembly = Wait-LogLine $clientLog 'npc_native_disassembly.*"label":"packet-dispatch-0x004A6FD0"' $clientBeforeOrdinal1Hover 5
+            $copyDisassembly = Wait-LogLine $clientLog 'npc_native_disassembly.*"label":"copy-function-0x004A7A70"' $clientBeforeOrdinal1Hover 5
+            if ($packetDisassembly) { Write-Host "MEMORY_DIAGNOSTIC_PACKET_DISASSEMBLY: $packetDisassembly" }
+            else { Write-Host "MEMORY_DIAGNOSTIC_PACKET_DISASSEMBLY: no decoded event; inspect npc_native_disassembly_error" }
+            if ($copyDisassembly) { Write-Host "MEMORY_DIAGNOSTIC_COPY_DISASSEMBLY: $copyDisassembly" }
+            else { Write-Host "MEMORY_DIAGNOSTIC_COPY_DISASSEMBLY: no decoded event; inspect npc_native_disassembly_error" }
+            Write-Host "MEMORY_DIAGNOSTIC_ONLY_STOP: Run #23 will not click ordinal 1, will not invoke VirtualProtect, and will not send any shop request"
+            throw "MEMORY_DIAGNOSTIC_ONLY_STOP_BEFORE_ORDINAL1_CLICK: collect memory map and native mapping API evidence before authorizing a runtime protection change"
             Shot "npc-menu-ordinal1-hover-confirmed"
             $clientBeforeOrdinal1Click = Get-LogLineCount $clientLog
             $serverBeforeShopOpen = Get-LogLineCount $serverLog
