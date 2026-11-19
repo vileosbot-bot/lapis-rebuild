@@ -805,7 +805,9 @@ jobs:
               errors: errors,
               target: "0x001A0000",
               targetSize: 16384,
-              hooksInstalledBeforeProcessResume: true
+              hooksInstalledBeforeProcessResume: false,
+              stagedAfterResume: true,
+              protectionChange: "none"
             });
           }
           function npcDialogTraceDisassemble(start, length, label) {
@@ -1037,52 +1039,130 @@ jobs:
               memoryReadErrors: memoryReadErrors
             };
           }
-          function npcDialogTraceInstallExceptionAndExitHooks() {
-            if (npcExitTraceInstalled) return;
+          let npcStartupExceptionHandlerInstalled = false;
+          function npcDialogTraceInstallExceptionAndExitHooks(installExitApis) {
             const installed = [];
             const errors = [];
-            try {
-              const handlerInstalled = Process.setExceptionHandler(function(details) {
-                const backtrace = npcDialogTraceBacktrace(details.context);
-                const context = {};
-                try {
-                  ["eip", "esp", "eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"].forEach(function(name) {
-                    if (details.context[name] !== undefined) context[name] = details.context[name].toString();
+            if (!npcStartupExceptionHandlerInstalled) {
+              try {
+                const handlerInstalled = Process.setExceptionHandler(function(details) {
+                  const context = details.context || {};
+                  const contextRegisters = {};
+                  try {
+                    ["eip", "esp", "eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"].forEach(function(name) {
+                      if (context[name] !== undefined && context[name] !== null) contextRegisters[name] = context[name].toString();
+                    });
+                  } catch (_) {}
+                  function safePointerText(value) {
+                    try { return value === undefined || value === null ? null : value.toString(); }
+                    catch (_) { return null; }
+                  }
+                  const faultAddress = details.memory && details.memory.address ? details.memory.address : details.address;
+                  const instructionPointer = context.eip !== undefined && context.eip !== null ? context.eip : details.address;
+                  const instructionPointerText = safePointerText(instructionPointer);
+                  let instruction = null;
+                  let instructionBytesHex = null;
+                  let instructionError = null;
+                  let moduleInfo = null;
+                  if (instructionPointerText !== null) {
+                    try {
+                      const address = ptr(instructionPointerText);
+                      const decoded = Instruction.parse(address);
+                      instruction = {
+                        address: decoded.address.toString(),
+                        mnemonic: decoded.mnemonic,
+                        operands: decoded.opStr,
+                        size: decoded.size
+                      };
+                      const rawInstruction = address.readVolatile(16);
+                      if (rawInstruction !== null) instructionBytesHex = npcDialogTraceHex(Array.from(new Uint8Array(rawInstruction)));
+                    } catch (error) {
+                      instructionError = String(error);
+                    }
+                    try {
+                      const module = Process.findModuleByAddress(ptr(instructionPointerText));
+                      if (module !== null) {
+                        moduleInfo = {
+                          name: module.name,
+                          base: module.base.toString(),
+                          size: module.size,
+                          path: module.path,
+                          offset: ptr(instructionPointerText).sub(module.base).toString()
+                        };
+                      }
+                    } catch (_) {}
+                  }
+                  const stackWords = [];
+                  try {
+                    if (context.esp !== undefined && context.esp !== null) {
+                      const rawStack = ptr(context.esp).readVolatile(64);
+                      if (rawStack !== null) {
+                        const stackView = new DataView(rawStack);
+                        for (let index = 0; index < 16; index++) {
+                          const value = stackView.getUint32(index * 4, true);
+                          stackWords.push({index: index, value: value, hex: "0x" + value.toString(16)});
+                        }
+                      }
+                    }
+                  } catch (error) {
+                    stackWords.push({readError: String(error)});
+                  }
+                  const memory = details.memory || null;
+                  const esiAddress = context.esi;
+                  const ediAddress = context.edi;
+                  const suspectedAddress = "0x004a7b24";
+                  const suspectedAddressMatch = instructionPointerText !== null && instructionPointerText.toLowerCase() === suspectedAddress;
+                  emit("npc_native_exception", {
+                    timestamp_unix: Date.now() / 1000,
+                    timestamp_iso: new Date().toISOString(),
+                    type: details.type || null,
+                    address: safePointerText(details.address),
+                    instructionPointer: instructionPointerText,
+                    suspectedAddress: "0x004A7B24",
+                    suspectedAddressMatch: suspectedAddressMatch,
+                    faultOperation: memory === null ? null : memory.operation,
+                    faultAddress: memory === null ? null : safePointerText(memory.address),
+                    memory: memory === null ? null : {
+                      operation: memory.operation,
+                      address: safePointerText(memory.address)
+                    },
+                    context: contextRegisters,
+                    instruction: instruction,
+                    instructionBytesHex: instructionBytesHex,
+                    instructionError: instructionError,
+                    module: moduleInfo,
+                    stackWords: stackWords,
+                    memoryRanges: {
+                      fault: faultAddress ? npcDialogTraceMemoryRange(faultAddress) : null,
+                      esi: esiAddress ? npcDialogTraceMemoryRange(esiAddress) : null,
+                      edi: ediAddress ? npcDialogTraceMemoryRange(ediAddress) : null
+                    },
+                    virtualQueryFaultRegion: faultAddress ? npcDialogTraceQueryMemoryRegion(faultAddress) : null,
+                    memoryProbes: {
+                      esi: esiAddress ? npcDialogTraceReadProbe(esiAddress, 16) : null,
+                      edi: ediAddress ? npcDialogTraceReadProbe(ediAddress, 16) : null
+                    },
+                    backtrace: npcDialogTraceBacktrace(context)
                   });
-                } catch (_) {}
-                const faultAddress = details.memory && details.memory.address
-                  ? details.memory.address
-                  : details.address;
-                const esiAddress = details.context.esi;
-                const ediAddress = details.context.edi;
-                emit("npc_native_exception", {
-                  type: details.type,
-                  address: details.address ? details.address.toString() : null,
-                  memory: details.memory ? {
-                    operation: details.memory.operation,
-                    address: details.memory.address ? details.memory.address.toString() : null
-                  } : null,
-                  context: context,
-                  memoryRanges: {
-                    fault: faultAddress ? npcDialogTraceMemoryRange(faultAddress) : null,
-                    esi: esiAddress ? npcDialogTraceMemoryRange(esiAddress) : null,
-                    edi: ediAddress ? npcDialogTraceMemoryRange(ediAddress) : null
-                  },
-                  virtualQueryFaultRegion: faultAddress
-                    ? npcDialogTraceQueryMemoryRegion(faultAddress)
-                    : null,
-                  memoryProbes: {
-                    esi: esiAddress ? npcDialogTraceReadProbe(esiAddress, 16) : null,
-                    edi: ediAddress ? npcDialogTraceReadProbe(ediAddress, 16) : null
-                  },
-                  backtrace: backtrace
+                  return false;
                 });
-                return false;
-              });
-              installed.push({name: "Process.setExceptionHandler", installed: handlerInstalled});
-            } catch (error) {
-              errors.push({name: "Process.setExceptionHandler", error: String(error)});
+                npcStartupExceptionHandlerInstalled = handlerInstalled === true;
+                installed.push({name: "Process.setExceptionHandler", installed: handlerInstalled});
+                emit("npc_startup_exception_handler_installed", {
+                  installed: npcStartupExceptionHandlerInstalled,
+                  phase: "before-device-resume",
+                  timestamp_unix: Date.now() / 1000
+                });
+              } catch (error) {
+                errors.push({name: "Process.setExceptionHandler", error: String(error)});
+                emit("npc_startup_exception_handler_install_error", {
+                  phase: "before-device-resume",
+                  error: String(error),
+                  timestamp_unix: Date.now() / 1000
+                });
+              }
             }
+            if (installExitApis !== true || npcExitTraceInstalled) return;
             const exports = [
               {moduleName: "kernel32.dll", exportName: "ExitProcess"},
               {moduleName: "kernel32.dll", exportName: "TerminateProcess"},
@@ -1116,7 +1196,12 @@ jobs:
               }
             });
             npcExitTraceInstalled = installed.length > 0;
-            emit("npc_process_exit_trace_installed", {installed: installed, errors: errors});
+            emit("npc_process_exit_trace_installed", {
+              installed: installed,
+              errors: errors,
+              exceptionHandlerInstalledBeforeResume: npcStartupExceptionHandlerInstalled,
+              timestamp_unix: Date.now() / 1000
+            });
           }
           function installNpcDialogNativeTrace() {
             if (npcDialogNativeTraceInstalled) return;
@@ -1341,7 +1426,7 @@ jobs:
                 installed.some(function(other) { return other.name === "npc_menu_hit_test_0x004572A0"; }) &&
                 installed.some(function(other) { return other.name === "npc_native_copy_buffer_0x004A7A70"; });
             });
-            npcDialogTraceInstallExceptionAndExitHooks();
+            npcDialogTraceInstallExceptionAndExitHooks(true);
             emit("npc_dialog_native_trace_installed", {
               installed: installed,
               errors: errors,
@@ -1361,17 +1446,38 @@ jobs:
               staticAnalysisBinarySha256: "c1be05eb2977a8aae8cbe8b716bc1e3957263edde8187d5269d554b327f13cbd"
             });
           }
-          npcDialogTraceInstallMemoryApiHooks();
+          npcDialogTraceInstallExceptionAndExitHooks(false);
+          emit("npc_startup_hook_profile", {
+            phase: "before-device-resume",
+            active: ["Process.setExceptionHandler", "basic event logging"],
+            deferred: ["NtCreateSection", "NtMapViewOfSection", "NtAllocateVirtualMemory", "NtProtectVirtualMemory", "NPC native/menu/copy diagnostic hooks"],
+            memoryApiRestoreDelayMs: 30000,
+            nativeTraceRestoreDelayMs: 45000,
+            protectionChange: "none",
+            timestamp_unix: Date.now() / 1000
+          });
           // shortcut: skip the full address-space snapshot during suspended startup; re-enable only for a new mapping investigation after resume.
           emit("npc_memory_full_snapshot_skipped", {
             reason: "Activation Context mapping was already established by Run #23 and Run #24; avoid blocking the suspended process before resume",
             target: "0x001A0000",
             protectionChange: "none"
           });
-          const npcDialogNativeTraceInstallTimer = setTimeout(
-            installNpcDialogNativeTrace,
-            5000
-          );
+          const npcMemoryApiTraceInstallTimer = setTimeout(function() {
+            emit("ybcs_hook_restore_phase_begin", {
+              phase: "memory-api",
+              delayAfterScriptLoadMs: 30000,
+              timestamp_unix: Date.now() / 1000
+            });
+            npcDialogTraceInstallMemoryApiHooks();
+          }, 30000);
+          const npcDialogNativeTraceInstallTimer = setTimeout(function() {
+            emit("ybcs_hook_restore_phase_begin", {
+              phase: "native-trace",
+              delayAfterScriptLoadMs: 45000,
+              timestamp_unix: Date.now() / 1000
+            });
+            installNpcDialogNativeTrace();
+          }, 45000);
           const offlineNpcSingleClickInstallTimer = setTimeout(
             installOfflineNpcSingleClickInteraction,
             OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
@@ -1695,6 +1801,99 @@ jobs:
             if ($rows.Count -eq 0) { return "<empty log>" }
             return [string]$rows[$rows.Count - 1]
           }
+          function Get-ProcessExitSummary([System.Diagnostics.Process]$process) {
+            $exitCodeText = "<unavailable>"
+            $exitTimeText = "<unavailable>"
+            if ($null -eq $process) {
+              return [pscustomobject]@{ ExitCode = $exitCodeText; ExitTime = $exitTimeText }
+            }
+            try {
+              $exitCodeValue = $process.ExitCode
+              if ($null -ne $exitCodeValue) { $exitCodeText = [string]$exitCodeValue }
+            } catch {}
+            try {
+              $exitTimeValue = $process.ExitTime
+              if ($null -ne $exitTimeValue) {
+                if ($exitTimeValue -is [DateTime]) { $exitTimeText = $exitTimeValue.ToString("o") }
+                else { $exitTimeText = [string]$exitTimeValue }
+              }
+            } catch {}
+            if ([string]::IsNullOrWhiteSpace($exitCodeText)) { $exitCodeText = "<unavailable>" }
+            if ([string]::IsNullOrWhiteSpace($exitTimeText)) { $exitTimeText = "<unavailable>" }
+            return [pscustomobject]@{ ExitCode = $exitCodeText; ExitTime = $exitTimeText }
+          }
+          function Write-StartupCrashEvidence([DateTime]$sinceUtc) {
+            $evidenceRows = New-Object System.Collections.Generic.List[string]
+            $clientRows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+            $stdoutRows = @(Get-Content -LiteralPath (Join-Path $ws "game-stdout.log") -ErrorAction SilentlyContinue)
+            $handlerRows = @($clientRows | Where-Object { $_ -match '"kind"\s*:\s*"npc_startup_exception_handler_installed"' })
+            $exceptionRows = @($clientRows | Where-Object { $_ -match '"kind"\s*:\s*"npc_native_exception"' })
+            $resumeRows = @($stdoutRows | Where-Object { $_ -match '"kind"\s*:\s*"ybcs_launcher_resume_return"' })
+            $detachRows = @($stdoutRows | Where-Object { $_ -match '"kind"\s*:\s*"frida_session_detached"' })
+            $evidenceRows.Add("YBCS_EXCEPTION_HANDLER_EVENT_COUNT: $($handlerRows.Count)")
+            if ($handlerRows.Count -gt 0) { $evidenceRows.Add("YBCS_EXCEPTION_HANDLER_PRE_RESUME: $($handlerRows[$handlerRows.Count - 1])") }
+            if ($exceptionRows.Count -gt 0) {
+              $evidenceRows.Add("YBCS_STARTUP_EXCEPTION_EVENT_COUNT: $($exceptionRows.Count)")
+              $evidenceRows.Add("YBCS_STARTUP_EXCEPTION_EVENT: $($exceptionRows[0])")
+            } else {
+              $evidenceRows.Add("YBCS_STARTUP_EXCEPTION_EVENT_COUNT: 0")
+            }
+            if ($resumeRows.Count -gt 0 -and $exceptionRows.Count -gt 0) {
+              try {
+                $resumeEvent = $resumeRows[$resumeRows.Count - 1] | ConvertFrom-Json -ErrorAction Stop
+                $exceptionEvent = $exceptionRows[0] | ConvertFrom-Json -ErrorAction Stop
+                $resumeUnix = [double]$resumeEvent.value.timestamp_unix
+                $exceptionUnix = [double]$exceptionEvent.value.timestamp_unix
+                $deltaMs = [Math]::Round(($exceptionUnix - $resumeUnix) * 1000.0, 3)
+                $evidenceRows.Add("YBCS_RESUME_TO_EXCEPTION_MS: $deltaMs")
+                $evidenceRows.Add("YBCS_EXCEPTION_EIP: $($exceptionEvent.value.instructionPointer)")
+                $evidenceRows.Add("YBCS_EXCEPTION_FAULT: operation=$($exceptionEvent.value.faultOperation) address=$($exceptionEvent.value.faultAddress)")
+                $evidenceRows.Add("YBCS_EXCEPTION_MATCH_004A7B24: $($exceptionEvent.value.suspectedAddressMatch)")
+              } catch {
+                $evidenceRows.Add("YBCS_RESUME_TO_EXCEPTION_ERROR: $($_.Exception.Message)")
+              }
+            } else {
+              $evidenceRows.Add("YBCS_RESUME_TO_EXCEPTION_MS: unavailable; resume_count=$($resumeRows.Count) exception_count=$($exceptionRows.Count)")
+            }
+            if ($resumeRows.Count -gt 0 -and $detachRows.Count -gt 0) {
+              try {
+                $resumeEvent = $resumeRows[$resumeRows.Count - 1] | ConvertFrom-Json -ErrorAction Stop
+                $detachEvent = $detachRows[$detachRows.Count - 1] | ConvertFrom-Json -ErrorAction Stop
+                $resumeUnix = [double]$resumeEvent.value.timestamp_unix
+                $exitUnix = [double]$detachEvent.value.timestamp_unix
+                $deltaMs = [Math]::Round(($exitUnix - $resumeUnix) * 1000.0, 3)
+                $evidenceRows.Add("YBCS_RESUME_TO_PROCESS_EXIT_MS: $deltaMs")
+                $evidenceRows.Add("YBCS_PROCESS_EXIT_CODE_FROM_FRIDA: $($detachEvent.value.process_exit_code)")
+              } catch {
+                $evidenceRows.Add("YBCS_RESUME_TO_PROCESS_EXIT_ERROR: $($_.Exception.Message)")
+              }
+            } else {
+              $evidenceRows.Add("YBCS_RESUME_TO_PROCESS_EXIT_MS: unavailable; resume_count=$($resumeRows.Count) detach_count=$($detachRows.Count)")
+            }
+            try {
+              $appEvents = @(Get-WinEvent -FilterHashtable @{
+                LogName = "Application"
+                Id = 1000,1001,1026
+                StartTime = $sinceUtc.AddMinutes(-1)
+              } -ErrorAction SilentlyContinue |
+                Where-Object { $null -ne $_ -and $_.Message -match 'NeoDark\.exe|python\.exe' } |
+                Select-Object -First 20)
+              if ($appEvents.Count -eq 0) { $evidenceRows.Add("YBCS_WINDOWS_APPLICATION_EVENT: no matching 1000/1001/1026 events found") }
+              foreach ($appEvent in $appEvents) {
+                $eventTime = "<unavailable>"
+                try { if ($null -ne $appEvent.TimeCreated) { $eventTime = $appEvent.TimeCreated.ToString("o") } } catch {}
+                $evidenceRows.Add("YBCS_WINDOWS_APPLICATION_EVENT: time=$eventTime id=$($appEvent.Id) provider=$($appEvent.ProviderName)")
+                foreach ($eventLine in ([string]$appEvent.Message -split "\r?\n")) {
+                  if (-not [string]::IsNullOrWhiteSpace($eventLine)) { $evidenceRows.Add([string]$eventLine) }
+                }
+              }
+            } catch {
+              $evidenceRows.Add("YBCS_WINDOWS_APPLICATION_EVENT_QUERY_ERROR: $($_.Exception.Message)")
+            }
+            $diagnosticPath = Join-Path $ws "startup-crash-diagnostics.log"
+            $evidenceRows | Set-Content -LiteralPath $diagnosticPath -Encoding utf8
+            foreach ($evidenceRow in $evidenceRows) { Write-Host $evidenceRow }
+          }
           function Focus-Game {
             [WinInput]::SetForegroundWindow($gameHwnd) | Out-Null
             Start-Sleep -Milliseconds 150
@@ -1839,7 +2038,7 @@ jobs:
           $p = Start-Process -FilePath "cmd.exe" -ArgumentList $cmdArguments -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput (Join-Path $ws "game-stdout.log") -RedirectStandardError (Join-Path $ws "game-stderr.log")
           Write-Host "YBCS_LAUNCHER_WRAPPER_CREATED: pid=$($p.Id) process=$($p.ProcessName) start_utc=$($launchStartUtc.ToString('o'))"
           $startupDeadline = $launchStartUtc.AddSeconds(65)
-          Write-Host "YBCS_STARTUP_WAIT_POLICY: unchanged_total_limit_seconds=65 old_fixed_sleep_seconds=35 old_name_poll_seconds=30 new_method=launcher_pid_file_then_exact_pid_then_visible_window poll_ms=250"
+          Write-Host "YBCS_STARTUP_WAIT_POLICY: unchanged_total_limit_seconds=65 old_fixed_sleep_seconds=35 old_name_poll_seconds=30 new_method=launcher_pid_file_then_exact_pid_then-visible-window poll_ms=250 minimal_exception_handler_before_resume=true memory_api_after_resume_seconds=30 native_trace_after_resume_seconds=45"
 
           try {
             $game = $null
@@ -1849,7 +2048,8 @@ jobs:
             $gameHwnd = [IntPtr]::Zero
             $clientSize = @(0, 0)
             $startupWindowStable = $false
-            Write-Host "STARTUP_DIAGNOSTIC_ONLY: no keyboard input, mouse input, NPC click, menu click, route, or purchase will be sent"
+            $pollErrorCount = 0
+            Write-Host "YBCS_STARTUP_MONITOR: no UI input until a stable visible window and successful staged Hook restoration"
             while ([DateTime]::UtcNow -lt $startupDeadline) {
               if (-not $clientPidFileSeen -and (Test-Path -LiteralPath $pidFile)) {
                 try {
@@ -1875,9 +2075,8 @@ jobs:
                 try {
                   $game.Refresh()
                   if ($game.HasExited) {
-                    $clientExitCode = [int]$game.ExitCode
-                    $clientExitTime = $game.ExitTime.ToString('o')
-                    Write-Host "YBCS_CLIENT_PROCESS_EXITED: pid=$clientPid exit_code=$clientExitCode exit_time=$clientExitTime"
+                    $exitSummary = Get-ProcessExitSummary $game
+                    Write-Host "YBCS_CLIENT_PROCESS_EXITED: pid=$clientPid exit_code=$($exitSummary.ExitCode) exit_time=$($exitSummary.ExitTime)"
                     break
                   }
                   $gameHwnd = [WinInput]::FindVisibleWindowForProcess($clientPid)
@@ -1906,7 +2105,21 @@ jobs:
                     }
                   }
                 } catch {
-                  Write-Host "YBCS_CLIENT_PROCESS_POLL_ERROR: pid=$clientPid error=$($_.Exception.Message)"
+                  $pollErrorCount += 1
+                  if ($pollErrorCount -le 5) {
+                    $pollErrorMessage = "<unavailable>"
+                    $pollErrorLine = "<unavailable>"
+                    $pollErrorStack = "<unavailable>"
+                    try { $pollErrorMessage = [string]$_.Exception.Message } catch {}
+                    try { $pollErrorLine = [string]$_.InvocationInfo.ScriptLineNumber } catch {}
+                    try { $pollErrorStack = [string]$_.ScriptStackTrace } catch {}
+                    Write-Host "YBCS_CLIENT_PROCESS_POLL_ERROR: pid=$clientPid count=$pollErrorCount line=$pollErrorLine error=$pollErrorMessage stack=$pollErrorStack"
+                  }
+                  $processNow = Get-Process -Id $clientPid -ErrorAction SilentlyContinue
+                  if ($null -eq $processNow) {
+                    Write-Host "YBCS_CLIENT_PROCESS_GONE_AFTER_POLL_ERROR: pid=$clientPid poll_error_count=$pollErrorCount"
+                    break
+                  }
                 }
               }
               Start-Sleep -Milliseconds 250
@@ -1920,7 +2133,8 @@ jobs:
                 try {
                   $game.Refresh()
                   if ($game.HasExited) {
-                    Write-Host "YBCS_CLIENT_FINAL_STATE: pid=$clientPid state=exited exit_code=$($game.ExitCode) exit_time=$($game.ExitTime.ToString('o'))"
+                    $exitSummary = Get-ProcessExitSummary $game
+                    Write-Host "YBCS_CLIENT_FINAL_STATE: pid=$clientPid state=exited exit_code=$($exitSummary.ExitCode) exit_time=$($exitSummary.ExitTime)"
                   } else {
                     Write-Host "YBCS_CLIENT_FINAL_STATE: pid=$clientPid state=alive_no_stable_visible_window"
                   }
@@ -1931,7 +2145,8 @@ jobs:
               try {
                 $p.Refresh()
                 if ($p.HasExited) {
-                  Write-Host "YBCS_LAUNCHER_WRAPPER_FINAL: pid=$($p.Id) state=exited exit_code=$($p.ExitCode) exit_time=$($p.ExitTime.ToString('o'))"
+                  $launcherExitSummary = Get-ProcessExitSummary $p
+                  Write-Host "YBCS_LAUNCHER_WRAPPER_FINAL: pid=$($p.Id) state=exited exit_code=$($launcherExitSummary.ExitCode) exit_time=$($launcherExitSummary.ExitTime)"
                 } else {
                   Write-Host "YBCS_LAUNCHER_WRAPPER_FINAL: pid=$($p.Id) state=alive"
                 }
@@ -1960,8 +2175,24 @@ jobs:
               }
               throw "NeoDark did not reach a stable visible window within the unchanged 65-second startup deadline"
             }
-            Write-Host "STARTUP_DIAGNOSTIC_ONLY_COMPLETE: stable window captured; no input was sent; NPC/menu/route/purchase were not attempted"
-            return
+            Write-Host "YBCS_STARTUP_DIAGNOSTIC_COMPLETE: stable visible window captured"
+            $exceptionHandlerLine = Wait-LogLine $clientLog 'npc_startup_exception_handler_installed' 0 5
+            if (-not $exceptionHandlerLine) { throw "Pre-resume startup exception handler installation event was not recorded; no UI input attempted" }
+            $exceptionHandlerEvent = $exceptionHandlerLine | ConvertFrom-Json -ErrorAction Stop
+            if (-not [bool]$exceptionHandlerEvent.value.installed) { throw "Pre-resume startup exception handler did not install successfully; no UI input attempted" }
+            $memoryApiLine = Wait-LogLine $clientLog 'npc_memory_api_trace_installed' 0 55
+            if (-not $memoryApiLine) { throw "Deferred memory API Hook restoration did not complete; no UI input attempted" }
+            $memoryApiEvent = $memoryApiLine | ConvertFrom-Json -ErrorAction Stop
+            if (@($memoryApiEvent.value.errors).Count -gt 0) { throw "Deferred memory API Hook restoration reported errors: $memoryApiLine" }
+            $nativeTraceLine = Wait-LogLine $clientLog 'npc_dialog_native_trace_installed' 0 30
+            if (-not $nativeTraceLine) { throw "Deferred native diagnostic Hook restoration did not complete; no UI input attempted" }
+            $nativeTraceEvent = $nativeTraceLine | ConvertFrom-Json -ErrorAction Stop
+            if (@($nativeTraceEvent.value.errors).Count -gt 0) { throw "Deferred native diagnostic Hook restoration reported errors: $nativeTraceLine" }
+            $nativeHookNames = @($nativeTraceEvent.value.installed | ForEach-Object { [string]$_.name })
+            foreach ($requiredHook in @("npc_menu_hit_test_0x004572A0","npc_menu_click_handler_0x004571F0","npc_menu_dispatch_0x00457A90","npc_native_copy_buffer_0x004A7A70")) {
+              if ($nativeHookNames -notcontains $requiredHook) { throw "Required native diagnostic Hook was not restored: $requiredHook" }
+            }
+            Write-Host "YBCS_HOOK_RESTORE_COMPLETE: memory_api=$memoryApiLine native_trace=$nativeTraceLine"
             Focus-Game
             Shot "shot-00-preclick"
             Click-Screen 625 544
@@ -2161,8 +2392,7 @@ jobs:
             else { Write-Host "MEMORY_DIAGNOSTIC_PACKET_DISASSEMBLY: no decoded event; inspect npc_native_disassembly_error" }
             if ($copyDisassembly) { Write-Host "MEMORY_DIAGNOSTIC_COPY_DISASSEMBLY: $copyDisassembly" }
             else { Write-Host "MEMORY_DIAGNOSTIC_COPY_DISASSEMBLY: no decoded event; inspect npc_native_disassembly_error" }
-            Write-Host "MEMORY_DIAGNOSTIC_ONLY_STOP: Run #23 will not click ordinal 1, will not invoke VirtualProtect, and will not send any shop request"
-            throw "MEMORY_DIAGNOSTIC_ONLY_STOP_BEFORE_ORDINAL1_CLICK: collect memory map and native mapping API evidence before authorizing a runtime protection change"
+            Write-Host "YBCS_MEMORY_DIAGNOSTIC_COMPLETE: memory map and native disassembly evidence collected; no VirtualProtect or runtime protection change is authorized"
             Shot "npc-menu-ordinal1-hover-confirmed"
             $clientBeforeOrdinal1Click = Get-LogLineCount $clientLog
             $serverBeforeShopOpen = Get-LogLineCount $serverLog
@@ -2239,7 +2469,10 @@ jobs:
             Start-Sleep -Seconds 2
             Shot "shop-open"
             Shot "shop-before-purchase"
-
+            $allowPotionPurchases = $false
+            if (-not $allowPotionPurchases) {
+              Write-Host "YBCS_NO_PURCHASE_STOP: 0x30 shop-open request and shop screenshot verified; potion items 4001 and 4006 were not purchased"
+            } else {
             $redBefore = Get-LogLineCount $serverLog
             Focus-Game
             [WinInput]::PressKey(0x24)
@@ -2282,12 +2515,14 @@ jobs:
             Focus-Game
             [WinInput]::PressKey(0x1B)
             Write-Host "POTION PURCHASE AUTOMATION COMPLETE: item 4001 x30 and item 4006 x30"
-          }
+            }
           catch {
             $failureReason = $_.Exception.Message
             Write-Host "POTION ROUTE/AUTOMATION STOPPED: $failureReason"
             Shot "automation-stopped"
           }
+          try { Write-StartupCrashEvidence $launchStartUtc }
+          catch { Write-Host "YBCS_STARTUP_CRASH_EVIDENCE_ERROR: $($_.Exception.Message)" }
 
           for ($i = 1; $i -le 16; $i++) {
             Start-Sleep -Seconds 30
@@ -2315,6 +2550,7 @@ jobs:
           Copy-Item precheck.log collected/ -ErrorAction SilentlyContinue
           Copy-Item game-stdout.log collected/ -ErrorAction SilentlyContinue
           Copy-Item game-stderr.log collected/ -ErrorAction SilentlyContinue
+          Copy-Item startup-crash-diagnostics.log collected/ -ErrorAction SilentlyContinue
           Copy-Item ybcs\runtime\ybcs-gui-client.pid.json collected/ -ErrorAction SilentlyContinue
           Copy-Item npc-window-tree.txt collected/ -ErrorAction SilentlyContinue
           Copy-Item ybcs\runtime\logs\* collected/ -Recurse -ErrorAction SilentlyContinue
