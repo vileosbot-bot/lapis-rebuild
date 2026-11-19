@@ -217,6 +217,41 @@ jobs:
               return [{error: String(error)}];
             }
           }
+          function npcDialogTraceMemoryRange(value) {
+            let addressText = null;
+            try {
+              const address = ptr(value);
+              addressText = address.toString();
+              const range = Process.findRangeByAddress(address);
+              if (range === null) return {status: "unmapped", address: addressText};
+              return {
+                status: "mapped",
+                address: addressText,
+                base: range.base.toString(),
+                size: range.size,
+                protection: range.protection
+              };
+            } catch (error) {
+              return {status: "range-query-error", address: addressText, error: String(error)};
+            }
+          }
+          function npcDialogTraceReadProbe(value, length) {
+            let addressText = null;
+            try {
+              const address = ptr(value);
+              addressText = address.toString();
+              const raw = address.readVolatile(length);
+              if (raw === null) return {status: "unreadable", address: addressText, length: length};
+              return {
+                status: "readable",
+                address: addressText,
+                length: length,
+                hex: npcDialogTraceHex(Array.from(new Uint8Array(raw)))
+              };
+            } catch (error) {
+              return {status: "read-error", address: addressText, error: String(error)};
+            }
+          }
           function npcDialogTraceReadMenuObject(value, source, point) {
             let addressText = null;
             try {
@@ -421,6 +456,11 @@ jobs:
                     if (details.context[name] !== undefined) context[name] = details.context[name].toString();
                   });
                 } catch (_) {}
+                const faultAddress = details.memory && details.memory.address
+                  ? details.memory.address
+                  : details.address;
+                const esiAddress = details.context.esi;
+                const ediAddress = details.context.edi;
                 emit("npc_native_exception", {
                   type: details.type,
                   address: details.address ? details.address.toString() : null,
@@ -429,6 +469,15 @@ jobs:
                     address: details.memory.address ? details.memory.address.toString() : null
                   } : null,
                   context: context,
+                  memoryRanges: {
+                    fault: faultAddress ? npcDialogTraceMemoryRange(faultAddress) : null,
+                    esi: esiAddress ? npcDialogTraceMemoryRange(esiAddress) : null,
+                    edi: ediAddress ? npcDialogTraceMemoryRange(ediAddress) : null
+                  },
+                  memoryProbes: {
+                    esi: esiAddress ? npcDialogTraceReadProbe(esiAddress, 16) : null,
+                    edi: ediAddress ? npcDialogTraceReadProbe(ediAddress, 16) : null
+                  },
                   backtrace: backtrace
                 });
                 return false;
@@ -493,8 +542,12 @@ jobs:
                   onEnter(args) {
                     const returnAddress = this.returnAddress ? this.returnAddress.toString() : null;
                     if (target.address === 0x004186E0 && returnAddress !== "0x457caf") return;
-                    if (target.address === 0x004A6FD0 &&
-                        returnAddress !== "0x457ae3" && returnAddress !== "0x457b49") return;
+                    if (target.address === 0x004A6FD0) {
+                      emit("npc_native_packet_dispatch_hook_observed", {
+                        address: ptr(target.address).toString(),
+                        returnAddress: returnAddress
+                      });
+                    }
                     if (target.address === 0x004D94D1 &&
                         returnAddress !== "0x4a70f6" && returnAddress !== "0x4a71f4") return;
                     const count = (npcDialogNativeTraceSequence += 1);
@@ -1198,9 +1251,22 @@ jobs:
               throw "The click-handler read ordinal 1 but native callsite 0x00457B44 was not entered"
             }
             Write-Host "NPC_ORDINAL1_NATIVE_CALL_CONFIRMED: $ordinal1Call"
+            $nativeExceptionLine = Wait-LogLine $clientLog 'npc_native_exception' $clientBeforeOrdinal1Click 3
+            if ($nativeExceptionLine) {
+              $nativeExceptionEvent = $nativeExceptionLine | ConvertFrom-Json -ErrorAction Stop
+              $nativeExceptionValue = $nativeExceptionEvent.value
+              Write-Host "NPC_ORDINAL1_NATIVE_EXCEPTION: type=$($nativeExceptionValue.type) address=$($nativeExceptionValue.address) operation=$($nativeExceptionValue.memory.operation) fault=$($nativeExceptionValue.memory.address) ESI=$($nativeExceptionValue.context.esi) EDI=$($nativeExceptionValue.context.edi) ESI_range=$($nativeExceptionValue.memoryRanges.esi.status):$($nativeExceptionValue.memoryRanges.esi.protection) EDI_range=$($nativeExceptionValue.memoryRanges.edi.status):$($nativeExceptionValue.memoryRanges.edi.protection)"
+              Write-Host "NPC_ORDINAL1_NATIVE_EXCEPTION_FULL: $nativeExceptionLine"
+              throw "Ordinal-1 native packet path raised $($nativeExceptionValue.type) at $($nativeExceptionValue.address); no 0x30 request was sent"
+            }
+            $packetDispatch = Wait-LogLine $clientLog 'npc_native_packet_dispatch_enter' $clientBeforeOrdinal1Click 3
+            if (-not $packetDispatch) {
+              throw "Ordinal-1 callsite was entered but the unfiltered 0x004A6FD0 packet-dispatch hook did not observe an entry"
+            }
+            Write-Host "NPC_ORDINAL1_PACKET_DISPATCH_ENTRY: $packetDispatch"
             $nativeShopRequest = Wait-NativeShopRequest $clientBeforeOrdinal1Click 15
             if (-not $nativeShopRequest) {
-              throw "Client did not send native 0x30 request 30ee52ffff for target 21230 action -1"
+              throw "Client entered native packet dispatch but did not send native 0x30 request 30ee52ffff for target 21230 action -1"
             }
             Write-Host "NATIVE_0x30_SHOP_REQUEST_CONFIRMED: $nativeShopRequest"
             $shopOpened = Wait-LogLine $serverLog 'offline_shop_opened.*entity=21230.*program=15' $serverBeforeShopOpen 20
