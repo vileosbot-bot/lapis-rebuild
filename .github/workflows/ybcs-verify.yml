@@ -216,6 +216,279 @@ jobs:
           );
           '''
           new_trace_anchor = b'''          let npcDialogNativeTraceInstalled = false;
+          let ybcsRenderDiagObserver = null;
+          const ybcsRenderDiagCounts = {};
+          const ybcsRenderDiagLimit = 80;
+          function ybcsRenderDiagEmit(kind, value) {
+            const count = (ybcsRenderDiagCounts[kind] || 0) + 1;
+            ybcsRenderDiagCounts[kind] = count;
+            if (count <= ybcsRenderDiagLimit || count % 100 === 0) {
+              emit(kind, Object.assign({sequence: count, timestamp_unix: Date.now() / 1000}, value || {}));
+            }
+          }
+          function ybcsRenderDiagReadU32(address, offset) {
+            try { return ptr(address).add(offset).readU32(); } catch (_) { return null; }
+          }
+          function ybcsRenderDiagHookSurface(surface, source) {
+            try {
+              if (surface === null || surface.isNull()) return;
+              const vtable = surface.readPointer();
+              const methods = [
+                {slot: 5, name: "Blt"},
+                {slot: 7, name: "BltFast"},
+                {slot: 11, name: "Flip"},
+                {slot: 17, name: "GetDC"},
+                {slot: 25, name: "Lock"},
+                {slot: 26, name: "ReleaseDC"},
+                {slot: 32, name: "Unlock"}
+              ];
+              methods.forEach(function(method) {
+                try {
+                  const address = vtable.add(method.slot * Process.pointerSize).readPointer();
+                  attachOnce("ybcs-render-surface:" + method.name + ":" + address.toString(), address, {
+                    onEnter(args) {
+                      this.ybcsRenderStarted = Date.now();
+                      this.ybcsRenderThis = this.context.ecx ? this.context.ecx.toString() : null;
+                      this.ybcsRenderArgs = [];
+                      const take = method.name === "Blt" ? 5 :
+                        method.name === "BltFast" ? 6 :
+                        method.name === "Flip" ? 3 :
+                        method.name === "Lock" ? 4 : 2;
+                      for (let i = 0; i < take; i++) {
+                        try { this.ybcsRenderArgs.push(args[i] ? args[i].toString() : null); }
+                        catch (_) { this.ybcsRenderArgs.push(null); }
+                      }
+                      if (method.name === "Lock") {
+                        try {
+                          this.ybcsRenderDesc = args[1];
+                          this.ybcsRenderLockDescBefore = {
+                            width: ybcsRenderDiagReadU32(args[1], 12),
+                            height: ybcsRenderDiagReadU32(args[1], 8),
+                            pitch: ybcsRenderDiagReadU32(args[1], 16),
+                            surface: args[1].add(36).readPointer().toString(),
+                            pixelFormatFlags: ybcsRenderDiagReadU32(args[1], 76),
+                            rgbBitCount: ybcsRenderDiagReadU32(args[1], 84),
+                            caps: ybcsRenderDiagReadU32(args[1], 104)
+                          };
+                        } catch (error) {
+                          this.ybcsRenderLockDescBefore = {error: String(error)};
+                        }
+                      }
+                    },
+                    onLeave(retval) {
+                      let lockSurfaceProbe = null;
+                      if (method.name === "Lock" && this.ybcsRenderDesc && retval.toInt32() >= 0) {
+                        try {
+                          const surfacePointer = this.ybcsRenderDesc.add(36).readPointer();
+                          const width = this.ybcsRenderDesc.add(12).readU32();
+                          const height = this.ybcsRenderDesc.add(8).readU32();
+                          const pitch = this.ybcsRenderDesc.add(16).readS32();
+                          const bitCount = this.ybcsRenderDesc.add(84).readU32();
+                          const bytesPerPixel = Math.max(1, Math.min(4, Math.floor(bitCount / 8)));
+                          const sampleLength = Math.min(64, Math.max(0, Math.min(Math.abs(pitch), width * bytesPerPixel)));
+                          const raw = sampleLength > 0 ? surfacePointer.readVolatile(sampleLength) : null;
+                          lockSurfaceProbe = {
+                            pointer: surfacePointer.toString(),
+                            width: width,
+                            height: height,
+                            pitch: pitch,
+                            rgbBitCount: bitCount,
+                            sampleLength: sampleLength,
+                            sampleHex: raw === null ? null : npcDialogTraceHex(Array.from(new Uint8Array(raw)))
+                          };
+                        } catch (error) {
+                          lockSurfaceProbe = {error: String(error)};
+                        }
+                      }
+                      ybcsRenderDiagEmit("ybcs_directdraw_surface_call", {
+                        source: source,
+                        method: method.name,
+                        vtableSlot: method.slot,
+                        functionAddress: address.toString(),
+                        surface: this.ybcsRenderThis,
+                        args: this.ybcsRenderArgs,
+                        hresult: retval.toInt32(),
+                        hresultHex: "0x" + retval.toUInt32().toString(16),
+                        durationMs: this.ybcsRenderStarted === undefined ? null : Date.now() - this.ybcsRenderStarted,
+                        lockDesc: this.ybcsRenderLockDescBefore || null,
+                        lockSurfaceProbe: lockSurfaceProbe
+                      });
+                    }
+                  });
+                } catch (error) {
+                  ybcsRenderDiagEmit("ybcs_directdraw_surface_hook_error", {
+                    source: source, method: method.name, slot: method.slot, error: String(error)
+                  });
+                }
+              });
+            } catch (error) {
+              ybcsRenderDiagEmit("ybcs_directdraw_surface_vtable_error", {source: source, error: String(error)});
+            }
+          }
+          function ybcsRenderDiagHookDirectDraw(ddObject, source) {
+            try {
+              if (ddObject === null || ddObject.isNull()) return;
+              const vtable = ddObject.readPointer();
+              const methods = [
+                {slot: 6, name: "CreateSurface"},
+                {slot: 20, name: "SetCooperativeLevel"},
+                {slot: 21, name: "SetDisplayMode"}
+              ];
+              methods.forEach(function(method) {
+                try {
+                  const address = vtable.add(method.slot * Process.pointerSize).readPointer();
+                  attachOnce("ybcs-render-dd:" + method.name + ":" + address.toString(), address, {
+                    onEnter(args) {
+                      this.ybcsRenderStarted = Date.now();
+                      this.ybcsRenderThis = this.context.ecx ? this.context.ecx.toString() : null;
+                      this.ybcsRenderArgs = [];
+                      const take = method.name === "CreateSurface" ? 3 :
+                        method.name === "SetCooperativeLevel" ? 2 : 4;
+                      for (let i = 0; i < take; i++) {
+                        try { this.ybcsRenderArgs.push(args[i] ? args[i].toString() : null); }
+                        catch (_) { this.ybcsRenderArgs.push(null); }
+                      }
+                      if (method.name === "CreateSurface") {
+                        try {
+                          const desc = args[0];
+                          this.ybcsRenderSurfaceDesc = {
+                            size: desc.readU32(),
+                            flags: desc.add(4).readU32(),
+                            height: desc.add(8).readU32(),
+                            width: desc.add(12).readU32(),
+                            pitch: desc.add(16).readS32(),
+                            surfacePointer: desc.add(36).readPointer().toString(),
+                            pixelFormatFlags: desc.add(76).readU32(),
+                            fourCC: desc.add(80).readU32(),
+                            rgbBitCount: desc.add(84).readU32(),
+                            redMask: desc.add(88).readU32(),
+                            greenMask: desc.add(92).readU32(),
+                            blueMask: desc.add(96).readU32(),
+                            caps: desc.add(104).readU32(),
+                            primary: (desc.add(104).readU32() & 0x200) !== 0
+                          };
+                        } catch (error) {
+                          this.ybcsRenderSurfaceDesc = {error: String(error)};
+                        }
+                        this.ybcsRenderSurfaceOut = args[1];
+                      }
+                    },
+                    onLeave(retval) {
+                      let surface = null;
+                      if (method.name === "CreateSurface" && retval.toInt32() >= 0) {
+                        try {
+                          surface = this.ybcsRenderSurfaceOut.readPointer();
+                          if (!surface.isNull()) ybcsRenderDiagHookSurface(surface, source + ":CreateSurface");
+                        } catch (_) {}
+                      }
+                      ybcsRenderDiagEmit("ybcs_directdraw_device_call", {
+                        source: source,
+                        method: method.name,
+                        vtableSlot: method.slot,
+                        functionAddress: address.toString(),
+                        device: this.ybcsRenderThis,
+                        args: this.ybcsRenderArgs,
+                        surfaceDescription: this.ybcsRenderSurfaceDesc || null,
+                        createdSurface: surface === null ? null : surface.toString(),
+                        hresult: retval.toInt32(),
+                        hresultHex: "0x" + retval.toUInt32().toString(16),
+                        durationMs: this.ybcsRenderStarted === undefined ? null : Date.now() - this.ybcsRenderStarted
+                      });
+                    }
+                  });
+                } catch (error) {
+                  ybcsRenderDiagEmit("ybcs_directdraw_device_hook_error", {
+                    source: source, method: method.name, slot: method.slot, error: String(error)
+                  });
+                }
+              });
+            } catch (error) {
+              ybcsRenderDiagEmit("ybcs_directdraw_device_vtable_error", {source: source, error: String(error)});
+            }
+          }
+          function ybcsRenderDiagOnModule(module) {
+            const moduleName = String(module.name || "").toLowerCase();
+            if (moduleName === "ddraw.dll") {
+              ["DirectDrawCreate", "DirectDrawCreateEx"].forEach(function(exportName) {
+                try {
+                  const address = module.getExportByName(exportName);
+                  attachOnce("ybcs-render-export:" + moduleName + ":" + exportName, address, {
+                    onEnter(args) {
+                      this.ybcsRenderOut = exportName === "DirectDrawCreate" ? args[1] : args[1];
+                      this.ybcsRenderStarted = Date.now();
+                    },
+                    onLeave(retval) {
+                      let object = null;
+                      if (retval.toInt32() >= 0) {
+                        try {
+                          object = this.ybcsRenderOut.readPointer();
+                          if (!object.isNull()) ybcsRenderDiagHookDirectDraw(object, exportName);
+                        } catch (_) {}
+                      }
+                      ybcsRenderDiagEmit("ybcs_directdraw_create", {
+                        module: moduleName,
+                        exportName: exportName,
+                        hresult: retval.toInt32(),
+                        hresultHex: "0x" + retval.toUInt32().toString(16),
+                        interfacePointer: object === null ? null : object.toString(),
+                        durationMs: this.ybcsRenderStarted === undefined ? null : Date.now() - this.ybcsRenderStarted
+                      });
+                    }
+                  });
+                } catch (error) {
+                  ybcsRenderDiagEmit("ybcs_directdraw_export_hook_error", {
+                    module: moduleName, exportName: exportName, error: String(error)
+                  });
+                }
+              });
+            }
+            if (moduleName === "gdi32.dll" || moduleName === "gdi32full.dll") {
+              ["BitBlt", "StretchBlt", "SetDIBitsToDevice"].forEach(function(exportName) {
+                try {
+                  const address = module.getExportByName(exportName);
+                  attachOnce("ybcs-render-gdi:" + moduleName + ":" + exportName, address, {
+                    onEnter(args) {
+                      this.ybcsRenderStarted = Date.now();
+                      this.ybcsRenderArgs = [];
+                      const take = exportName === "StretchBlt" ? 11 : exportName === "BitBlt" ? 9 : 12;
+                      for (let i = 0; i < take; i++) {
+                        try { this.ybcsRenderArgs.push(args[i] ? args[i].toString() : null); }
+                        catch (_) { this.ybcsRenderArgs.push(null); }
+                      }
+                    },
+                    onLeave(retval) {
+                      ybcsRenderDiagEmit("ybcs_gdi_present_call", {
+                        module: moduleName, method: exportName, args: this.ybcsRenderArgs,
+                        result: retval.toInt32(), resultHex: "0x" + retval.toUInt32().toString(16),
+                        durationMs: this.ybcsRenderStarted === undefined ? null : Date.now() - this.ybcsRenderStarted
+                      });
+                    }
+                  });
+                } catch (error) {
+                  ybcsRenderDiagEmit("ybcs_gdi_present_hook_error", {
+                    module: moduleName, exportName: exportName, error: String(error)
+                  });
+                }
+              });
+            }
+          }
+          try {
+            ybcsRenderDiagObserver = Process.attachModuleObserver({
+              onAdded(module) {
+                try { ybcsRenderDiagOnModule(module); }
+                catch (error) {
+                  ybcsRenderDiagEmit("ybcs_render_module_observer_error", {
+                    module: module.name, error: String(error)
+                  });
+                }
+              }
+            });
+            ybcsRenderDiagEmit("ybcs_render_module_observer_installed", {
+              phase: "script-load-before-device-resume"
+            });
+          } catch (error) {
+            ybcsRenderDiagEmit("ybcs_render_module_observer_install_error", {error: String(error)});
+          }
           let npcDialogNativeTraceSequence = 0;
           let npcExitTraceInstalled = false;
           function npcDialogTraceHex(bytes) {
@@ -1659,6 +1932,20 @@ jobs:
             [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
             [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr hWnd, ref POINT point);
             [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr hWnd, out RECT rect);
+            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+            public static int[] GetWindowMetrics(IntPtr hwnd) {
+              RECT clientRect;
+              RECT windowRect;
+              POINT origin = new POINT();
+              if (!GetClientRect(hwnd, out clientRect) || !GetWindowRect(hwnd, out windowRect)) return new int[] { 0,0,0,0,0,0,0,0 };
+              origin.X = 0; origin.Y = 0;
+              if (!ClientToScreen(hwnd, ref origin)) return new int[] { 0,0,0,0,0,0,0,0 };
+              return new int[] {
+                windowRect.Right-windowRect.Left, windowRect.Bottom-windowRect.Top,
+                clientRect.Right-clientRect.Left, clientRect.Bottom-clientRect.Top,
+                origin.X, origin.Y, windowRect.Left, windowRect.Top
+              };
+            }
             [UnmanagedFunctionPointer(CallingConvention.StdCall)]
             public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
             [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
@@ -1726,6 +2013,65 @@ jobs:
             $bmp.Save((Join-Path $shotDir "$name.png"))
             $g.Dispose(); $bmp.Dispose()
             Write-Host "shot: $name"
+          }
+          function Capture-ClientFrameProbe([IntPtr]$hwnd, [string]$name) {
+            $metrics = [WinInput]::GetWindowMetrics($hwnd)
+            $width = [int]$metrics[2]
+            $height = [int]$metrics[3]
+            $originX = [int]$metrics[4]
+            $originY = [int]$metrics[5]
+            $windowWidth = [int]$metrics[0]
+            $windowHeight = [int]$metrics[1]
+            if ($width -le 0 -or $height -le 0) {
+              return [pscustomobject]@{ valid=$false; reason="invalid-client-geometry"; width=$width; height=$height; nonBlackSamples=0; sampledPixels=0 }
+            }
+            $bitmap = New-Object System.Drawing.Bitmap($width, $height)
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            try {
+              $graphics.CopyFromScreen($originX, $originY, 0, 0, [System.Drawing.Size]::new($width, $height))
+              $sampled = 0
+              $nonBlack = 0
+              $maxLuma = 0
+              for ($gy = 0; $gy -lt 32; $gy++) {
+                for ($gx = 0; $gx -lt 32; $gx++) {
+                  $px = [Math]::Min($width - 1, [int][Math]::Floor(($gx + 0.5) * $width / 32.0))
+                  $py = [Math]::Min($height - 1, [int][Math]::Floor(($gy + 0.5) * $height / 32.0))
+                  $pixel = $bitmap.GetPixel($px, $py)
+                  $luma = [int]$pixel.R + [int]$pixel.G + [int]$pixel.B
+                  if ($luma -gt $maxLuma) { $maxLuma = $luma }
+                  if ($luma -gt 30) { $nonBlack += 1 }
+                  $sampled += 1
+                }
+              }
+              if (-not [string]::IsNullOrWhiteSpace($name)) {
+                $bitmap.Save((Join-Path $shotDir "$name.png"))
+              }
+              return [pscustomobject]@{
+                valid=($nonBlack -ge 8)
+                width=$width
+                height=$height
+                windowWidth=$windowWidth
+                windowHeight=$windowHeight
+                clientOriginX=$originX
+                clientOriginY=$originY
+                windowLeft=[int]$metrics[6]
+                windowTop=[int]$metrics[7]
+                nonBlackSamples=$nonBlack
+                sampledPixels=$sampled
+                nonBlackRatio=[Math]::Round(($nonBlack / [double]$sampled), 4)
+                maxRgbSum=$maxLuma
+                captureMethod="GetClientRect+ClientToScreen+Graphics.CopyFromScreen(client-area)"
+              }
+            }
+            finally {
+              $graphics.Dispose()
+              $bitmap.Dispose()
+            }
+          }
+          function Get-WindowedPresentCount([string]$logPath) {
+            if (-not (Test-Path -LiteralPath $logPath)) { return 0 }
+            $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
+            return @($rows | Where-Object { $_ -match '"kind"\s*:\s*"windowed_present"' }).Count
           }
           function Get-LogLineCount([string]$logPath) {
             if (-not (Test-Path -LiteralPath $logPath)) { return 0 }
@@ -2096,6 +2442,8 @@ jobs:
                             $clientSize = $stableSize
                             Shot "startup-window-stable-after-5s"
                             $startupWindowStable = $true
+                            $windowMetrics = [WinInput]::GetWindowMetrics($gameHwnd)
+                            Write-Host "YBCS_WINDOW_GEOMETRY: hwnd=$gameHwnd window=$($windowMetrics[0])x$($windowMetrics[1]) client=$($windowMetrics[2])x$($windowMetrics[3]) client_origin=($($windowMetrics[4]),$($windowMetrics[5])) window_origin=($($windowMetrics[6]),$($windowMetrics[7])) screenshot_method=PrimaryScreen.CopyFromScreen"
                             Write-Host "YBCS_GAME_WINDOW_STABLE: pid=$clientPid hwnd=$gameHwnd client=$($clientSize[0])x$($clientSize[1]) alive=True visible=True stability_seconds=5"
                             break
                           }
@@ -2176,6 +2524,32 @@ jobs:
               throw "NeoDark did not reach a stable visible window within the unchanged 65-second startup deadline"
             }
             Write-Host "YBCS_STARTUP_DIAGNOSTIC_COMPLETE: stable visible window captured"
+            $renderGatePassed = $false
+            $renderGatePresentCount = 0
+            $renderGateLastProbe = $null
+            for ($frameProbeAttempt = 1; $frameProbeAttempt -le 20; $frameProbeAttempt++) {
+              $probeName = $null
+              if ($frameProbeAttempt -eq 1) { $probeName = "startup-client-frame-probe-first" }
+              if ($frameProbeAttempt -eq 20) { $probeName = "startup-client-frame-probe-last" }
+              $renderGateLastProbe = Capture-ClientFrameProbe $gameHwnd $probeName
+              $renderGatePresentCount = Get-WindowedPresentCount (Join-Path $ws "game-stdout.log")
+              Write-Host "YBCS_FIRST_FRAME_PROBE: attempt=$frameProbeAttempt valid=$($renderGateLastProbe.valid) client=$($renderGateLastProbe.width)x$($renderGateLastProbe.height) non_black=$($renderGateLastProbe.nonBlackSamples)/$($renderGateLastProbe.sampledPixels) max_rgb_sum=$($renderGateLastProbe.maxRgbSum) windowed_present=$renderGatePresentCount"
+              if ($renderGateLastProbe.valid -or $renderGatePresentCount -ge 1) {
+                $renderGatePassed = $true
+                if ($renderGateLastProbe.valid -and $frameProbeAttempt -ne 1 -and $frameProbeAttempt -ne 20) {
+                  $validProbe = Capture-ClientFrameProbe $gameHwnd "startup-client-first-valid-frame"
+                  Write-Host "YBCS_FIRST_FRAME_VALID_SCREENSHOT: $($validProbe | ConvertTo-Json -Compress)"
+                }
+                break
+              }
+              if ($frameProbeAttempt -lt 20) { Start-Sleep -Seconds 1 }
+            }
+            if (-not $renderGatePassed) {
+              Write-Host "YBCS_FIRST_FRAME_GATE_FAILED: HWND stable but no non-black client pixels and windowed_present=0; no keyboard/mouse input was sent"
+              Write-Host "YBCS_FIRST_FRAME_GATE_LAST_PROBE: $($renderGateLastProbe | ConvertTo-Json -Compress)"
+              throw "First-frame render gate failed: game window is black or has not presented a frame; no UI input attempted"
+            }
+            Write-Host "YBCS_FIRST_FRAME_GATE_PASSED: $($renderGateLastProbe | ConvertTo-Json -Compress) windowed_present=$renderGatePresentCount"
             $exceptionHandlerLine = Wait-LogLine $clientLog 'npc_startup_exception_handler_installed' 0 5
             if (-not $exceptionHandlerLine) { throw "Pre-resume startup exception handler installation event was not recorded; no UI input attempted" }
             $exceptionHandlerEvent = $exceptionHandlerLine | ConvertFrom-Json -ErrorAction Stop
