@@ -1382,146 +1382,146 @@ jobs:
           patched = patched.replace(old_trace_anchor, new_trace_anchor, 1)
 
           old_spawn = b'''    device = frida.get_local_device()
-    pid = device.spawn([str(exe), *client_arguments])
-'''
+              pid = device.spawn([str(exe), *client_arguments])
+          '''
           new_spawn = b'''    device = frida.get_local_device()
-    print(json.dumps({"kind": "ybcs_launcher_spawn_begin", "value": {"timestamp_unix": time.time(), "launcher_pid": os.getpid(), "exe": str(exe), "arguments": client_arguments}}, ensure_ascii=False), flush=True)
-    pid = device.spawn([str(exe), *client_arguments])
-    print(json.dumps({"kind": "ybcs_launcher_spawn_return", "value": {"timestamp_unix": time.time(), "launcher_pid": os.getpid(), "pid": pid, "exe": str(exe)}}, ensure_ascii=False), flush=True)
-    process_exit_probe = {"handle": None, "get_exit_code": None, "get_process_times": None, "close_handle": None, "filetime_type": None}
-    try:
-        import ctypes
-        from ctypes import wintypes
-        class YbcsFileTime(ctypes.Structure):
-            _fields_ = [("dwLowDateTime", wintypes.DWORD), ("dwHighDateTime", wintypes.DWORD)]
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
-        kernel32.OpenProcess.restype = wintypes.HANDLE
-        kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
-        kernel32.GetExitCodeProcess.restype = wintypes.BOOL
-        kernel32.GetProcessTimes.argtypes = [wintypes.HANDLE, ctypes.POINTER(YbcsFileTime), ctypes.POINTER(YbcsFileTime), ctypes.POINTER(YbcsFileTime), ctypes.POINTER(YbcsFileTime)]
-        kernel32.GetProcessTimes.restype = wintypes.BOOL
-        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-        kernel32.CloseHandle.restype = wintypes.BOOL
-        process_handle = kernel32.OpenProcess(0x0400, False, pid)
-        if process_handle:
-            process_exit_probe.update({"handle": process_handle, "get_exit_code": kernel32.GetExitCodeProcess, "get_process_times": kernel32.GetProcessTimes, "close_handle": kernel32.CloseHandle, "filetime_type": YbcsFileTime})
-            print(json.dumps({"kind": "ybcs_launcher_process_handle_opened", "value": {"timestamp_unix": time.time(), "pid": pid, "access": "PROCESS_QUERY_INFORMATION"}}, ensure_ascii=False), flush=True)
-        else:
-            print(json.dumps({"kind": "ybcs_launcher_process_handle_failed", "value": {"timestamp_unix": time.time(), "pid": pid, "winerror": ctypes.get_last_error()}}, ensure_ascii=False), flush=True)
-    except Exception as error:
-        print(json.dumps({"kind": "ybcs_launcher_process_handle_unavailable", "value": {"timestamp_unix": time.time(), "pid": pid, "error": str(error)}}, ensure_ascii=False), flush=True)
-'''
+              print(json.dumps({"kind": "ybcs_launcher_spawn_begin", "value": {"timestamp_unix": time.time(), "launcher_pid": os.getpid(), "exe": str(exe), "arguments": client_arguments}}, ensure_ascii=False), flush=True)
+              pid = device.spawn([str(exe), *client_arguments])
+              print(json.dumps({"kind": "ybcs_launcher_spawn_return", "value": {"timestamp_unix": time.time(), "launcher_pid": os.getpid(), "pid": pid, "exe": str(exe)}}, ensure_ascii=False), flush=True)
+              process_exit_probe = {"handle": None, "get_exit_code": None, "get_process_times": None, "close_handle": None, "filetime_type": None}
+              try:
+                  import ctypes
+                  from ctypes import wintypes
+                  class YbcsFileTime(ctypes.Structure):
+                      _fields_ = [("dwLowDateTime", wintypes.DWORD), ("dwHighDateTime", wintypes.DWORD)]
+                  kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+                  kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+                  kernel32.OpenProcess.restype = wintypes.HANDLE
+                  kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+                  kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+                  kernel32.GetProcessTimes.argtypes = [wintypes.HANDLE, ctypes.POINTER(YbcsFileTime), ctypes.POINTER(YbcsFileTime), ctypes.POINTER(YbcsFileTime), ctypes.POINTER(YbcsFileTime)]
+                  kernel32.GetProcessTimes.restype = wintypes.BOOL
+                  kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+                  kernel32.CloseHandle.restype = wintypes.BOOL
+                  process_handle = kernel32.OpenProcess(0x0400, False, pid)
+                  if process_handle:
+                      process_exit_probe.update({"handle": process_handle, "get_exit_code": kernel32.GetExitCodeProcess, "get_process_times": kernel32.GetProcessTimes, "close_handle": kernel32.CloseHandle, "filetime_type": YbcsFileTime})
+                      print(json.dumps({"kind": "ybcs_launcher_process_handle_opened", "value": {"timestamp_unix": time.time(), "pid": pid, "access": "PROCESS_QUERY_INFORMATION"}}, ensure_ascii=False), flush=True)
+                  else:
+                      print(json.dumps({"kind": "ybcs_launcher_process_handle_failed", "value": {"timestamp_unix": time.time(), "pid": pid, "winerror": ctypes.get_last_error()}}, ensure_ascii=False), flush=True)
+              except Exception as error:
+                  print(json.dumps({"kind": "ybcs_launcher_process_handle_unavailable", "value": {"timestamp_unix": time.time(), "pid": pid, "error": str(error)}}, ensure_ascii=False), flush=True)
+          '''
           if original.count(old_spawn) != 1:
               raise SystemExit(f"spawn anchor count must be 1, got {original.count(old_spawn)}")
           patched = patched.replace(old_spawn, new_spawn, 1)
 
           old_attach = b'''    session = device.attach(pid)
-'''
+          '''
           new_attach = b'''    print(json.dumps({"kind": "ybcs_launcher_attach_begin", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
-    session = device.attach(pid)
-    print(json.dumps({"kind": "ybcs_launcher_attach_return", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
-'''
+              session = device.attach(pid)
+              print(json.dumps({"kind": "ybcs_launcher_attach_return", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+          '''
           if patched.count(old_attach) != 1:
               raise SystemExit(f"attach anchor count must be 1, got {patched.count(old_attach)}")
           patched = patched.replace(old_attach, new_attach, 1)
 
           old_load = b'''    script.load()
-'''
+          '''
           new_load = b'''    print(json.dumps({"kind": "ybcs_launcher_script_load_begin", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
-    script.load()
-    print(json.dumps({"kind": "ybcs_launcher_script_load_return", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
-'''
+              script.load()
+              print(json.dumps({"kind": "ybcs_launcher_script_load_return", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+          '''
           if patched.count(old_load) != 1:
               raise SystemExit(f"script.load anchor count must be 1, got {patched.count(old_load)}")
           patched = patched.replace(old_load, new_load, 1)
 
           old_resume = b'''    device.resume(pid)
-'''
+          '''
           new_resume = b'''    print(json.dumps({"kind": "ybcs_launcher_resume_begin", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
-    device.resume(pid)
-    print(json.dumps({"kind": "ybcs_launcher_resume_return", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
-'''
+              device.resume(pid)
+              print(json.dumps({"kind": "ybcs_launcher_resume_return", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+          '''
           if patched.count(old_resume) != 1:
               raise SystemExit(f"device.resume anchor count must be 1, got {patched.count(old_resume)}")
           patched = patched.replace(old_resume, new_resume, 1)
 
           old_detached = b'''    def on_detached(*_args) -> None:
-        finished.set()
-'''
+                  finished.set()
+          '''
           new_detached = b'''    def on_detached(*_args) -> None:
-        detail = {
-            "kind": "frida_session_detached",
-            "value": {
-                "timestamp_unix": time.time(),
-                "pid": pid,
-                "launcher_pid": os.getpid(),
-                "reason": str(_args[0]) if _args else None,
-                "arguments": [repr(value) for value in _args],
-            },
-        }
-        if len(_args) > 1 and _args[1] is not None:
-            crash = _args[1]
-            crash_fields = {}
-            for name in ("pid", "process_name", "summary", "report", "parameters"):
-                try:
-                    value = getattr(crash, name)
-                    crash_fields[name] = value if isinstance(value, (str, int, float, bool)) or value is None else repr(value)
-                except Exception:
-                    pass
-            detail["value"]["crash"] = crash_fields
-        probe = process_exit_probe
-        handle = probe.get("handle")
-        if handle is not None:
-            try:
-                exit_code = wintypes.DWORD()
-                if probe["get_exit_code"](handle, ctypes.byref(exit_code)):
-                    detail["value"]["process_exit_code"] = int(exit_code.value)
-                    detail["value"]["process_still_active"] = exit_code.value == 259
-                else:
-                    detail["value"]["process_exit_code_error"] = ctypes.get_last_error()
-                filetime_type = probe["filetime_type"]
-                creation = filetime_type()
-                exit_time = filetime_type()
-                kernel_time = filetime_type()
-                user_time = filetime_type()
-                if probe["get_process_times"](handle, ctypes.byref(creation), ctypes.byref(exit_time), ctypes.byref(kernel_time), ctypes.byref(user_time)):
-                    def filetime_to_unix(value):
-                        ticks = (value.dwHighDateTime << 32) | value.dwLowDateTime
-                        return None if ticks == 0 else (ticks - 116444736000000000) / 10000000
-                    detail["value"]["process_creation_unix"] = filetime_to_unix(creation)
-                    detail["value"]["process_exit_unix"] = filetime_to_unix(exit_time)
-                else:
-                    detail["value"]["process_times_error"] = ctypes.get_last_error()
-            except Exception as error:
-                detail["value"]["process_probe_error"] = str(error)
-        rendered = json.dumps(detail, ensure_ascii=False, default=str)
-        print(rendered, flush=True)
-        if trace_path is not None:
-            with trace_lock:
-                with trace_path.open("a", encoding="utf-8", newline="\\n") as trace_stream:
-                    trace_stream.write(rendered + "\\n")
-                    trace_stream.flush()
-        finished.set()
-'''
+                  detail = {
+                      "kind": "frida_session_detached",
+                      "value": {
+                          "timestamp_unix": time.time(),
+                          "pid": pid,
+                          "launcher_pid": os.getpid(),
+                          "reason": str(_args[0]) if _args else None,
+                          "arguments": [repr(value) for value in _args],
+                      },
+                  }
+                  if len(_args) > 1 and _args[1] is not None:
+                      crash = _args[1]
+                      crash_fields = {}
+                      for name in ("pid", "process_name", "summary", "report", "parameters"):
+                          try:
+                              value = getattr(crash, name)
+                              crash_fields[name] = value if isinstance(value, (str, int, float, bool)) or value is None else repr(value)
+                          except Exception:
+                              pass
+                      detail["value"]["crash"] = crash_fields
+                  probe = process_exit_probe
+                  handle = probe.get("handle")
+                  if handle is not None:
+                      try:
+                          exit_code = wintypes.DWORD()
+                          if probe["get_exit_code"](handle, ctypes.byref(exit_code)):
+                              detail["value"]["process_exit_code"] = int(exit_code.value)
+                              detail["value"]["process_still_active"] = exit_code.value == 259
+                          else:
+                              detail["value"]["process_exit_code_error"] = ctypes.get_last_error()
+                          filetime_type = probe["filetime_type"]
+                          creation = filetime_type()
+                          exit_time = filetime_type()
+                          kernel_time = filetime_type()
+                          user_time = filetime_type()
+                          if probe["get_process_times"](handle, ctypes.byref(creation), ctypes.byref(exit_time), ctypes.byref(kernel_time), ctypes.byref(user_time)):
+                              def filetime_to_unix(value):
+                                  ticks = (value.dwHighDateTime << 32) | value.dwLowDateTime
+                                  return None if ticks == 0 else (ticks - 116444736000000000) / 10000000
+                              detail["value"]["process_creation_unix"] = filetime_to_unix(creation)
+                              detail["value"]["process_exit_unix"] = filetime_to_unix(exit_time)
+                          else:
+                              detail["value"]["process_times_error"] = ctypes.get_last_error()
+                      except Exception as error:
+                          detail["value"]["process_probe_error"] = str(error)
+                  rendered = json.dumps(detail, ensure_ascii=False, default=str)
+                  print(rendered, flush=True)
+                  if trace_path is not None:
+                      with trace_lock:
+                          with trace_path.open("a", encoding="utf-8", newline="\\n") as trace_stream:
+                              trace_stream.write(rendered + "\\n")
+                              trace_stream.flush()
+                  finished.set()
+          '''
           if patched.count(old_detached) != 1:
               raise SystemExit(f"on_detached anchor count must be 1, got {patched.count(old_detached)}")
           patched = patched.replace(old_detached, new_detached, 1)
 
           old_close = b'''    return 0
-
-
-def disable_16bit_color_compatibility'''
+          
+          
+          def disable_16bit_color_compatibility'''
           new_close = b'''    if process_exit_probe.get("handle") is not None:
-        try:
-            process_exit_probe["close_handle"](process_exit_probe["handle"])
-            print(json.dumps({"kind": "ybcs_launcher_process_handle_closed", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
-        except Exception as error:
-            print(json.dumps({"kind": "ybcs_launcher_process_handle_close_error", "value": {"timestamp_unix": time.time(), "pid": pid, "error": str(error)}}, ensure_ascii=False), flush=True)
-    return 0
-
-
-def disable_16bit_color_compatibility'''
+                  try:
+                      process_exit_probe["close_handle"](process_exit_probe["handle"])
+                      print(json.dumps({"kind": "ybcs_launcher_process_handle_closed", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+                  except Exception as error:
+                      print(json.dumps({"kind": "ybcs_launcher_process_handle_close_error", "value": {"timestamp_unix": time.time(), "pid": pid, "error": str(error)}}, ensure_ascii=False), flush=True)
+              return 0
+          
+          
+          def disable_16bit_color_compatibility'''
           if patched.count(old_close) != 1:
               raise SystemExit(f"process handle cleanup anchor count must be 1, got {patched.count(old_close)}")
           patched = patched.replace(old_close, new_close, 1)
