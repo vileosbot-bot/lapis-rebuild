@@ -1949,7 +1949,12 @@ jobs:
             [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
             [DllImport("user32.dll")] public static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO info);
             [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr hWnd);
+            [DllImport("user32.dll")] public static extern IntPtr SetActiveWindow(IntPtr hWnd);
             [DllImport("user32.dll")] public static extern IntPtr GetFocus();
+            [DllImport("user32.dll")] public static extern IntPtr GetParent(IntPtr hWnd);
+            [DllImport("user32.dll")] public static extern bool IsChild(IntPtr hWndParent, IntPtr hWnd);
+            [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr hWnd);
+            [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
             [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
             [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
             [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
@@ -1965,17 +1970,25 @@ jobs:
               bool available = GetGUIThreadInfo(gameThread, ref info);
               StringBuilder focusClass = new StringBuilder(256);
               StringBuilder focusTitle = new StringBuilder(512);
+              uint focusPid = 0;
               if (info.hwndFocus != IntPtr.Zero) {
                 GetClassName(info.hwndFocus, focusClass, focusClass.Capacity);
                 GetWindowText(info.hwndFocus, focusTitle, focusTitle.Capacity);
+                GetWindowThreadProcessId(info.hwndFocus, out focusPid);
               }
+              bool focusIsChild = info.hwndFocus != IntPtr.Zero && IsChild(hwnd, info.hwndFocus);
+              IntPtr focusParent = info.hwndFocus == IntPtr.Zero ? IntPtr.Zero : GetParent(info.hwndFocus);
+              bool focusEnabled = info.hwndFocus != IntPtr.Zero && IsWindowEnabled(info.hwndFocus);
+              bool focusVisible = info.hwndFocus != IntPtr.Zero && IsWindowVisible(info.hwndFocus);
               return new string[] {
                 gameThread.ToString(), gamePid.ToString(),
                 foregroundThread.ToString(), foregroundPid.ToString(),
                 foreground.ToString(), available.ToString(),
                 info.hwndActive.ToString(), info.hwndFocus.ToString(),
                 info.hwndCapture.ToString(), info.hwndMenuOwner.ToString(),
-                info.flags.ToString(), focusClass.ToString(), focusTitle.ToString()
+                info.flags.ToString(), focusClass.ToString(), focusTitle.ToString(),
+                focusPid.ToString(), focusIsChild.ToString(), focusParent.ToString(),
+                focusEnabled.ToString(), focusVisible.ToString()
               };
             }
             public static int[] GetWindowMetrics(IntPtr hwnd) {
@@ -2340,7 +2353,7 @@ jobs:
           function Write-FocusDiagnostic([string]$phase) {
             try {
               $focus = [WinInput]::GetFocusSnapshot($gameHwnd)
-              Write-Host "YBCS_FOCUS_DIAGNOSTIC: phase=$phase game_thread=$($focus[0]) game_pid=$($focus[1]) foreground_thread=$($focus[2]) foreground_pid=$($focus[3]) foreground_hwnd=$($focus[4]) gui_info_available=$($focus[5]) active_hwnd=$($focus[6]) focus_hwnd=$($focus[7]) capture_hwnd=$($focus[8]) menu_owner_hwnd=$($focus[9]) gui_flags=$($focus[10]) focus_class=$($focus[11]) focus_title=$($focus[12]) game_hwnd=$gameHwnd"
+              Write-Host "YBCS_FOCUS_DIAGNOSTIC: phase=$phase game_thread=$($focus[0]) game_pid=$($focus[1]) foreground_thread=$($focus[2]) foreground_pid=$($focus[3]) foreground_hwnd=$($focus[4]) gui_info_available=$($focus[5]) active_hwnd=$($focus[6]) focus_hwnd=$($focus[7]) capture_hwnd=$($focus[8]) menu_owner_hwnd=$($focus[9]) gui_flags=$($focus[10]) focus_class=$($focus[11]) focus_title=$($focus[12]) focus_pid=$($focus[13]) focus_is_child=$($focus[14]) focus_parent=$($focus[15]) focus_enabled=$($focus[16]) focus_visible=$($focus[17]) game_hwnd=$gameHwnd"
             } catch {
               Write-Host "YBCS_FOCUS_DIAGNOSTIC_ERROR: phase=$phase error=$($_.Exception.Message)"
             }
@@ -2355,51 +2368,43 @@ jobs:
             $before = [WinInput]::GetFocusSnapshot($gameHwnd)
             $targetThread = [uint32]$before[0]
             $currentThread = [WinInput]::GetCurrentThreadId()
+            if ($before[7] -ne $gameHwnd.ToString() -and $before[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$' -and (([uint32]$before[10] -band 1) -ne 0)) {
+              Write-Host "YBCS_CHAT_EDIT_ACTIVE_CONFIRMED: hwnd=$($before[7]) class=$($before[11]) gui_flags=$($before[10]); sending exactly one Escape before restoring main-window focus"
+              [WinInput]::PressKey(0x1B)
+              Start-Sleep -Milliseconds 200
+              $afterEscape = [WinInput]::GetFocusSnapshot($gameHwnd)
+              Write-Host "YBCS_FOCUS_AFTER_SINGLE_ESCAPE: focus_hwnd=$($afterEscape[7]) class=$($afterEscape[11]) gui_flags=$($afterEscape[10])"
+              if ($afterEscape[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$' -and (([uint32]$afterEscape[10] -band 1) -ne 0)) {
+                throw "One Escape did not close the confirmed active chat Edit; M was not sent"
+              }
+            } elseif ($before[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$') {
+              Write-Host "YBCS_CHAT_EDIT_NOT_ACTIVE: focus HWND is an Edit control but GUI_CARET is not set; Escape was not sent"
+            }
+            [WinInput]::SetForegroundWindow($gameHwnd) | Out-Null
+            [WinInput]::SetActiveWindow($gameHwnd) | Out-Null
             $attached = $false
+            $setFocusPrevious = [IntPtr]::Zero
+            $threadFocusAfter = [IntPtr]::Zero
             try {
-              [WinInput]::SetForegroundWindow($gameHwnd) | Out-Null
               if ($currentThread -ne $targetThread) {
                 $attached = [WinInput]::AttachThreadInput($currentThread, $targetThread, $true)
                 if (-not $attached) { throw "AttachThreadInput failed before SetFocus" }
               }
-              [WinInput]::SetFocus($gameHwnd) | Out-Null
-              Start-Sleep -Milliseconds 150
+              $setFocusPrevious = [WinInput]::SetFocus($gameHwnd)
+              Start-Sleep -Milliseconds 200
+              $threadFocusAfter = [WinInput]::GetFocus()
             } finally {
               if ($attached) { [WinInput]::AttachThreadInput($currentThread, $targetThread, $false) | Out-Null }
             }
             $after = [WinInput]::GetFocusSnapshot($gameHwnd)
-            Write-Host "YBCS_KEYBOARD_FOCUS_AFTER_SET: before_hwnd=$($before[7]) before_class=$($before[11]) before_flags=$($before[10]) game_hwnd=$gameHwnd after_hwnd=$($after[7]) after_class=$($after[11]) after_flags=$($after[10]) foreground_hwnd=$($after[4])"
+            Write-Host "YBCS_KEYBOARD_FOCUS_AFTER_SET: before_hwnd=$($before[7]) before_class=$($before[11]) setfocus_previous=$setFocusPrevious thread_getfocus=$threadFocusAfter game_hwnd=$gameHwnd after_hwnd=$($after[7]) after_class=$($after[11]) after_pid=$($after[13]) after_is_child=$($after[14]) after_parent=$($after[15]) after_flags=$($after[10]) foreground_hwnd=$($after[4]) active_hwnd=$($after[6])"
             if ($after[7] -ne $gameHwnd.ToString()) {
-              $focusIsEdit = $after[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$'
-              $caretActive = (([uint32]$after[10] -band 1) -ne 0)
-              if ($focusIsEdit -and $caretActive) {
-                Write-Host "YBCS_CHAT_EDIT_ACTIVE_CONFIRMED: hwnd=$($after[7]) class=$($after[11]) gui_flags=$($after[10]); sending exactly one Escape to close active chat input"
-                [WinInput]::PressKey(0x1B)
-                Start-Sleep -Milliseconds 250
-                $attached = $false
-                try {
-                  if ($currentThread -ne $targetThread) {
-                    $attached = [WinInput]::AttachThreadInput($currentThread, $targetThread, $true)
-                    if (-not $attached) { throw "AttachThreadInput failed after Escape" }
-                  }
-                  [WinInput]::SetFocus($gameHwnd) | Out-Null
-                  Start-Sleep -Milliseconds 150
-                } finally {
-                  if ($attached) { [WinInput]::AttachThreadInput($currentThread, $targetThread, $false) | Out-Null }
-                }
-                $after = [WinInput]::GetFocusSnapshot($gameHwnd)
-                Write-Host "YBCS_KEYBOARD_FOCUS_AFTER_SINGLE_ESCAPE: focus_hwnd=$($after[7]) focus_class=$($after[11]) gui_flags=$($after[10]) game_hwnd=$gameHwnd"
-              } elseif ($focusIsEdit) {
-                Write-Host "YBCS_CHAT_EDIT_NOT_ACTIVE: focus HWND is Edit but GUI_CARET is not set; Escape was not sent"
-              }
+              throw "Keyboard focus verification failed: focus HWND $($after[7]) class=$($after[11]) is not main game HWND $gameHwnd; M was not sent"
             }
-            if ($after[7] -ne $gameHwnd.ToString()) {
-              throw "Keyboard focus verification failed: focus HWND $($after[7]) does not equal game HWND $gameHwnd; M was not sent"
+            if ($after[4] -ne $gameHwnd.ToString() -or $after[6] -ne $gameHwnd.ToString()) {
+              throw "Game main window is not both foreground and active; M was not sent"
             }
-            if ($after[4] -ne $gameHwnd.ToString()) {
-              throw "Foreground HWND verification failed: foreground HWND $($after[4]) does not equal game HWND $gameHwnd; M was not sent"
-            }
-            Write-Host "YBCS_KEYBOARD_FOCUS_VERIFIED: foreground_hwnd=$($after[4]) focus_hwnd=$($after[7]) game_hwnd=$gameHwnd chat_edit_active=False"
+            Write-Host "YBCS_KEYBOARD_FOCUS_VERIFIED: foreground_hwnd=$($after[4]) focus_hwnd=$($after[7]) active_hwnd=$($after[6]) game_hwnd=$gameHwnd chat_edit_active=False"
           }
           function Click-Client([int]$x, [int]$y) {
             Focus-Game
