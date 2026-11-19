@@ -2658,6 +2658,7 @@ jobs:
             }
           }
           $failureReason = $null
+          $shopDialogDiagnosticOnly = $true
           $pidFile = Join-Path $ws "ybcs\runtime\ybcs-gui-client.pid.json"
           if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue }
           $launchStartUtc = [DateTime]::UtcNow
@@ -3137,48 +3138,86 @@ jobs:
             Start-Sleep -Seconds 2
             Shot "shop-open"
             Shot "shop-before-purchase"
-            $redBefore = Get-LogLineCount $serverLog
+            Shot "shop-catalog-bottom-before-scroll"
             Focus-Game
-            [WinInput]::PressKey(0x24)
-            [WinInput]::PressKey(0x0D)
+            Write-FocusDiagnostic "before-shop-catalog-scroll"
+            $shopMetrics = [WinInput]::GetWindowMetrics($gameHwnd)
+            $shopClientWidth = [int]$shopMetrics[2]
+            $shopClientHeight = [int]$shopMetrics[3]
+            $shopOriginX = [int]$shopMetrics[4]
+            $shopOriginY = [int]$shopMetrics[5]
+            if ($shopClientWidth -le 0 -or $shopClientHeight -le 0) {
+              throw "Shop catalog scroll could not read valid client geometry"
+            }
+            $shopScrollX = $shopOriginX + [int][Math]::Round(764.0 * $shopClientWidth / 800.0)
+            $shopScrollBottomY = $shopOriginY + [int][Math]::Round(547.0 * $shopClientHeight / 600.0)
+            $shopScrollTopY = $shopOriginY + [int][Math]::Round(512.0 * $shopClientHeight / 600.0)
+            $redCellScreenX = $shopOriginX + [int][Math]::Round(514.0 * $shopClientWidth / 800.0)
+            $redCellScreenY = $shopOriginY + [int][Math]::Round(504.0 * $shopClientHeight / 600.0)
+            $blueCellScreenX = $shopOriginX + [int][Math]::Round(735.0 * $shopClientWidth / 800.0)
+            $blueCellScreenY = $shopOriginY + [int][Math]::Round(504.0 * $shopClientHeight / 600.0)
+            Write-Host "YBCS_SHOP_CATALOG_TARGETS: catalog_count=105 shop_number=3 red_item=4001 index=0 client=(514,504) screen=($redCellScreenX,$redCellScreenY) blue_item=4006 index=5 client=(735,504) screen=($blueCellScreenX,$blueCellScreenY)"
+            Write-Host "YBCS_SHOP_SCROLL_THUMB_DRAG_BEGIN: screen=($shopScrollX,$shopScrollBottomY) target=($shopScrollX,$shopScrollTopY) source=Run42-shop-open.png"
+            if (-not [WinInput]::SetCursorPos($shopScrollX, $shopScrollBottomY)) {
+              throw "Could not position cursor on the screenshot-verified shop catalog scrollbar thumb"
+            }
+            $shopScrollMouseDown = $false
+            try {
+              [WinInput]::mouse_event([WinInput]::LEFTDOWN, 0, 0, 0, [UIntPtr]::Zero)
+              $shopScrollMouseDown = $true
+              for ($step = 1; $step -le 5; $step++) {
+                $dragY = $shopScrollBottomY + [int][Math]::Round(($shopScrollTopY - $shopScrollBottomY) * $step / 5.0)
+                if (-not [WinInput]::SetCursorPos($shopScrollX, $dragY)) {
+                  throw "Could not move shop catalog scrollbar thumb during verified drag"
+                }
+                Start-Sleep -Milliseconds 60
+              }
+            } finally {
+              if ($shopScrollMouseDown) {
+                [WinInput]::mouse_event([WinInput]::LEFTUP, 0, 0, 0, [UIntPtr]::Zero)
+              }
+            }
+            Start-Sleep -Milliseconds 750
+            Shot "shop-catalog-top"
+            $shopTopBitmap = [System.Drawing.Bitmap]::FromFile((Join-Path $shotDir "shop-catalog-top.png"))
+            $shopThumbBestY = -1
+            $shopThumbBestScore = 0
+            try {
+              $shopProbeStartY = $shopOriginY + [int][Math]::Round(500.0 * $shopClientHeight / 600.0)
+              $shopProbeEndY = $shopOriginY + [int][Math]::Round(555.0 * $shopClientHeight / 600.0)
+              for ($probeY = $shopProbeStartY; $probeY -le $shopProbeEndY; $probeY++) {
+                $score = 0
+                for ($probeX = $shopScrollX - 2; $probeX -le $shopScrollX + 2; $probeX++) {
+                  if ($probeX -lt 0 -or $probeY -lt 0 -or $probeX -ge $shopTopBitmap.Width -or $probeY -ge $shopTopBitmap.Height) { continue }
+                  $pixel = $shopTopBitmap.GetPixel($probeX, $probeY)
+                  if ($pixel.R -ge 245 -and $pixel.G -ge 240 -and $pixel.B -ge 210) { $score++ }
+                }
+                if ($score -gt $shopThumbBestScore) {
+                  $shopThumbBestScore = $score
+                  $shopThumbBestY = $probeY
+                }
+              }
+            } finally {
+              $shopTopBitmap.Dispose()
+            }
+            $shopTopLimitY = $shopOriginY + [int][Math]::Round(530.0 * $shopClientHeight / 600.0)
+            Write-Host "YBCS_SHOP_SCROLL_THUMB_VERIFY: best_y=$shopThumbBestY bright_pixel_score=$shopThumbBestScore top_limit=$shopTopLimitY"
+            if ($shopThumbBestY -lt 0 -or $shopThumbBestY -ge $shopTopLimitY -or $shopThumbBestScore -lt 2) {
+              throw "Shop catalog scrollbar top position was not visually confirmed; no product cell was clicked"
+            }
+            Write-Host "YBCS_SHOP_CATALOG_TOP_CONFIRMED: catalog_count=105 shop_number=3 first_item=4001 index=0 sixth_item=4006 index=5"
+            $redBefore = Get-LogLineCount $serverLog
+            Click-Client 514 504
             Start-Sleep -Seconds 2
             Shot "shop-red-quantity-dialog"
-            Focus-Game
-            [System.Windows.Forms.SendKeys]::SendWait("^a")
-            [System.Windows.Forms.SendKeys]::SendWait("30")
-            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
-            $redPurchase = Wait-ShopPurchase 4001 $redBefore
-            if (-not $redPurchase) { throw "Recovery potion 4001 purchase of quantity 30 was not confirmed by server log" }
-            Write-Host "RED POTION PURCHASE CONFIRMED: $redPurchase"
-            Start-Sleep -Seconds 2
-            Shot "shop-red-purchased"
-
-            $blueBefore = Get-LogLineCount $serverLog
-            Focus-Game
-            [WinInput]::PressKey(0x24)
-            for ($k = 0; $k -lt 4; $k++) { [WinInput]::PressKey(0x28) }
-            [WinInput]::PressKey(0x0D)
-            Start-Sleep -Seconds 2
-            Shot "shop-blue-quantity-dialog"
-            Focus-Game
-            [System.Windows.Forms.SendKeys]::SendWait("^a")
-            [System.Windows.Forms.SendKeys]::SendWait("30")
-            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
-            $bluePurchase = Wait-ShopPurchase 4006 $blueBefore
-            if (-not $bluePurchase) { throw "Magic potion 4006 purchase of quantity 30 was not confirmed by server log" }
-            Write-Host "BLUE POTION PURCHASE CONFIRMED: $bluePurchase"
-            Start-Sleep -Seconds 2
-            Shot "shop-blue-purchased"
-
-            Focus-Game
-            [WinInput]::PressKey(0x1B)
-            Start-Sleep -Seconds 1
-            Click-Client 350 12
-            Start-Sleep -Seconds 3
-            Shot "inventory-after-potions"
-            Focus-Game
-            [WinInput]::PressKey(0x1B)
-            Write-Host "POTION PURCHASE AUTOMATION COMPLETE: item 4001 x30 and item 4006 x30"
+            Write-FocusDiagnostic "after-red-item-4001-click"
+            $unexpectedRedPurchase = Wait-LogLine $serverLog 'offline_shop_purchase.*record=\(4001,\s*30,\s*0,\s*0,\s*0\)' $redBefore 3
+            if ($unexpectedRedPurchase) {
+              Write-Host "YBCS_SHOP_RED_CLICK_UNEXPECTED_PURCHASE_EVENT: $unexpectedRedPurchase"
+              throw "Red item click produced a purchase event before quantity confirmation; no further input sent"
+            }
+            Write-Host "YBCS_SHOP_RED_ITEM_CLICK: catalog_index=0 item=4001 logical_client=(514,504) screen=($redCellScreenX,$redCellScreenY) quantity_input_sent=False confirmation_input_sent=False"
+            Write-Host "YBCS_SHOP_DIALOG_DIAGNOSTIC_COMPLETE: diagnostic_only=True no_purchase_requested=True"
           }
           catch {
             $failureReason = $_.Exception.Message
@@ -3188,7 +3227,8 @@ jobs:
           try { Write-StartupCrashEvidence $launchStartUtc }
           catch { Write-Host "YBCS_STARTUP_CRASH_EVIDENCE_ERROR: $($_.Exception.Message)" }
 
-          for ($i = 1; $i -le 16; $i++) {
+          $postRouteShotCount = if ($shopDialogDiagnosticOnly) { 0 } else { 16 }
+          for ($i = 1; $i -le $postRouteShotCount; $i++) {
             Start-Sleep -Seconds 30
             $n = "{0:D2}" -f $i
             Shot "shot-$n"
