@@ -2008,7 +2008,6 @@ jobs:
             public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
             [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
             [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-            [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
             public static IntPtr FindVisibleWindowForProcess(int pid) {
               IntPtr found = IntPtr.Zero;
               EnumWindowsProc callback = delegate(IntPtr hWnd, IntPtr lParam) {
@@ -2365,11 +2364,16 @@ jobs:
             Write-FocusDiagnostic "Focus-Game"
           }
           function Ensure-GameKeyboardFocus {
+            if ([string]::IsNullOrWhiteSpace($script:gameViewHwndText)) {
+              throw "windowed_world_gameplay_focus view HWND is unavailable; M was not sent"
+            }
+            $viewValue = [Convert]::ToInt64($script:gameViewHwndText.Replace("0x",""),16)
+            $viewHwnd = [IntPtr]$viewValue
             $before = [WinInput]::GetFocusSnapshot($gameHwnd)
             $targetThread = [uint32]$before[0]
             $currentThread = [WinInput]::GetCurrentThreadId()
-            if ($before[7] -ne $gameHwnd.ToString() -and $before[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$' -and (([uint32]$before[10] -band 1) -ne 0)) {
-              Write-Host "YBCS_CHAT_EDIT_ACTIVE_CONFIRMED: hwnd=$($before[7]) class=$($before[11]) gui_flags=$($before[10]); sending exactly one Escape before restoring main-window focus"
+            if ($before[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$' -and (([uint32]$before[10] -band 1) -ne 0)) {
+              Write-Host "YBCS_CHAT_EDIT_ACTIVE_CONFIRMED: hwnd=$($before[7]) class=$($before[11]) gui_flags=$($before[10]); sending exactly one Escape before restoring game view focus"
               [WinInput]::PressKey(0x1B)
               Start-Sleep -Milliseconds 200
               $afterEscape = [WinInput]::GetFocusSnapshot($gameHwnd)
@@ -2390,21 +2394,26 @@ jobs:
                 $attached = [WinInput]::AttachThreadInput($currentThread, $targetThread, $true)
                 if (-not $attached) { throw "AttachThreadInput failed before SetFocus" }
               }
-              $setFocusPrevious = [WinInput]::SetFocus($gameHwnd)
+              $setFocusPrevious = [WinInput]::SetFocus($viewHwnd)
               Start-Sleep -Milliseconds 200
               $threadFocusAfter = [WinInput]::GetFocus()
             } finally {
               if ($attached) { [WinInput]::AttachThreadInput($currentThread, $targetThread, $false) | Out-Null }
             }
             $after = [WinInput]::GetFocusSnapshot($gameHwnd)
-            Write-Host "YBCS_KEYBOARD_FOCUS_AFTER_SET: before_hwnd=$($before[7]) before_class=$($before[11]) setfocus_previous=$setFocusPrevious thread_getfocus=$threadFocusAfter game_hwnd=$gameHwnd after_hwnd=$($after[7]) after_class=$($after[11]) after_pid=$($after[13]) after_is_child=$($after[14]) after_parent=$($after[15]) after_flags=$($after[10]) foreground_hwnd=$($after[4]) active_hwnd=$($after[6])"
-            if ($after[7] -ne $gameHwnd.ToString()) {
-              throw "Keyboard focus verification failed: focus HWND $($after[7]) class=$($after[11]) is not main game HWND $gameHwnd; M was not sent"
+            $focusMatchesView = $after[7] -eq $viewHwnd.ToString()
+            $focusIsAfxChild = $after[11] -eq "AfxWnd42s" -and $after[15] -eq $gameHwnd.ToString()
+            Write-Host "YBCS_KEYBOARD_FOCUS_AFTER_SET: before_hwnd=$($before[7]) before_class=$($before[11]) setfocus_target_view=$viewHwnd setfocus_previous=$setFocusPrevious thread_getfocus=$threadFocusAfter game_hwnd=$gameHwnd view_event_hwnd=$viewHwnd after_hwnd=$($after[7]) after_class=$($after[11]) after_pid=$($after[13]) after_is_child=$($after[14]) after_parent=$($after[15]) after_flags=$($after[10]) foreground_hwnd=$($after[4]) active_hwnd=$($after[6]) focus_matches_view=$focusMatchesView focus_is_afx_child=$focusIsAfxChild"
+            if ($after[11] -match '^(Edit|RichEdit.*|RICHEDIT.*)$') {
+              throw "Keyboard focus remains on a chat/Edit control; M was not sent"
+            }
+            if (-not ($focusMatchesView -or $focusIsAfxChild)) {
+              throw "Keyboard focus is not the game view HWND or an AfxWnd42s child of the main window; M was not sent"
             }
             if ($after[4] -ne $gameHwnd.ToString() -or $after[6] -ne $gameHwnd.ToString()) {
               throw "Game main window is not both foreground and active; M was not sent"
             }
-            Write-Host "YBCS_KEYBOARD_FOCUS_VERIFIED: foreground_hwnd=$($after[4]) focus_hwnd=$($after[7]) active_hwnd=$($after[6]) game_hwnd=$gameHwnd chat_edit_active=False"
+            Write-Host "YBCS_KEYBOARD_FOCUS_VERIFIED: foreground_hwnd=$($after[4]) active_hwnd=$($after[6]) focus_hwnd=$($after[7]) focus_class=$($after[11]) focus_parent=$($after[15]) view_event_hwnd=$viewHwnd game_hwnd=$gameHwnd chat_edit_active=False comparison_target=game-view-not-top-level-frame"
           }
           function Click-Client([int]$x, [int]$y) {
             Focus-Game
@@ -2740,7 +2749,13 @@ jobs:
             Click-Screen 625 544
             Write-Host "clicked Confirm at 625,544"
             Shot "shot-00-postclick"
-            $worldEvent = Wait-WorldEntered $worldClientBefore $worldServerBefore $worldStdoutBefore 300
+                        $worldEvent = Wait-WorldEntered $worldClientBefore $worldServerBefore $worldStdoutBefore 300
+            $worldEventRecord = $worldEvent | ConvertFrom-Json -ErrorAction Stop
+            $script:gameViewHwndText = [string]$worldEventRecord.value.view
+            if ([string]::IsNullOrWhiteSpace($script:gameViewHwndText)) {
+              throw "windowed_world_gameplay_focus event did not provide a view HWND; M was not sent"
+            }
+            Write-Host "YBCS_WORLD_VIEW_CAPTURED: view_hwnd=$script:gameViewHwndText source_event=$worldEvent"
             Write-Host "YBCS_WORLD_WAIT_COMPLETE: confirmed_world_event=$worldEvent"
             Shot "route-1030-start"
             Navigate-MapTarget 1030 6 138 122 534 "route-1030" "1020"
