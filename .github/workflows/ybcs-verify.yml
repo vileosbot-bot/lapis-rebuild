@@ -1362,6 +1362,7 @@ jobs:
             });
           }
           npcDialogTraceInstallMemoryApiHooks();
+          // shortcut: skip the full address-space snapshot during suspended startup; re-enable only for a new mapping investigation after resume.
           emit("npc_memory_full_snapshot_skipped", {
             reason: "Activation Context mapping was already established by Run #23 and Run #24; avoid blocking the suspended process before resume",
             target: "0x001A0000",
@@ -1379,9 +1380,156 @@ jobs:
           if patched.count(old_trace_anchor) != 1:
               raise SystemExit(f"NPC native trace insertion anchor count must be 1, got {patched.count(old_trace_anchor)}")
           patched = patched.replace(old_trace_anchor, new_trace_anchor, 1)
+
+          old_spawn = b'''    device = frida.get_local_device()
+    pid = device.spawn([str(exe), *client_arguments])
+'''
+          new_spawn = b'''    device = frida.get_local_device()
+    print(json.dumps({"kind": "ybcs_launcher_spawn_begin", "value": {"timestamp_unix": time.time(), "launcher_pid": os.getpid(), "exe": str(exe), "arguments": client_arguments}}, ensure_ascii=False), flush=True)
+    pid = device.spawn([str(exe), *client_arguments])
+    print(json.dumps({"kind": "ybcs_launcher_spawn_return", "value": {"timestamp_unix": time.time(), "launcher_pid": os.getpid(), "pid": pid, "exe": str(exe)}}, ensure_ascii=False), flush=True)
+    process_exit_probe = {"handle": None, "get_exit_code": None, "get_process_times": None, "close_handle": None, "filetime_type": None}
+    try:
+        import ctypes
+        from ctypes import wintypes
+        class YbcsFileTime(ctypes.Structure):
+            _fields_ = [("dwLowDateTime", wintypes.DWORD), ("dwHighDateTime", wintypes.DWORD)]
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+        kernel32.GetProcessTimes.argtypes = [wintypes.HANDLE, ctypes.POINTER(YbcsFileTime), ctypes.POINTER(YbcsFileTime), ctypes.POINTER(YbcsFileTime), ctypes.POINTER(YbcsFileTime)]
+        kernel32.GetProcessTimes.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        process_handle = kernel32.OpenProcess(0x0400, False, pid)
+        if process_handle:
+            process_exit_probe.update({"handle": process_handle, "get_exit_code": kernel32.GetExitCodeProcess, "get_process_times": kernel32.GetProcessTimes, "close_handle": kernel32.CloseHandle, "filetime_type": YbcsFileTime})
+            print(json.dumps({"kind": "ybcs_launcher_process_handle_opened", "value": {"timestamp_unix": time.time(), "pid": pid, "access": "PROCESS_QUERY_INFORMATION"}}, ensure_ascii=False), flush=True)
+        else:
+            print(json.dumps({"kind": "ybcs_launcher_process_handle_failed", "value": {"timestamp_unix": time.time(), "pid": pid, "winerror": ctypes.get_last_error()}}, ensure_ascii=False), flush=True)
+    except Exception as error:
+        print(json.dumps({"kind": "ybcs_launcher_process_handle_unavailable", "value": {"timestamp_unix": time.time(), "pid": pid, "error": str(error)}}, ensure_ascii=False), flush=True)
+'''
+          if original.count(old_spawn) != 1:
+              raise SystemExit(f"spawn anchor count must be 1, got {original.count(old_spawn)}")
+          patched = patched.replace(old_spawn, new_spawn, 1)
+
+          old_attach = b'''    session = device.attach(pid)
+'''
+          new_attach = b'''    print(json.dumps({"kind": "ybcs_launcher_attach_begin", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+    session = device.attach(pid)
+    print(json.dumps({"kind": "ybcs_launcher_attach_return", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+'''
+          if patched.count(old_attach) != 1:
+              raise SystemExit(f"attach anchor count must be 1, got {patched.count(old_attach)}")
+          patched = patched.replace(old_attach, new_attach, 1)
+
+          old_load = b'''    script.load()
+'''
+          new_load = b'''    print(json.dumps({"kind": "ybcs_launcher_script_load_begin", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+    script.load()
+    print(json.dumps({"kind": "ybcs_launcher_script_load_return", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+'''
+          if patched.count(old_load) != 1:
+              raise SystemExit(f"script.load anchor count must be 1, got {patched.count(old_load)}")
+          patched = patched.replace(old_load, new_load, 1)
+
+          old_resume = b'''    device.resume(pid)
+'''
+          new_resume = b'''    print(json.dumps({"kind": "ybcs_launcher_resume_begin", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+    device.resume(pid)
+    print(json.dumps({"kind": "ybcs_launcher_resume_return", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+'''
+          if patched.count(old_resume) != 1:
+              raise SystemExit(f"device.resume anchor count must be 1, got {patched.count(old_resume)}")
+          patched = patched.replace(old_resume, new_resume, 1)
+
+          old_detached = b'''    def on_detached(*_args) -> None:
+        finished.set()
+'''
+          new_detached = b'''    def on_detached(*_args) -> None:
+        detail = {
+            "kind": "frida_session_detached",
+            "value": {
+                "timestamp_unix": time.time(),
+                "pid": pid,
+                "launcher_pid": os.getpid(),
+                "reason": str(_args[0]) if _args else None,
+                "arguments": [repr(value) for value in _args],
+            },
+        }
+        if len(_args) > 1 and _args[1] is not None:
+            crash = _args[1]
+            crash_fields = {}
+            for name in ("pid", "process_name", "summary", "report", "parameters"):
+                try:
+                    value = getattr(crash, name)
+                    crash_fields[name] = value if isinstance(value, (str, int, float, bool)) or value is None else repr(value)
+                except Exception:
+                    pass
+            detail["value"]["crash"] = crash_fields
+        probe = process_exit_probe
+        handle = probe.get("handle")
+        if handle is not None:
+            try:
+                exit_code = wintypes.DWORD()
+                if probe["get_exit_code"](handle, ctypes.byref(exit_code)):
+                    detail["value"]["process_exit_code"] = int(exit_code.value)
+                    detail["value"]["process_still_active"] = exit_code.value == 259
+                else:
+                    detail["value"]["process_exit_code_error"] = ctypes.get_last_error()
+                filetime_type = probe["filetime_type"]
+                creation = filetime_type()
+                exit_time = filetime_type()
+                kernel_time = filetime_type()
+                user_time = filetime_type()
+                if probe["get_process_times"](handle, ctypes.byref(creation), ctypes.byref(exit_time), ctypes.byref(kernel_time), ctypes.byref(user_time)):
+                    def filetime_to_unix(value):
+                        ticks = (value.dwHighDateTime << 32) | value.dwLowDateTime
+                        return None if ticks == 0 else (ticks - 116444736000000000) / 10000000
+                    detail["value"]["process_creation_unix"] = filetime_to_unix(creation)
+                    detail["value"]["process_exit_unix"] = filetime_to_unix(exit_time)
+                else:
+                    detail["value"]["process_times_error"] = ctypes.get_last_error()
+            except Exception as error:
+                detail["value"]["process_probe_error"] = str(error)
+        rendered = json.dumps(detail, ensure_ascii=False, default=str)
+        print(rendered, flush=True)
+        if trace_path is not None:
+            with trace_lock:
+                with trace_path.open("a", encoding="utf-8", newline="\\n") as trace_stream:
+                    trace_stream.write(rendered + "\\n")
+                    trace_stream.flush()
+        finished.set()
+'''
+          if patched.count(old_detached) != 1:
+              raise SystemExit(f"on_detached anchor count must be 1, got {patched.count(old_detached)}")
+          patched = patched.replace(old_detached, new_detached, 1)
+
+          old_close = b'''    return 0
+
+
+def disable_16bit_color_compatibility'''
+          new_close = b'''    if process_exit_probe.get("handle") is not None:
+        try:
+            process_exit_probe["close_handle"](process_exit_probe["handle"])
+            print(json.dumps({"kind": "ybcs_launcher_process_handle_closed", "value": {"timestamp_unix": time.time(), "pid": pid}}, ensure_ascii=False), flush=True)
+        except Exception as error:
+            print(json.dumps({"kind": "ybcs_launcher_process_handle_close_error", "value": {"timestamp_unix": time.time(), "pid": pid, "error": str(error)}}, ensure_ascii=False), flush=True)
+    return 0
+
+
+def disable_16bit_color_compatibility'''
+          if patched.count(old_close) != 1:
+              raise SystemExit(f"process handle cleanup anchor count must be 1, got {patched.count(old_close)}")
+          patched = patched.replace(old_close, new_close, 1)
+
           compile(patched.decode("utf-8"), str(path), "exec")
           path.write_bytes(patched)
           print(f"NPC interaction hook patched: {path}; {len(original)} -> {len(patched)} bytes")
+          print("Added spawn/attach/script-load/resume/detach and process-exit diagnostics; no game binary modified.")
           print("Added click-cell/target probe and native-selection diagnostic; exact 0x08 sender and <9 range gate retained.")
           '@
           $npcPatch | python -
@@ -1684,22 +1832,136 @@ jobs:
             }
           }
           $failureReason = $null
-          $p = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($launcher.Name)`"" -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput (Join-Path $ws "game-stdout.log") -RedirectStandardError (Join-Path $ws "game-stderr.log")
-          Write-Host "launcher pid: $($p.Id)"
-          Start-Sleep -Seconds 35
+          $pidFile = Join-Path $ws "ybcs\runtime\ybcs-gui-client.pid.json"
+          if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue }
+          $launchStartUtc = [DateTime]::UtcNow
+          $cmdArguments = '/c "' + $launcher.Name + '"'
+          $p = Start-Process -FilePath "cmd.exe" -ArgumentList $cmdArguments -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput (Join-Path $ws "game-stdout.log") -RedirectStandardError (Join-Path $ws "game-stderr.log")
+          Write-Host "YBCS_LAUNCHER_WRAPPER_CREATED: pid=$($p.Id) process=$($p.ProcessName) start_utc=$($launchStartUtc.ToString('o'))"
+          $startupDeadline = $launchStartUtc.AddSeconds(65)
+          Write-Host "YBCS_STARTUP_WAIT_POLICY: unchanged_total_limit_seconds=65 old_fixed_sleep_seconds=35 old_name_poll_seconds=30 new_method=launcher_pid_file_then_exact_pid_then_visible_window poll_ms=250"
 
           try {
             $game = $null
-            for ($attempt = 0; $attempt -lt 30 -and -not $game; $attempt++) {
-              $game = Get-Process -Name NeoDark -ErrorAction SilentlyContinue | Select-Object -First 1
-              if (-not $game) { Start-Sleep -Seconds 1 }
+            $clientPid = $null
+            $clientPidRecord = $null
+            $clientPidFileSeen = $false
+            $gameHwnd = [IntPtr]::Zero
+            $clientSize = @(0, 0)
+            $startupWindowStable = $false
+            Write-Host "STARTUP_DIAGNOSTIC_ONLY: no keyboard input, mouse input, NPC click, menu click, route, or purchase will be sent"
+            while ([DateTime]::UtcNow -lt $startupDeadline) {
+              if (-not $clientPidFileSeen -and (Test-Path -LiteralPath $pidFile)) {
+                try {
+                  $clientPidRecord = Get-Content -LiteralPath $pidFile -Raw | ConvertFrom-Json -ErrorAction Stop
+                  $clientPid = [int]$clientPidRecord.pid
+                  $clientPidFileSeen = $true
+                  Write-Host "YBCS_CLIENT_PID_FILE: pid=$clientPid launcher_pid=$($clientPidRecord.launcher_pid) started_at_unix=$($clientPidRecord.started_at) exe=$($clientPidRecord.exe)"
+                  try {
+                    $game = [System.Diagnostics.Process]::GetProcessById($clientPid)
+                    $game.Refresh()
+                    $gamePath = $null
+                    try { $gamePath = $game.MainModule.FileName } catch { $gamePath = "unavailable: $($_.Exception.Message)" }
+                    Write-Host "YBCS_CLIENT_PROCESS_OPENED: pid=$clientPid name=$($game.ProcessName) has_exited=$($game.HasExited) start_time=$($game.StartTime.ToString('o')) path=$gamePath"
+                  } catch {
+                    Write-Host "YBCS_CLIENT_PROCESS_OPEN_FAILED: pid=$clientPid error=$($_.Exception.Message)"
+                    $game = $null
+                  }
+                } catch {
+                  Write-Host "YBCS_CLIENT_PID_FILE_PARSE_ERROR: $($_.Exception.Message)"
+                }
+              }
+              if ($null -ne $game) {
+                try {
+                  $game.Refresh()
+                  if ($game.HasExited) {
+                    $clientExitCode = [int]$game.ExitCode
+                    $clientExitTime = $game.ExitTime.ToString('o')
+                    Write-Host "YBCS_CLIENT_PROCESS_EXITED: pid=$clientPid exit_code=$clientExitCode exit_time=$clientExitTime"
+                    break
+                  }
+                  $gameHwnd = [WinInput]::FindVisibleWindowForProcess($clientPid)
+                  if ($gameHwnd -ne [IntPtr]::Zero) {
+                    $candidateSize = [WinInput]::GetClientSize($gameHwnd)
+                    if ($candidateSize[0] -gt 0 -and $candidateSize[1] -gt 0) {
+                      Write-Host "YBCS_GAME_WINDOW_FIRST_VISIBLE: pid=$clientPid hwnd=$gameHwnd client=$($candidateSize[0])x$($candidateSize[1])"
+                      Shot "startup-window-first-visible"
+                      Start-Sleep -Seconds 5
+                      $game.Refresh()
+                      if (-not $game.HasExited) {
+                        $stableHwnd = [WinInput]::FindVisibleWindowForProcess($clientPid)
+                        if ($stableHwnd -ne [IntPtr]::Zero) {
+                          $stableSize = [WinInput]::GetClientSize($stableHwnd)
+                          if ($stableSize[0] -gt 0 -and $stableSize[1] -gt 0) {
+                            $gameHwnd = $stableHwnd
+                            $clientSize = $stableSize
+                            Shot "startup-window-stable-after-5s"
+                            $startupWindowStable = $true
+                            Write-Host "YBCS_GAME_WINDOW_STABLE: pid=$clientPid hwnd=$gameHwnd client=$($clientSize[0])x$($clientSize[1]) alive=True visible=True stability_seconds=5"
+                            break
+                          }
+                        }
+                      }
+                      Write-Host "YBCS_GAME_WINDOW_NOT_STABLE: pid=$clientPid has_exited=$($game.HasExited)"
+                    }
+                  }
+                } catch {
+                  Write-Host "YBCS_CLIENT_PROCESS_POLL_ERROR: pid=$clientPid error=$($_.Exception.Message)"
+                }
+              }
+              Start-Sleep -Milliseconds 250
             }
-            if (-not $game) { throw "NeoDark process was not found" }
-            $gameHwnd = [WinInput]::FindVisibleWindowForProcess([int]$game.Id)
-            if ($gameHwnd -eq [IntPtr]::Zero) { throw "No visible top-level NeoDark window found by PID $($game.Id)" }
-            $clientSize = [WinInput]::GetClientSize($gameHwnd)
-            if ($clientSize[0] -le 0 -or $clientSize[1] -le 0) { throw "NeoDark window has an invalid client size" }
-            Write-Host "game window: pid=$($game.Id) hwnd=$gameHwnd client=$($clientSize[0])x$($clientSize[1])"
+            if (-not $startupWindowStable) {
+              if (-not $clientPidFileSeen) {
+                Write-Host "YBCS_CLIENT_PID_FILE_NOT_CREATED: launcher did not publish runtime/ybcs-gui-client.pid.json within 65 seconds"
+              } elseif ($null -eq $game) {
+                Write-Host "YBCS_CLIENT_PID_RECORDED_PROCESS_NOT_OPENABLE: pid=$clientPid"
+              } else {
+                try {
+                  $game.Refresh()
+                  if ($game.HasExited) {
+                    Write-Host "YBCS_CLIENT_FINAL_STATE: pid=$clientPid state=exited exit_code=$($game.ExitCode) exit_time=$($game.ExitTime.ToString('o'))"
+                  } else {
+                    Write-Host "YBCS_CLIENT_FINAL_STATE: pid=$clientPid state=alive_no_stable_visible_window"
+                  }
+                } catch {
+                  Write-Host "YBCS_CLIENT_FINAL_STATE_QUERY_ERROR: pid=$clientPid error=$($_.Exception.Message)"
+                }
+              }
+              try {
+                $p.Refresh()
+                if ($p.HasExited) {
+                  Write-Host "YBCS_LAUNCHER_WRAPPER_FINAL: pid=$($p.Id) state=exited exit_code=$($p.ExitCode) exit_time=$($p.ExitTime.ToString('o'))"
+                } else {
+                  Write-Host "YBCS_LAUNCHER_WRAPPER_FINAL: pid=$($p.Id) state=alive"
+                }
+              } catch {
+                Write-Host "YBCS_LAUNCHER_WRAPPER_FINAL_QUERY_ERROR: $($_.Exception.Message)"
+              }
+              $processRows = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+                $_.ProcessId -eq $p.Id -or
+                $_.Name -ieq "NeoDark.exe" -or
+                ($_.Name -ieq "python.exe" -and $_.CommandLine -match "ybcs_emulated_launcher.py|ybcs_server.py") -or
+                ($_.Name -ieq "powershell.exe" -and $_.CommandLine -match "run-legacy-gui.ps1")
+              } | Select-Object Name, ProcessId, ParentProcessId, ExecutablePath, CommandLine)
+              foreach ($processRow in $processRows) {
+                Write-Host ("YBCS_PROCESS_TREE: " + ($processRow | ConvertTo-Json -Compress -Depth 4))
+              }
+              try {
+                $appEvents = @(Get-WinEvent -FilterHashtable @{ LogName = "Application"; Id = 1000,1001,1026; StartTime = $launchStartUtc.AddMinutes(-1) } -ErrorAction SilentlyContinue |
+                  Where-Object { $_.Message -match 'NeoDark\.exe|python\.exe' } |
+                  Select-Object -First 20)
+                foreach ($appEvent in $appEvents) {
+                  Write-Host "YBCS_WINDOWS_APPLICATION_EVENT: time=$($appEvent.TimeCreated.ToString('o')) id=$($appEvent.Id) provider=$($appEvent.ProviderName) message=$($appEvent.Message)"
+                }
+                if ($appEvents.Count -eq 0) { Write-Host "YBCS_WINDOWS_APPLICATION_EVENT: no matching 1000/1001/1026 events found" }
+              } catch {
+                Write-Host "YBCS_WINDOWS_APPLICATION_EVENT_QUERY_ERROR: $($_.Exception.Message)"
+              }
+              throw "NeoDark did not reach a stable visible window within the unchanged 65-second startup deadline"
+            }
+            Write-Host "STARTUP_DIAGNOSTIC_ONLY_COMPLETE: stable window captured; no input was sent; NPC/menu/route/purchase were not attempted"
+            return
             Focus-Game
             Shot "shot-00-preclick"
             Click-Screen 625 544
@@ -2053,6 +2315,7 @@ jobs:
           Copy-Item precheck.log collected/ -ErrorAction SilentlyContinue
           Copy-Item game-stdout.log collected/ -ErrorAction SilentlyContinue
           Copy-Item game-stderr.log collected/ -ErrorAction SilentlyContinue
+          Copy-Item ybcs\runtime\ybcs-gui-client.pid.json collected/ -ErrorAction SilentlyContinue
           Copy-Item npc-window-tree.txt collected/ -ErrorAction SilentlyContinue
           Copy-Item ybcs\runtime\logs\* collected/ -Recurse -ErrorAction SilentlyContinue
           Get-ChildItem collected -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
