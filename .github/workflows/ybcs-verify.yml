@@ -2516,6 +2516,7 @@ jobs:
             [WinInput]::PressKey(0x1B)
             Write-Host "POTION PURCHASE AUTOMATION COMPLETE: item 4001 x30 and item 4006 x30"
             }
+          }
           catch {
             $failureReason = $_.Exception.Message
             Write-Host "POTION ROUTE/AUTOMATION STOPPED: $failureReason"
