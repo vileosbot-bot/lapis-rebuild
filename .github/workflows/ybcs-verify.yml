@@ -3045,13 +3045,13 @@ jobs:
             }
             Write-Host "NPC_ORDINAL1_HOVER_CONFIRMED program=$($ordinal1HoverMenu.fields.program) target=$($ordinal1HoverMenu.fields.target) state=$($ordinal1HoverMenu.fields.state) selectedOrdinal=$preClickSelectedOrdinal predictedOrdinal=$preClickPredictedOrdinal logical_client=($clientX,$clientY) screen=($screenX,$screenY) heartbeat_before=$heartbeatBeforeOrdinal1Hover heartbeat_after=$(Get-ClientHeartbeatCount $clientLog)"
             Write-Host "NPC_ORDINAL1_PRECLICK_GATE: selectedOrdinal=1 AND predictedOrdinal=1 AND program=15 AND target=21230 AND state=2; all checks passed"
-            $memoryMapSnapshot = Wait-LogLine $clientLog 'npc_process_memory_map_snapshot_end.*"phase":"pre-ordinal1-click"' 0 15
+            $memoryMapSnapshot = Wait-LogLine $clientLog 'npc_process_memory_map_snapshot_end.*"phase"\s*:\s*"pre-ordinal1-click"' 0 15
             if (-not $memoryMapSnapshot) {
               throw "Pre-click VirtualQuery full memory map snapshot did not complete; no purchase click attempted"
             }
             Write-Host "MEMORY_DIAGNOSTIC_MAP_COMPLETE: $memoryMapSnapshot"
-            $packetDisassembly = Wait-LogLine $clientLog 'npc_native_disassembly.*"label":"packet-dispatch-0x004A6FD0"' 0 5
-            $copyDisassembly = Wait-LogLine $clientLog 'npc_native_disassembly.*"label":"copy-function-0x004A7A70"' 0 5
+            $packetDisassembly = Wait-LogLine $clientLog 'npc_native_disassembly.*"label"\s*:\s*"packet-dispatch-0x004A6FD0"' 0 5
+            $copyDisassembly = Wait-LogLine $clientLog 'npc_native_disassembly.*"label"\s*:\s*"copy-function-0x004A7A70"' 0 5
             if ($packetDisassembly) { Write-Host "MEMORY_DIAGNOSTIC_PACKET_DISASSEMBLY: $packetDisassembly" }
             else { Write-Host "MEMORY_DIAGNOSTIC_PACKET_DISASSEMBLY: no decoded event; inspect npc_native_disassembly_error" }
             if ($copyDisassembly) { Write-Host "MEMORY_DIAGNOSTIC_COPY_DISASSEMBLY: $copyDisassembly" }
