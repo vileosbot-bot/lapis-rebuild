@@ -1045,7 +1045,7 @@ jobs:
             const errors = [];
             if (!npcStartupExceptionHandlerInstalled) {
               try {
-                const handlerInstalled = Process.setExceptionHandler(function(details) {
+                Process.setExceptionHandler(function(details) {
                   const context = details.context || {};
                   const contextRegisters = {};
                   try {
@@ -1146,8 +1146,8 @@ jobs:
                   });
                   return false;
                 });
-                npcStartupExceptionHandlerInstalled = handlerInstalled === true;
-                installed.push({name: "Process.setExceptionHandler", installed: handlerInstalled});
+                npcStartupExceptionHandlerInstalled = true;
+                installed.push({name: "Process.setExceptionHandler", installed: true});
                 emit("npc_startup_exception_handler_installed", {
                   installed: npcStartupExceptionHandlerInstalled,
                   phase: "before-device-resume",
@@ -2469,10 +2469,6 @@ jobs:
             Start-Sleep -Seconds 2
             Shot "shop-open"
             Shot "shop-before-purchase"
-            $allowPotionPurchases = $false
-            if (-not $allowPotionPurchases) {
-              Write-Host "YBCS_NO_PURCHASE_STOP: 0x30 shop-open request and shop screenshot verified; potion items 4001 and 4006 were not purchased"
-            } else {
             $redBefore = Get-LogLineCount $serverLog
             Focus-Game
             [WinInput]::PressKey(0x24)
@@ -2515,7 +2511,6 @@ jobs:
             Focus-Game
             [WinInput]::PressKey(0x1B)
             Write-Host "POTION PURCHASE AUTOMATION COMPLETE: item 4001 x30 and item 4006 x30"
-            }
           }
           catch {
             $failureReason = $_.Exception.Message
