@@ -2202,6 +2202,87 @@ jobs:
             Write-Host "YBCS_WAIT_WORLD_TIMEOUT: timeout_seconds=$timeoutSeconds client_probe=$($lastProbe | ConvertTo-Json -Compress)"
             throw "Game did not enter world within $timeoutSeconds seconds after channel confirmation; M was not sent"
           }
+          function Wait-MapTransitionStable([int]$fromMap,[int]$toMap,[int]$clientAfter,[int]$timeoutSeconds) {
+            $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
+            $processedLine = [int]$clientAfter
+            $sawNavigationComplete = $false
+            $sawMapClose = $false
+            $mapUiOpen = $true
+            $mapUiMap = $fromMap
+            $sawWorldFocus = $false
+            $worldStateSamples = 0
+            $firstWorldStateAt = $null
+            $mapReady = $false
+            $mapPrefetch = $false
+            $lastView = $null
+            Write-Host "YBCS_MAP_TRANSITION_WAIT_BEGIN: from_map=$fromMap to_map=$toMap timeout_seconds=$timeoutSeconds requirements=source_map_closed,target_world_focus,target_world_state_stable,target_map_prefetch,target_map_ready"
+            while ([DateTime]::UtcNow -lt $deadline) {
+              if (Test-Path -LiteralPath $clientLog) {
+                $rows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+                if ($rows.Count -gt $processedLine) {
+                  for ($j=$processedLine; $j -lt $rows.Count; $j++) {
+                    try {
+                      $event = $rows[$j] | ConvertFrom-Json -ErrorAction Stop
+                      switch ([string]$event.kind) {
+                        "windowed_full_map_open" {
+                          $mapUiOpen = $true
+                          $mapUiMap = [int]$event.value.mapWire
+                        }
+                        "windowed_full_map_close" {
+                          $mapUiOpen = $false
+                          $mapUiMap = [int]$event.value.mapWire
+                          if ($mapUiMap -eq $fromMap) { $sawMapClose = $true }
+                        }
+                        "windowed_full_map_navigation_complete" {
+                          if ([int]$event.value.mapWire -eq $fromMap) { $sawNavigationComplete = $true }
+                        }
+                        "windowed_full_map_prefetch" {
+                          if ([int]$event.value.mapWire -eq $toMap) { $mapPrefetch = $true }
+                        }
+                        "windowed_full_map_ready" {
+                          if ([int]$event.value.mapWire -eq $toMap) { $mapReady = $true }
+                        }
+                        "windowed_world_gameplay_focus" {
+                          if ($sawNavigationComplete) {
+                            $sawWorldFocus = $true
+                            $lastView = [string]$event.value.view
+                          }
+                        }
+                        "world_state" {
+                          if ($sawWorldFocus -and $null -ne $event.value.entities -and $event.value.entities.Count -gt 0) {
+                            $worldStateSamples++
+                            if ($null -eq $firstWorldStateAt) { $firstWorldStateAt = [DateTime]::UtcNow }
+                          }
+                        }
+                      }
+                    } catch {}
+                  }
+                  $processedLine = $rows.Count
+                }
+              }
+              $worldStable = $worldStateSamples -ge 2 -and $null -ne $firstWorldStateAt -and ([DateTime]::UtcNow - $firstWorldStateAt).TotalSeconds -ge 2
+              if ($sawNavigationComplete -and $sawMapClose -and -not $mapUiOpen -and $sawWorldFocus -and $worldStable -and $mapPrefetch -and $mapReady) {
+                if ([string]::IsNullOrWhiteSpace($lastView)) {
+                  throw "Target world focus event did not provide view HWND after map transition; no second M sent"
+                }
+                $script:gameViewHwndText = $lastView
+                $probe = Capture-ClientFrameProbe $gameHwnd "map-transition-$fromMap-to-$toMap-stable"
+                if (-not $probe.valid) {
+                  throw "Target world state and map ready, but client frame is not valid after transition; no M sent"
+                }
+                Write-Host "YBCS_MAP_TRANSITION_STABLE: from_map=$fromMap to_map=$toMap map_close=$sawMapClose map_ui_open=$mapUiOpen map_ui_map=$mapUiMap world_focus=$sawWorldFocus view=$lastView world_state_samples=$worldStateSamples world_state_stable_seconds=$([Math]::Round(([DateTime]::UtcNow-$firstWorldStateAt).TotalSeconds,1)) map_prefetch=$mapPrefetch map_ready=$mapReady frame_non_black=$($probe.nonBlackSamples)/$($probe.sampledPixels)"
+                Write-Host "YBCS_MAP_UI_CLOSED_CONFIRMED: previous_map=$fromMap last_ui_open=$mapUiOpen last_ui_map=$mapUiMap"
+                Write-Host "YBCS_TARGET_MAP_READY_CONFIRMED: map=$toMap"
+                Ensure-GameKeyboardFocus
+                return
+              }
+              Start-Sleep -Seconds 1
+            }
+            $lastProbe = Capture-ClientFrameProbe $gameHwnd "map-transition-$fromMap-to-$toMap-timeout"
+            Write-FocusDiagnostic "map-transition-$fromMap-to-$toMap-timeout"
+            Write-Host "YBCS_MAP_TRANSITION_TIMEOUT: from_map=$fromMap to_map=$toMap navigation_complete=$sawNavigationComplete source_map_close=$sawMapClose map_ui_open=$mapUiOpen map_ui_map=$mapUiMap world_focus=$sawWorldFocus world_state_samples=$worldStateSamples map_prefetch=$mapPrefetch map_ready=$mapReady frame=$($lastProbe | ConvertTo-Json -Compress)"
+            throw "Map transition from $fromMap to $toMap did not reach stable world and target-map-ready state within $timeoutSeconds seconds; no M sent"
+          }
           function Wait-NativeShopRequest([int]$afterLine, [int]$timeoutSeconds) {
             $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
             while ([DateTime]::UtcNow -lt $deadline) {
@@ -2430,6 +2511,31 @@ jobs:
             Start-Sleep -Milliseconds 250
           }
           function Open-FullMap([int]$expectedMap) {
+            $readyPattern = '"kind"\s*:\s*"windowed_full_map_ready".*"mapWire"\s*:\s*' + $expectedMap
+            $readyBeforeKey = Wait-LogLine $clientLog $readyPattern 0 60
+            if (-not $readyBeforeKey) {
+              Write-Host "YBCS_TARGET_MAP_NOT_READY: map=$expectedMap; M was not sent"
+              throw "Full map $expectedMap was not ready before M key"
+            }
+            $lastMapUiOpen = $false
+            $lastMapUiMap = 0
+            foreach ($row in @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)) {
+              try {
+                $uiEvent = $row | ConvertFrom-Json -ErrorAction Stop
+                if ($uiEvent.kind -eq "windowed_full_map_open") {
+                  $lastMapUiOpen = $true
+                  $lastMapUiMap = [int]$uiEvent.value.mapWire
+                } elseif ($uiEvent.kind -eq "windowed_full_map_close") {
+                  $lastMapUiOpen = $false
+                  $lastMapUiMap = [int]$uiEvent.value.mapWire
+                }
+              } catch {}
+            }
+            if ($lastMapUiOpen) {
+              Write-Host "YBCS_PREVIOUS_FULL_MAP_STILL_OPEN: map=$lastMapUiMap; M was not sent"
+              throw "Previous full map UI is still open on map $lastMapUiMap"
+            }
+            Write-Host "YBCS_MAP_OPEN_PRECONDITIONS: target_map=$expectedMap ready=True previous_map_ui_open=False"
             $before = Get-LogLineCount $clientLog
             Ensure-GameKeyboardFocus
             Write-FocusDiagnostic "before-map-key-$expectedMap"
@@ -2469,7 +2575,7 @@ jobs:
                 throw "Timed out waiting for map $mapId to transition to $nextMap"
               }
               Write-Host "scene route confirmed: $arrived"
-              Start-Sleep -Seconds 5
+              Wait-MapTransitionStable $mapId ([int]$nextMap) $clientBefore 60
               Shot "$shotName-arrived-$nextMap"
             } else {
               $complete = Wait-LogLine $clientLog 'windowed_full_map_navigation_complete' $clientBefore 240
