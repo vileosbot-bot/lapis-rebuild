@@ -78,7 +78,7 @@ jobs:
           Write-Host "STATIC_DISPATCH_ANALYSIS binary=NeoDark.exe image_base=0x00400000 architecture=PE32"
           Write-Host "STATIC_HIT_TEST 0x004572A0: x_rel=arg0-[this+0x14]; y_rel=arg1-[this+0x18]; rows=[this+0x110..this+0x114] pointer array; row.Kind=[row+0]; active_kind=[this+0x11c]; RECT=[row+0x4]; transform=(dx=+20,dy=-15) via [0x004E2478]; point-in-rect via [0x004E2510]; hit stores ordinal at [this+0x120], no hit stores -1 at 0x004573C2"
           Write-Host "STATIC_ORDINAL_RULE: only rows whose Kind equals [this+0x11c] are eligible; eligible ordinal starts at 0 and increments after each miss; first containing RECT wins"
-          Write-Host "STATIC_PROGRAM15_RESOURCE: ordinal0=进行对话 (49 09 dialogue request); ordinal1=购买消耗品 (30 target/action service request); ordinal2=不需要; resource program=15; selectable_count=3"
+          Write-Host "STATIC_PROGRAM13_RESOURCE: ordinal0=进行对话 (49 09 dialogue request); ordinal1=购买武器 (30 target/action service request); ordinal2=不需要; resource program=13; selectable_count=3"
           Write-Host "STATIC_CLICK_HANDLER 0x004571F0: if [this+0x11c]==2 then push [this+0x120] and call 0x00457A90"
           Write-Host "STATIC_DISPATCH 0x00457A90: ordinal=[esp+0x4]; range 0..3; jump table=[0x00457CB8+ordinal*4]"
           Write-Host "STATIC_ORDINAL0 0x00457ADE: packet=[0x49,0x09,word([this+0x108])] length=4; call target=0x004A6FD0"
@@ -1666,8 +1666,8 @@ jobs:
                       if (target.address === 0x004571F0 &&
                           !npcMemoryMenuSnapshotEmitted &&
                           menuAfter && menuAfter.fields &&
-                          menuAfter.fields.program === 15 &&
-                          menuAfter.fields.target === 21230 &&
+                          menuAfter.fields.program === 13 &&
+                          menuAfter.fields.target === 21200 &&
                           menuAfter.fields.state === 2) {
                         npcMemoryMenuSnapshotEmitted = true;
                         setTimeout(function() {
@@ -2291,7 +2291,7 @@ jobs:
             Write-Host "YBCS_MAP_TRANSITION_TIMEOUT: from_map=$fromMap to_map=$toMap navigation_complete=$sawNavigationComplete source_map_close=$sawMapClose map_ui_open=$mapUiOpen map_ui_map=$mapUiMap world_focus=$sawWorldFocus world_state_samples=$worldStateSamples scene_transition_released=$sceneTransitionReleased map_prefetch=$mapPrefetch map_ready=$mapReady frame=$($lastProbe | ConvertTo-Json -Compress)"
             throw "Map transition from $fromMap to $toMap did not reach stable world and target-map-ready state within $timeoutSeconds seconds; no M sent"
           }
-          function Wait-NativeShopRequest([int]$afterLine, [int]$timeoutSeconds) {
+          function Wait-NativeShopRequest([int]$afterLine, [int]$timeoutSeconds, [string]$expectedHex) {
             $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
             while ([DateTime]::UtcNow -lt $deadline) {
               if (Test-Path -LiteralPath $clientLog) {
@@ -2302,7 +2302,7 @@ jobs:
                       $event = $rows[$j] | ConvertFrom-Json -ErrorAction Stop
                       if ($event.kind -eq "legacy_send" -and
                           [int]$event.value.length -eq 5 -and
-                          ([string]$event.value.hex).ToLowerInvariant() -eq "30ee52ffff") {
+                          ([string]$event.value.hex).ToLowerInvariant() -eq $expectedHex.ToLowerInvariant()) {
                         return $rows[$j]
                       }
                     } catch {}
@@ -2586,8 +2586,59 @@ jobs:
             }
           }
           function Wait-ShopPurchase([int]$itemId, [int]$afterLine) {
-            $pattern = 'offline_shop_purchase.*accepted=True.*record=\(' + $itemId + ',\s*30,\s*0,\s*0,\s*0\).*selected_count=30'
-            return Wait-LogLine $serverLog $pattern $afterLine 45
+            $pattern = 'offline_shop_purchase.*record=\(' + $itemId + ','
+            return Wait-LogLine $serverLog $pattern $afterLine 10
+          }
+          function Wait-WorldEntities(
+            [int]$expectedMap,
+            [int]$playerX,
+            [int]$playerY,
+            [int]$entityId,
+            [int]$entityX,
+            [int]$entityY,
+            [int]$afterLine,
+            [int]$timeoutSeconds
+          ) {
+            $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
+            $lastObservation = "none"
+            while ([DateTime]::UtcNow -lt $deadline) {
+              if (Test-Path -LiteralPath $clientLog) {
+                $rows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+                for ($j = $afterLine; $j -lt $rows.Count; $j++) {
+                  try {
+                    $event = $rows[$j] | ConvertFrom-Json -ErrorAction Stop
+                    if ($event.kind -ne "world_state" -or $null -eq $event.value.entities) { continue }
+                    $player = $null
+                    $target = $null
+                    foreach ($entity in @($event.value.entities)) {
+                      if ($null -eq $entity) { continue }
+                      if ([int]$entity.id_b4 -eq -1) { $player = $entity }
+                      if ([int]$entity.id_b4 -eq $entityId) { $target = $entity }
+                    }
+                    if ($null -eq $player) { continue }
+                    $actualPlayerX = [int]$player.cell_d4
+                    $actualPlayerY = [int]$player.cell_d8
+                    if ($null -eq $target) {
+                      $lastObservation = "player=($actualPlayerX,$actualPlayerY) target=$($entityId)-not-present"
+                      continue
+                    }
+                    $actualEntityX = [int]$target.cell_d4
+                    $actualEntityY = [int]$target.cell_d8
+                    $lastObservation = "player=($actualPlayerX,$actualPlayerY) target=$($entityId)@($actualEntityX,$actualEntityY)"
+                    if ($actualPlayerX -eq $playerX -and
+                        $actualPlayerY -eq $playerY -and
+                        $actualEntityX -eq $entityX -and
+                        $actualEntityY -eq $entityY) {
+                      Write-Host "YBCS_WORLD_ENTITY_READBACK: expected_map=$expectedMap $lastObservation source=world_state"
+                      return $rows[$j]
+                    }
+                  } catch {}
+                }
+              }
+              Start-Sleep -Seconds 1
+            }
+            Write-Host "YBCS_WORLD_ENTITY_READBACK_TIMEOUT: expected_map=$expectedMap player=($playerX,$playerY) entity=$($entityId)@($entityX,$entityY) last_observation=$lastObservation"
+            return $null
           }
           function Get-DialogMenuDiff([string]$beforePath, [string]$afterPath) {
             $before = [System.Drawing.Bitmap]::FromFile($beforePath)
@@ -2658,7 +2709,7 @@ jobs:
             }
           }
           $failureReason = $null
-          $shopDialogDiagnosticOnly = $true
+          $shopDifferentialTestOnly = $true
           $pidFile = Join-Path $ws "ybcs\runtime\ybcs-gui-client.pid.json"
           if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue }
           $launchStartUtc = [DateTime]::UtcNow
@@ -2868,15 +2919,31 @@ jobs:
             Shot "route-1030-start"
             Navigate-MapTarget 1030 6 138 122 534 "route-1030" "1020"
             Navigate-MapTarget 1020 7 177 148 270 "route-1020" "1000"
-            Navigate-MapTarget 1000 28 116 225 226 "route-1000" "2300"
-            Navigate-MapTarget 2300 26 34 449 314 "route-2300" ""
+            Write-Host "YBCS_WEAPON_DOOR_TARGET: map=1000 cell=(35,193) fullmap_click=(249,358)"
+            Navigate-MapTarget 1000 35 193 249 358 "route-1000" "2000"
+            Write-Host "YBCS_WEAPON_STAND_TARGET: map=2000 cell=(28,32) fullmap_click=(469,297)"
+            Navigate-MapTarget 2000 28 32 469 297 "route-2000-stand" ""
 
-            Shot "route-2300-before-npc"
+            Shot "route-2000-before-npc"
+            $worldEntityReadbackAfter = Get-LogLineCount $clientLog
+            $worldEntityReadback = Wait-WorldEntities 2000 28 32 21200 28 26 $worldEntityReadbackAfter 20
+            if (-not $worldEntityReadback) {
+              throw "Actual world_state did not confirm player=(28,32) and weapon NPC 21200=(28,26); no NPC click attempted"
+            }
+            Write-Host "YBCS_WORLD_ENTITY_READBACK_EVENT: $worldEntityReadback"
             $menuBefore = Get-LogLineCount $serverLog
-            Write-Host "NPC interaction: map=2300 entity=21230 cell=(34,34) player_stand=(26,34) click_client=(656,300)"
-            Click-Client 656 300
-            $menuOpened = Wait-LogLine $serverLog 'offline_native_npc_menu_opened.*entity=21230.*program=15' $menuBefore 20
-            if (-not $menuOpened) { throw "Click at NPC 21230 did not open NPCScript program 15" }
+            $clientBeforeNpcClick = Get-LogLineCount $clientLog
+            Write-Host "NPC interaction: map=2000 entity=21200 cell=(28,26) player_stand=(28,32) click_client=(400,204)"
+            Click-Client 400 204
+            $npcProbe = Wait-LogLine $clientLog 'offline_npc_single_click_probe.*"mapWire"\s*:\s*2000.*"clickedCell"\s*:\s*\[\s*28,\s*26\s*\].*"targetFound"\s*:\s*true.*"targetEntityId"\s*:\s*21200.*"rowFound"\s*:\s*true' $clientBeforeNpcClick 8
+            if (-not $npcProbe) { throw "NPC click did not resolve to weapon NPC 21200 at cell (28,26); no menu option click attempted" }
+            Write-Host "YBCS_WEAPON_NPC_CLICK_PROBE: $npcProbe"
+            $npcAction = Wait-LogLine $clientLog 'offline_npc_single_click_action.*"mapWire"\s*:\s*2000.*"entityId"\s*:\s*21200.*"distance"\s*:\s*6.*"exclusiveDistanceLimit"\s*:\s*9' $clientBeforeNpcClick 8
+            if (-not $npcAction) { throw "Weapon NPC single-click action was not confirmed at distance 6; no menu option click attempted" }
+            Write-Host "YBCS_WEAPON_NPC_SINGLE_CLICK_ACTION: $npcAction"
+            $menuOpened = Wait-LogLine $serverLog 'offline_native_npc_menu_opened.*entity=21200.*program=13' $menuBefore 20
+            if (-not $menuOpened) { throw "Click at NPC 21200 did not open NPCScript program 13" }
+            if ($menuOpened -notmatch 'selectable_count=3') { throw "Weapon NPC menu did not confirm exactly three selectable options: $menuOpened" }
             Write-Host "NPC menu opened: $menuOpened"
             Start-Sleep -Seconds 2
             Shot "shop-npc-menu"
@@ -2897,7 +2964,7 @@ jobs:
             Start-Sleep -Milliseconds 250
             Shot "npc-greeting-after-click"
             $greetingAfterShot = Join-Path $shotDir "npc-greeting-after-click.png"
-            $dialogueResolved = Wait-LogLine $serverLog 'offline_native_npc_menu_dialogue_resolved.*entity=21230.*program=15' $greetingBefore 2
+            $dialogueResolved = Wait-LogLine $serverLog 'offline_native_npc_menu_dialogue_resolved.*entity=21200.*program=13' $greetingBefore 2
             $ordinal0Dispatch = Wait-LogLine $clientLog 'npc_menu_dispatch_lifecycle.*"phase":\s*"enter".*"dispatchOrdinal":\s*0' $clientBeforeGreeting 1
             $menuDiff = Get-DialogMenuDiff $greetingBeforeShot $greetingAfterShot
             Write-Host "NPC dialog pixel diff against pre-click screenshot: greeting=$($menuDiff.greeting) option1=$($menuDiff.option1) option2=$($menuDiff.option2)"
@@ -2905,6 +2972,7 @@ jobs:
               Write-Host "Greeting-area click selected the ordinal-0 dialogue route; do not click another menu item in this run"
               throw "Greeting-area click dispatched ordinal 0 dialogue; inspect server dialogue resolution and native dispatch lifecycle before any further input"
             }
+            Write-Host "YBCS_ORDINAL0_NOT_DISPATCHED: dialogueResolved=$dialogueResolved ordinal0Dispatch=$ordinal0Dispatch"
             if ($menuDiff.option1 -lt 20 -or $menuDiff.option2 -lt 20) {
               throw "Greeting-area click did not visibly reveal both selectable menu rows; no option or purchase click attempted"
             }
@@ -2944,8 +3012,8 @@ jobs:
                     if ($event.kind -ne "npc_menu_hit_test_return") { continue }
                     $menu = $event.value.menuObjectAfter
                     if ($null -eq $menu -or $null -eq $menu.fields -or
-                        [int]$menu.fields.program -ne 15 -or
-                        [int]$menu.fields.target -ne 21230 -or
+                        [int]$menu.fields.program -ne 13 -or
+                        [int]$menu.fields.target -ne 21200 -or
                         [int]$menu.fields.state -ne 2 -or
                         $null -eq $menu.suggestedOrdinal1HitTestPoint) { continue }
                     $menuEvidence = $menu
@@ -2956,7 +3024,7 @@ jobs:
               if ($null -eq $menuEvidence) { Start-Sleep -Milliseconds 200 }
             }
             if ($null -eq $menuEvidence) {
-              throw "Could not read the live program-15 ordinal-1 hit rectangle; no menu option click attempted"
+              throw "Could not read the live program-13 ordinal-1 hit rectangle; no menu option click attempted"
             }
             $ordinal1Row = $menuEvidence.rows | Where-Object { [int]$_.ordinal -eq 1 } | Select-Object -First 1
             if ($null -eq $ordinal1Row) {
@@ -2982,7 +3050,7 @@ jobs:
               throw "Screenshot-derived or native-center coordinate is outside the live ordinal-1 hit rectangle; no click attempted"
             }
             Write-Host "NPC_COORDINATE_COMPARISON screenshot_pixel_center=($($visibleText.centerX),$($visibleText.centerY)) screen=($screenX,$screenY) logical_client=($clientX,$clientY) native_hit_rect_center=($nativeCenterX,$nativeCenterY) native_hit_rect=($($hitRect.left),$($hitRect.top))-($($hitRect.right),$($hitRect.bottom)) object_origin=($($menuEvidence.fields.originX),$($menuEvidence.fields.originY)) screenshot_point_inside=$screenshotPointInside native_center_inside=$nativeCenterInside"
-            Write-Host "NPC_COORDINATE_SELECTION: use Run-19-validated screenshot-derived logical point ($clientX,$clientY); (420,509) is the center of the same native hit rectangle, not a conflicting coordinate"
+            Write-Host "NPC_COORDINATE_SELECTION: use current screenshot-derived logical point ($clientX,$clientY), verified inside the live program-13 ordinal-1 hit rectangle"
             function Wait-NpcHitTestOrdinal(
               [string]$logPath,
               [int]$afterLine,
@@ -3003,8 +3071,8 @@ jobs:
                       $menu = $value.menuObjectAfter
                       if ($null -eq $menu -or $null -eq $menu.fields -or $null -eq $value.point) { continue }
                       if ([int]$value.point.x -ne $expectedX -or [int]$value.point.y -ne $expectedY) { continue }
-                      if ([int]$menu.fields.program -ne 15 -or
-                          [int]$menu.fields.target -ne 21230 -or
+                      if ([int]$menu.fields.program -ne 13 -or
+                          [int]$menu.fields.target -ne 21200 -or
                           [int]$menu.fields.state -ne 2 -or
                           [int]$menu.fields.selectedOrdinal -ne $expectedOrdinal -or
                           [int]$value.predictedOrdinal -ne $expectedOrdinal) { continue }
@@ -3035,17 +3103,17 @@ jobs:
             $ordinal1HoverMenu = $ordinal1HoverValue.menuObjectAfter
             $preClickSelectedOrdinal = [int]$ordinal1HoverMenu.fields.selectedOrdinal
             $preClickPredictedOrdinal = [int]$ordinal1HoverValue.predictedOrdinal
-            if ([int]$ordinal1HoverMenu.fields.program -ne 15 -or
-                [int]$ordinal1HoverMenu.fields.target -ne 21230 -or
+            if ([int]$ordinal1HoverMenu.fields.program -ne 13 -or
+                [int]$ordinal1HoverMenu.fields.target -ne 21200 -or
                 [int]$ordinal1HoverMenu.fields.state -ne 2 -or
                 $preClickSelectedOrdinal -ne 1 -or
                 $preClickPredictedOrdinal -ne 1 -or
                 [int]$ordinal1HoverValue.point.x -ne $clientX -or
                 [int]$ordinal1HoverValue.point.y -ne $clientY) {
-              throw "Pre-click menu state changed or did not equal program=15 target=21230 state=2 selectedOrdinal=1 predictedOrdinal=1; no click attempted"
+              throw "Pre-click menu state changed or did not equal program=13 target=21200 state=2 selectedOrdinal=1 predictedOrdinal=1; no click attempted"
             }
             Write-Host "NPC_ORDINAL1_HOVER_CONFIRMED program=$($ordinal1HoverMenu.fields.program) target=$($ordinal1HoverMenu.fields.target) state=$($ordinal1HoverMenu.fields.state) selectedOrdinal=$preClickSelectedOrdinal predictedOrdinal=$preClickPredictedOrdinal logical_client=($clientX,$clientY) screen=($screenX,$screenY) heartbeat_before=$heartbeatBeforeOrdinal1Hover heartbeat_after=$(Get-ClientHeartbeatCount $clientLog)"
-            Write-Host "NPC_ORDINAL1_PRECLICK_GATE: selectedOrdinal=1 AND predictedOrdinal=1 AND program=15 AND target=21230 AND state=2; all checks passed"
+            Write-Host "NPC_ORDINAL1_PRECLICK_GATE: selectedOrdinal=1 AND predictedOrdinal=1 AND program=13 AND target=21200 AND state=2; all checks passed"
             $memoryMapSnapshot = Wait-LogLine $clientLog 'npc_process_memory_map_snapshot_end.*"phase"\s*:\s*"pre-ordinal1-click"' 0 15
             if (-not $memoryMapSnapshot) {
               throw "Pre-click VirtualQuery full memory map snapshot did not complete; no purchase click attempted"
@@ -3061,7 +3129,9 @@ jobs:
             Shot "npc-menu-ordinal1-hover-confirmed"
             $clientBeforeOrdinal1Click = Get-LogLineCount $clientLog
             $serverBeforeShopOpen = Get-LogLineCount $serverLog
-            Write-Host "NPC_ORDINAL1_CLICK_BEGIN label=购买消耗品 logical_client=($clientX,$clientY) screen=($screenX,$screenY) pre_click_selectedOrdinal=$preClickSelectedOrdinal pre_click_predictedOrdinal=$preClickPredictedOrdinal"
+            $expectedShopRequestHex = "30d052ffff"
+            Write-Host "YBCS_NATIVE_SHOP_REQUEST_EXPECTED: entity=21200 action=-1 bytes=$expectedShopRequestHex"
+            Write-Host "NPC_ORDINAL1_CLICK_BEGIN label=购买武器 logical_client=($clientX,$clientY) screen=($screenX,$screenY) pre_click_selectedOrdinal=$preClickSelectedOrdinal pre_click_predictedOrdinal=$preClickPredictedOrdinal"
             Click-Screen $screenX $screenY
             Start-Sleep -Milliseconds 250
             Shot "npc-menu-ordinal1-after-click"
@@ -3072,14 +3142,14 @@ jobs:
             $clickHandlerEvent = $clickHandlerLine | ConvertFrom-Json -ErrorAction Stop
             $clickMenu = $clickHandlerEvent.value.menuObject
             $clickPoint = $clickMenu.point
-            if ([int]$clickMenu.fields.program -ne 15 -or
-                [int]$clickMenu.fields.target -ne 21230 -or
+            if ([int]$clickMenu.fields.program -ne 13 -or
+                [int]$clickMenu.fields.target -ne 21200 -or
                 [int]$clickMenu.fields.state -ne 2 -or
                 [int]$clickMenu.fields.selectedOrdinal -ne 1 -or
                 [int]$clickMenu.predictedOrdinal -ne 1 -or
                 [int]$clickPoint.x -ne $clientX -or
                 [int]$clickPoint.y -ne $clientY) {
-              throw "Native click-handler did not read program=15 target=21230 state=2 selectedOrdinal=1 predictedOrdinal=1 at the validated point"
+              throw "Native click-handler did not read program=13 target=21200 state=2 selectedOrdinal=1 predictedOrdinal=1 at the validated point"
             }
             Write-Host "NPC_ORDINAL1_CLICK_HANDLER_CONFIRMED selectedOrdinal=$($clickMenu.fields.selectedOrdinal) predictedOrdinal=$($clickMenu.predictedOrdinal) point=($($clickPoint.x),$($clickPoint.y))"
             $dispatchEnter = Wait-LogLine $clientLog 'npc_menu_dispatch_lifecycle.*"phase":\s*"enter".*"dispatchOrdinal":\s*1' $clientBeforeOrdinal1Click 8
@@ -3104,8 +3174,8 @@ jobs:
             if ([int]$packetValue.length -ne 5 -or
                 $null -eq $packetValue.packetHex -or
                 $packetValue.packetHex.Length -lt 10 -or
-                $packetValue.packetHex.Substring(0,10).ToLowerInvariant() -ne "30ee52ffff") {
-              throw "Native 0x004A6FD0 arguments were not length=5 with packet prefix 30ee52ffff: $packetDispatch"
+                $packetValue.packetHex.Substring(0,10).ToLowerInvariant() -ne "30d052ffff") {
+              throw "Native 0x004A6FD0 arguments were not length=5 with packet prefix 30d052ffff: $packetDispatch"
             }
             Write-Host "NPC_ORDINAL1_PACKET_DISPATCH_ENTRY: $packetDispatch"
             $copyBufferLine = Wait-LogLine $clientLog 'npc_native_copy_buffer_enter' $clientBeforeOrdinal1Click 8
@@ -3121,20 +3191,23 @@ jobs:
                 $copyReturnAddress -notmatch '^0x4[0-9a-f]{5}$' -or
                 $null -eq $copyBufferValue.sourcePreview -or
                 $copyBufferValue.sourcePreview.Length -lt 10 -or
-                $copyBufferValue.sourcePreview.Substring(0,10).ToLowerInvariant() -ne "30ee52ffff") {
-              throw "Native copy function arguments did not match length=5 source=0x19fb8c game-code-return-address with packet 30ee52ffff: $copyBufferLine"
+                $copyBufferValue.sourcePreview.Substring(0,10).ToLowerInvariant() -ne "30d052ffff") {
+              throw "Native copy function arguments did not match length=5 source=0x19fb8c game-code-return-address with packet 30d052ffff: $copyBufferLine"
             }
             Write-Host "NPC_ORDINAL1_COPY_BUFFER_ENTRY: $copyBufferLine"
-            $nativeShopRequest = Wait-NativeShopRequest $clientBeforeOrdinal1Click 15
+            $nativeShopRequest = Wait-NativeShopRequest $clientBeforeOrdinal1Click 15 $expectedShopRequestHex
             if (-not $nativeShopRequest) {
-              throw "Client entered native packet dispatch but did not send native 0x30 request 30ee52ffff for target 21230 action -1"
+              throw "Client entered native packet dispatch but did not send native 0x30 request 30d052ffff for target 21200 action -1"
             }
             Write-Host "NATIVE_0x30_SHOP_REQUEST_CONFIRMED: $nativeShopRequest"
-            $shopOpened = Wait-LogLine $serverLog 'offline_shop_opened.*entity=21230.*program=15' $serverBeforeShopOpen 20
+            $shopOpened = Wait-LogLine $serverLog 'offline_shop_opened.*entity=21200.*program=13' $serverBeforeShopOpen 20
             if (-not $shopOpened) {
-              throw "Native 0x30 request was sent but server did not report offline_shop_opened for entity 21230 program 15"
+              throw "Native 0x30 request was sent but server did not report offline_shop_opened for entity 21200 program 13"
             }
-            Write-Host "consumables shop opened: $shopOpened"
+            if ($shopOpened -notmatch "shop_number=1" -or $shopOpened -notmatch "catalog_count=120") {
+              throw "Weapon shop opened with an unexpected shop_number or catalog_count: $shopOpened"
+            }
+            Write-Host "weapon shop opened: $shopOpened"
             Start-Sleep -Seconds 2
             Shot "shop-open"
             Shot "shop-before-purchase"
@@ -3152,12 +3225,11 @@ jobs:
             $shopScrollX = $shopOriginX + [int][Math]::Round(764.0 * $shopClientWidth / 800.0)
             $shopScrollBottomY = $shopOriginY + [int][Math]::Round(547.0 * $shopClientHeight / 600.0)
             $shopScrollTopY = $shopOriginY + [int][Math]::Round(512.0 * $shopClientHeight / 600.0)
-            $redCellScreenX = $shopOriginX + [int][Math]::Round(514.0 * $shopClientWidth / 800.0)
-            $redCellScreenY = $shopOriginY + [int][Math]::Round(504.0 * $shopClientHeight / 600.0)
-            $blueCellScreenX = $shopOriginX + [int][Math]::Round(735.0 * $shopClientWidth / 800.0)
-            $blueCellScreenY = $shopOriginY + [int][Math]::Round(504.0 * $shopClientHeight / 600.0)
-            Write-Host "YBCS_SHOP_CATALOG_TARGETS: catalog_count=105 shop_number=3 red_item=4001 index=0 client=(514,504) screen=($redCellScreenX,$redCellScreenY) blue_item=4006 index=5 client=(735,504) screen=($blueCellScreenX,$blueCellScreenY)"
-            Write-Host "YBCS_SHOP_SCROLL_THUMB_DRAG_BEGIN: screen=($shopScrollX,$shopScrollBottomY) target=($shopScrollX,$shopScrollTopY) source=Run42-shop-open.png"
+            $weaponCellScreenX = $shopOriginX + [int][Math]::Round(514.0 * $shopClientWidth / 800.0)
+            $weaponCellScreenY = $shopOriginY + [int][Math]::Round(504.0 * $shopClientHeight / 600.0)
+            Write-Host "YBCS_SHOP_CATALOG_EXPECTED: program=13 shop_number=1 catalog_count=120 item=1 name=匕首 index=0 price=80 client=(514,504)"
+            Write-Host "YBCS_SHOP_CATALOG_TARGETS: catalog_count=120 shop_number=1 weapon_item=1 index=0 client=(514,504) screen=($weaponCellScreenX,$weaponCellScreenY)"
+            Write-Host "YBCS_SHOP_SCROLL_THUMB_DRAG_BEGIN: screen=($shopScrollX,$shopScrollBottomY) target=($shopScrollX,$shopScrollTopY) source=shop-catalog-bottom-before-scroll.png"
             if (-not [WinInput]::SetCursorPos($shopScrollX, $shopScrollBottomY)) {
               throw "Could not position cursor on the screenshot-verified shop catalog scrollbar thumb"
             }
@@ -3205,29 +3277,57 @@ jobs:
             if ($shopThumbBestY -lt 0 -or $shopThumbBestY -ge $shopTopLimitY -or $shopThumbBestScore -lt 2) {
               throw "Shop catalog scrollbar top position was not visually confirmed; no product cell was clicked"
             }
-            Write-Host "YBCS_SHOP_CATALOG_TOP_CONFIRMED: catalog_count=105 shop_number=3 first_item=4001 index=0 sixth_item=4006 index=5"
-            $redBefore = Get-LogLineCount $serverLog
+            Write-Host "YBCS_SHOP_CATALOG_TOP_CONFIRMED: catalog_count=120 shop_number=1 first_item=1 name=匕首 index=0 price=80"
+            $weaponBefore = Get-LogLineCount $serverLog
+            Write-Host "YBCS_SHOP_WEAPON_CLICK_BEGIN: item=1 catalog_index=0 logical_client=(514,504) screen=($weaponCellScreenX,$weaponCellScreenY) clicks=1"
             Click-Client 514 504
             Start-Sleep -Seconds 2
-            Shot "shop-red-quantity-dialog"
-            Write-FocusDiagnostic "after-red-item-4001-click"
-            $unexpectedRedPurchase = Wait-LogLine $serverLog 'offline_shop_purchase.*record=\(4001,\s*30,\s*0,\s*0,\s*0\)' $redBefore 3
-            if ($unexpectedRedPurchase) {
-              Write-Host "YBCS_SHOP_RED_CLICK_UNEXPECTED_PURCHASE_EVENT: $unexpectedRedPurchase"
-              throw "Red item click produced a purchase event before quantity confirmation; no further input sent"
+            $weaponPurchaseEvent = Wait-ShopPurchase 1 $weaponBefore
+            $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $cursorMoved = [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40)
+            if (-not $cursorMoved) { throw "Could not move cursor away after the weapon item click; no further game input sent" }
+            Start-Sleep -Milliseconds 250
+            $weaponResultScreenshot = "shop-weapon-after-click.png"
+            if ($weaponPurchaseEvent -and $weaponPurchaseEvent -match "accepted=True") {
+              Write-Host "YBCS_SHOP_WEAPON_PURCHASE_EVENT: $weaponPurchaseEvent"
+              $priceMatch = [regex]::Match($weaponPurchaseEvent, 'price=(\d+)')
+              $moneyMatch = [regex]::Match($weaponPurchaseEvent, 'player_money=(\d+)->(\d+)')
+              $countMatch = [regex]::Match($weaponPurchaseEvent, 'selected_count=([^;]+)')
+              if (-not $priceMatch.Success -or -not $moneyMatch.Success -or -not $countMatch.Success) {
+                throw "Accepted weapon purchase event did not expose price, money delta, and selected_count: $weaponPurchaseEvent"
+              }
+              $purchasePrice = [int]$priceMatch.Groups[1].Value
+              $moneyBefore = [long]$moneyMatch.Groups[1].Value
+              $moneyAfter = [long]$moneyMatch.Groups[2].Value
+              $selectedCountText = [string]$countMatch.Groups[1].Value
+              if ($purchasePrice -ne 80 -or
+                  $moneyAfter -ne ($moneyBefore - 80) -or
+                  ($selectedCountText -ne "None" -and $selectedCountText -ne "1")) {
+                throw "Weapon purchase was accepted but did not prove exactly one ID 1 item at 80 gold: $weaponPurchaseEvent"
+              }
+              Write-Host "YBCS_SHOP_WEAPON_PURCHASE_CONFIRMED: item=1 quantity=1 price=$purchasePrice player_money=$moneyBefore->$moneyAfter selected_count=$selectedCountText"
+              $weaponResultScreenshot = "shop-weapon-inventory-after-purchase.png"
+              Shot "shop-weapon-inventory-after-purchase"
+            } elseif ($weaponPurchaseEvent) {
+              Write-Host "YBCS_SHOP_WEAPON_PURCHASE_REJECTED: $weaponPurchaseEvent"
+              Shot "shop-weapon-after-click"
+            } else {
+              Write-Host "YBCS_SHOP_WEAPON_NO_PURCHASE_EVENT: no accepted or rejected offline_shop_purchase event within 10 seconds; inspect screenshot for quantity dialog versus no response; no confirmation input sent"
+              Shot "shop-weapon-after-click"
             }
-            Write-Host "YBCS_SHOP_RED_ITEM_CLICK: catalog_index=0 item=4001 logical_client=(514,504) screen=($redCellScreenX,$redCellScreenY) quantity_input_sent=False confirmation_input_sent=False"
-            Write-Host "YBCS_SHOP_DIALOG_DIAGNOSTIC_COMPLETE: diagnostic_only=True no_purchase_requested=True"
+            Write-FocusDiagnostic "after-weapon-item-1-click"
+            Write-Host "YBCS_SHOP_WEAPON_CLICK_OBSERVATION: product_clicks=1 screenshot=$weaponResultScreenshot quantity_confirmation_sent=False further_game_input_sent=False"
+            Write-Host "YBCS_SHOP_WEAPON_TEST_COMPLETE: item=1 expected_price=80 catalog_index=0"
           }
           catch {
             $failureReason = $_.Exception.Message
-            Write-Host "POTION ROUTE/AUTOMATION STOPPED: $failureReason"
+            Write-Host "WEAPON SHOP TEST STOPPED: $failureReason"
             Shot "automation-stopped"
           }
           try { Write-StartupCrashEvidence $launchStartUtc }
           catch { Write-Host "YBCS_STARTUP_CRASH_EVIDENCE_ERROR: $($_.Exception.Message)" }
 
-          $postRouteShotCount = if ($shopDialogDiagnosticOnly) { 0 } else { 16 }
+          $postRouteShotCount = if ($shopDifferentialTestOnly) { 0 } else { 16 }
           for ($i = 1; $i -le $postRouteShotCount; $i++) {
             Start-Sleep -Seconds 30
             $n = "{0:D2}" -f $i
