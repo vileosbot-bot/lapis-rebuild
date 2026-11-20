@@ -2922,10 +2922,10 @@ jobs:
             Write-Host "YBCS_WEAPON_DOOR_TARGET: map=1000 cell=(35,193) fullmap_click=(249,358)"
             Navigate-MapTarget 1000 35 193 249 358 "route-1000" "2000"
             Write-Host "YBCS_WEAPON_STAND_TARGET: map=2000 cell=(28,32) fullmap_click=(469,297)"
+            $worldEntityReadbackAfter = Get-LogLineCount $clientLog
             Navigate-MapTarget 2000 28 32 469 297 "route-2000-stand" ""
 
             Shot "route-2000-before-npc"
-            $worldEntityReadbackAfter = Get-LogLineCount $clientLog
             $worldEntityReadback = Wait-WorldEntities 2000 28 32 21200 28 26 $worldEntityReadbackAfter 20
             if (-not $worldEntityReadback) {
               throw "Actual world_state did not confirm player=(28,32) and weapon NPC 21200=(28,26); no NPC click attempted"
