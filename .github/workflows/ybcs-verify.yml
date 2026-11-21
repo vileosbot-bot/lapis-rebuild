@@ -2326,7 +2326,6 @@ jobs:
             hook("quantity-manager",0x00416C70,{onEnter(args){const k=key(),id=args[0]?args[0].toInt32():-1;if(id!==0x1aa)return;const c=purchases[k]||{traceId:++sequence,thread:Process.getCurrentThreadId(),itemId:null};c.dialogId=id;c.managerPointer=this.context.ecx.toString();c.existsBefore=null;c.statusField=null;c.gateRejected=false;c.creationPathEntered=false;c.createdNew=false;c.resolved=null;c.dataApplied=null;quantities[k]=c;this.shopKey=k;eq(c,"manager_enter",{manager_pointer:c.managerPointer,caller:this.returnAddress?this.returnAddress.toString():null});},onLeave(r){const c=this.shopKey?quantities[this.shopKey]:null;if(!c)return;c.resolved=!r.isNull();c.dialogPointer=r.isNull()?null:r.toString();c.reason=r.isNull()?(c.gateRejected?"state_2_dialog_id_1aa_creation_gate":"quantity_dialog_unresolved"):null;eq(c,"manager_return",{resolved:c.resolved,dialog_pointer:c.dialogPointer,gate_rejected:c.gateRejected,creation_path_entered:c.creationPathEntered,created_new:c.createdNew,reason:c.reason,return_value:r.toString()});}});
             hook("existing-object-query",0x00418860,{onEnter(){const k=key();if(!quantities[k])return;this.shopKey=k;eq(quantities[k],"existing_object_query_enter",{ecx:this.context.ecx.toString()});},onLeave(r){const c=this.shopKey?quantities[this.shopKey]:null;if(!c)return;c.existsBefore=!r.isNull();if(c.existsBefore)c.dialogPointer=r.toString();eq(c,"existing_object_query_return",{exists_before:c.existsBefore,existing_pointer:r.isNull()?null:r.toString()});}});
             hook("state-field-e0",0x00416D98,{onEnter(){const c=quantities[key()];if(c){c.statusField=this.context.eax.toInt32();eq(c,"state_gate_compare",{status_object_field_e0:c.statusField,compare_value:2,equals_two:c.statusField===2});}}});
-            hook("state-gate-reject",0x00416DB3,{onEnter(){const c=quantities[key()];if(c){c.gateRejected=true;c.reason="state_2_dialog_id_1aa_creation_gate";eq(c,"creation_gate_reject",{status_field_e0:c.statusField,gate_rejected:true,reason:c.reason});}}});
             hook("new-dialog-create",0x00417E37,{onEnter(){const c=quantities[key()];if(c){c.creationPathEntered=true;eq(c,"new_dialog_create_enter",{allocation_size:0x110,creation_path_entered:true,resource:"dlg\\\\HowMany.Tdg"});}}});
             hook("new-dialog-register",0x00418406,{onEnter(){const c=quantities[key()];if(c){c.createdNew=true;c.createdDialogPointer=this.context.eax.toString();eq(c,"new_dialog_register",{created_new:true,eax_new_pointer:c.createdDialogPointer,edi_before_instruction:this.context.edi.toString()});}}});
             hook("quantity-data-apply",0x0043F0B0,{onEnter(){
@@ -2348,7 +2347,7 @@ jobs:
               "grid-hit-test","grid-hit-instruction","purchase-entry","item-metadata-call",
               "item-metadata-result","inventory-capacity","counted-purchase-branch",
               "quantity-dialog-pointer","purchase-reject-path","quantity-manager",
-              "existing-object-query","state-field-e0","state-gate-reject",
+              "existing-object-query","state-field-e0",
               "new-dialog-create","new-dialog-register","quantity-data-apply"
             ];
             const missingHooks=requiredHooks.filter(function(name){
