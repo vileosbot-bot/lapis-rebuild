@@ -2553,6 +2553,22 @@ jobs:
               mouse_event(LEFTUP, 0, 0, 0, UIntPtr.Zero);
               return true;
             }
+            public static bool ClickLogicalClientShort(IntPtr hwnd, int x, int y) {
+              RECT rect;
+              if (!GetClientRect(hwnd, out rect)) return false;
+              int width = rect.Right - rect.Left;
+              int height = rect.Bottom - rect.Top;
+              if (width <= 0 || height <= 0) return false;
+              POINT point = new POINT();
+              point.X = (int)Math.Round((double)x * width / 800.0);
+              point.Y = (int)Math.Round((double)y * height / 600.0);
+              if (!ClientToScreen(hwnd, ref point)) return false;
+              if (!SetCursorPos(point.X, point.Y)) return false;
+              mouse_event(LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+              Thread.Sleep(40);
+              mouse_event(LEFTUP, 0, 0, 0, UIntPtr.Zero);
+              return true;
+            }
             public static bool ClickScreen(int x, int y) {
               if (!SetCursorPos(x, y)) return false;
               mouse_event(LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
@@ -3584,6 +3600,48 @@ jobs:
             $pattern = 'offline_shop_purchase.*record=\(' + $itemId + ','
             return Wait-LogLine $serverLog $pattern $afterLine 10
           }
+          function Wait-NativeWeaponPurchaseSelection([int]$afterLine, [int]$timeoutSeconds) {
+            $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
+            while ([DateTime]::UtcNow -lt $deadline) {
+              if (Test-Path -LiteralPath $clientLog) {
+                $rows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+                for ($j = $afterLine; $j -lt $rows.Count; $j++) {
+                  try {
+                    $packetEventObject = $rows[$j] | ConvertFrom-Json -ErrorAction Stop
+                  } catch {
+                    continue
+                  }
+                  if ($packetEventObject.kind -ne "npc_native_packet_dispatch_enter") { continue }
+                  $packetValue = $packetEventObject.value
+                  if ($null -eq $packetValue) { continue }
+                  $packetLength = [int]$packetValue.length
+                  $packetHex = ([string]$packetValue.packetHex).ToLowerInvariant()
+                  $returnAddress = ([string]$packetValue.returnAddress).ToLowerInvariant()
+                  if ($packetLength -notin @(14, 16)) { continue }
+                  if ($packetHex.Length -ne ($packetLength * 2)) { continue }
+                  if ($packetHex -notmatch '^[0-9a-f]+$') { continue }
+                  if ($packetHex.Substring(0, 8) -ne "49030a00") { continue }
+                  if ($packetHex.Substring(8, 4) -ne "0100") { continue }
+                  $selectedCount = $null
+                  if ($packetLength -eq 16) {
+                    if ($packetHex.Substring(28, 4) -ne "0100") { continue }
+                    $selectedCount = 1
+                  }
+                  if ($returnAddress -notmatch '^0x4[0-9a-f]{5}$') { continue }
+                  return [pscustomobject]@{
+                    line = [string]$rows[$j]
+                    length = $packetLength
+                    packetHex = $packetHex
+                    returnAddress = $returnAddress
+                    recordId = 1
+                    selectedCount = $selectedCount
+                  }
+                }
+              }
+              Start-Sleep -Milliseconds 500
+            }
+            return $null
+          }
           function Wait-WorldEntities(
             [int]$expectedMap,
             [int]$playerX,
@@ -4328,19 +4386,35 @@ jobs:
               throw "Could not move cursor away after item-1 hover screenshot"
             }
             Start-Sleep -Milliseconds 250
-            $weaponBefore = Get-LogLineCount $serverLog
-            Write-Host "YBCS_SHOP_WEAPON_CLICK_BEGIN: item=1 catalog_index=0 logical_client=(514,504) screen=($weaponCellScreenX,$weaponCellScreenY) clicks=1"
-            Click-Client 514 504
+                        $weaponBefore = Get-LogLineCount $serverLog
+            $clientBeforeWeaponPurchase = Get-LogLineCount $clientLog
+            Write-Host "YBCS_SHOP_WEAPON_CLICK_BEGIN: item=1 catalog_index=0 logical_client=(514,504) screen=($weaponCellScreenX,$weaponCellScreenY) clicks=1 method=short-left-click"
+            Focus-Game
+            if (-not [WinInput]::ClickLogicalClientShort($gameHwnd, 514, 504)) {
+              throw "Short logical-client weapon click failed at (514,504); no further game input sent"
+            }
+            Write-Host "YBCS_SHOP_WEAPON_SHORT_CLICK_SENT: item=1 logical_client=(514,504) press_ms=40 button_events=LEFTDOWN,LEFTUP clicks=1"
+            Shot "shop-weapon-after-click-immediate"
+            Start-Sleep -Milliseconds 250
+            Shot "shop-weapon-after-click-250ms"
+            Start-Sleep -Milliseconds 750
+            Shot "shop-weapon-after-click"
             Start-Sleep -Seconds 2
-            $weaponPurchaseEvent = Wait-ShopPurchase 1 $weaponBefore
+            Shot "shop-weapon-after-click-3s"
             $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
             $cursorMoved = [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40)
             if (-not $cursorMoved) { throw "Could not move cursor away after the weapon item click; no further game input sent" }
-            Start-Sleep -Milliseconds 250
+            $nativeWeaponSelection = Wait-NativeWeaponPurchaseSelection $clientBeforeWeaponPurchase 5
+            if (-not $nativeWeaponSelection) {
+              Shot "shop-weapon-after-click-no-native-selection"
+              throw "No native Buy 49/03 purchase-selection request (length=14/16, record_id=1) within 5 seconds after one 40ms UI click; no further game input sent"
+            }
+            Write-Host "YBCS_SHOP_WEAPON_NATIVE_SELECTION_CONFIRMED: length=$($nativeWeaponSelection.length) packet=$($nativeWeaponSelection.packetHex) returnAddress=$($nativeWeaponSelection.returnAddress) record_id=$($nativeWeaponSelection.recordId) selected_count=$($nativeWeaponSelection.selectedCount)"
+            $weaponPurchaseEvent = Wait-ShopPurchase 1 $weaponBefore
             $weaponResultScreenshot = "shop-weapon-after-click.png"
             if (-not $weaponPurchaseEvent) {
-              Shot "shop-weapon-after-click"
-              throw "No accepted or rejected offline_shop_purchase event within 10 seconds; no purchase success may be inferred"
+              Shot "shop-weapon-after-click-no-purchase-event"
+              throw "Native Buy 49/03 purchase-selection request was observed, but no accepted or rejected offline_shop_purchase event arrived within 10 seconds; no purchase success may be inferred"
             }
             if ($weaponPurchaseEvent -notmatch "accepted=True") {
               Write-Host "YBCS_SHOP_WEAPON_PURCHASE_REJECTED: $weaponPurchaseEvent"
