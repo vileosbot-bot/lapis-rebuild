@@ -2140,102 +2140,232 @@ jobs:
             }
             return $successfulPresentCount
           }
-          function Wait-WindowedInitialization([string]$logPath, [int]$afterLine, [IntPtr]$expectedHwnd, [int]$timeoutSeconds) {
+          function Wait-WindowedInitialization([string]$logPath, [int]$afterLine, [string]$baselineTail, [double]$clientStartedAt, [int]$clientPid, [IntPtr]$expectedHwnd, [int]$timeoutSeconds) {
             $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
-            $cooperativeEvent = $null
-            $deviceCooperativeEvent = $null
-            $activationEvent = $null
+            $cooperativeEvents = @()
+            $deviceCooperativeEvents = @()
+            $activationEvents = @()
+            $sessionMarker = $null
+            $sessionMarkerLine = 0
+            $sessionMarkerValid = $false
             $nextLine = [Math]::Max(0, $afterLine)
+            $scanInitialized = $false
+            $logTruncated = $false
+            $baselineTailMatches = ($afterLine -eq 0)
+            $cursorAnchorLine = $null
+            $lastRowsCount = 0
+            $firstScanLogged = $false
+
             while ([DateTime]::UtcNow -lt $deadline) {
               if (Test-Path -LiteralPath $logPath) {
                 $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
-                if ($nextLine -gt $rows.Count) { $nextLine = $rows.Count }
-                for ($j = $nextLine; $j -lt $rows.Count; $j++) {
-                  try { $startupEvent = $rows[$j] | ConvertFrom-Json -ErrorAction Stop }
-                  catch { continue }
-                  if ($startupEvent.kind -eq "directdraw_cooperative_level") {
-                    $cooperativeEvent = $startupEvent
-                  } elseif ($startupEvent.kind -eq "windowed_initial_activation") {
-                    $activationEvent = $startupEvent
-                  } elseif ($startupEvent.kind -eq "ybcs_directdraw_device_call" -and
-                            $startupEvent.value.method -eq "SetCooperativeLevel") {
-                    $deviceCooperativeEvent = $startupEvent
+                $rowsNow = $rows.Count
+
+                if (-not $scanInitialized) {
+                  if ($afterLine -eq 0) {
+                    $baselineTailMatches = $true
+                    $nextLine = 0
+                  } elseif ($afterLine -gt $rowsNow) {
+                    $baselineTailMatches = $false
+                    $logTruncated = $true
+                    $nextLine = 0
+                  } else {
+                    $baselineTailMatches = ($null -ne $baselineTail -and
+                      [string]$rows[$afterLine - 1] -ceq $baselineTail)
+                    if ($baselineTailMatches) {
+                      $nextLine = $afterLine
+                    } else {
+                      $logTruncated = $true
+                      $nextLine = 0
+                    }
+                  }
+                  $scanInitialized = $true
+                  Write-Host "YBCS_WINDOWED_INIT_SCAN: baseline_lines=$afterLine rows_now=$rowsNow truncated_detected=$logTruncated scan_start=$nextLine baseline_tail_matches=$baselineTailMatches"
+                  $firstScanLogged = $true
+                } else {
+                  $runtimeTruncated = ($rowsNow -lt $nextLine)
+                  if (-not $runtimeTruncated -and $nextLine -gt 0 -and
+                      $null -ne $cursorAnchorLine -and $rowsNow -ge $nextLine) {
+                    $runtimeTruncated = ([string]$rows[$nextLine - 1] -cne $cursorAnchorLine)
+                  }
+                  if ($runtimeTruncated) {
+                    $logTruncated = $true
+                    Write-Host "YBCS_WINDOWED_INIT_LOG_TRUNCATED: old_cursor=$nextLine current_rows=$rowsNow new_scan_start=0"
+                    $nextLine = 0
+                    $cursorAnchorLine = $null
+                    $cooperativeEvents = @()
+                    $deviceCooperativeEvents = @()
+                    $activationEvents = @()
+                    $sessionMarker = $null
+                    $sessionMarkerLine = 0
+                    $sessionMarkerValid = $false
                   }
                 }
-                $nextLine = $rows.Count
+
+                for ($j = $nextLine; $j -lt $rowsNow; $j++) {
+                  try { $startupEvent = $rows[$j] | ConvertFrom-Json -ErrorAction Stop }
+                  catch { continue }
+
+                  if ($startupEvent.kind -eq "npc_startup_exception_handler_installed") {
+                    $markerTimestamp = 0.0
+                    try { $markerTimestamp = [double]$startupEvent.value.timestamp_unix } catch {}
+                    $markerValid = ([bool]$startupEvent.value.installed -and
+                      [string]$startupEvent.value.phase -eq "before-device-resume" -and
+                      $clientStartedAt -gt 0 -and
+                      $markerTimestamp -ge $clientStartedAt)
+                    if ($markerValid) {
+                      $sessionMarker = $startupEvent
+                      $sessionMarkerLine = $j + 1
+                      $sessionMarkerValid = $true
+                    }
+                  } elseif ($startupEvent.kind -eq "directdraw_cooperative_level") {
+                    $cooperativeEvents += [pscustomobject]@{ line=($j + 1); value=$startupEvent.value }
+                  } elseif ($startupEvent.kind -eq "ybcs_directdraw_device_call" -and
+                            $startupEvent.value.method -eq "SetCooperativeLevel") {
+                    $deviceCooperativeEvents += [pscustomobject]@{ line=($j + 1); value=$startupEvent.value }
+                  } elseif ($startupEvent.kind -eq "windowed_initial_activation") {
+                    $activationEvents += [pscustomobject]@{ line=($j + 1); value=$startupEvent.value }
+                  }
+                }
+
+                $nextLine = $rowsNow
+                $lastRowsCount = $rowsNow
+                if ($rowsNow -gt 0) {
+                  $cursorAnchorLine = [string]$rows[$rowsNow - 1]
+                } else {
+                  $cursorAnchorLine = $null
+                }
               }
-              if ($null -ne $cooperativeEvent -and
-                  $null -ne $deviceCooperativeEvent -and
-                  $null -ne $activationEvent) { break }
+
+              $expectedWindowValue = $expectedHwnd.ToInt64()
+              $clusterFound = $false
+              $matchedCooperative = $null
+              $matchedDeviceCooperative = $null
+              $matchedActivation = $null
+
+              if ($sessionMarkerValid -and $null -ne $sessionMarker) {
+                foreach ($deviceCandidate in $deviceCooperativeEvents) {
+                  $deviceValue = $deviceCandidate.value
+                  $deviceTimestamp = 0.0
+                  try { $deviceTimestamp = [double]$deviceValue.timestamp_unix } catch {}
+                  if ([int]$deviceValue.hresult -ne 0 -or $deviceTimestamp -lt $clientStartedAt) { continue }
+
+                  $deviceArgs = @($deviceValue.args)
+                  if ($deviceArgs.Count -lt 3) { continue }
+                  $deviceWindowValue = $null
+                  $deviceFlagsValue = $null
+                  $deviceWindowText = [string]$deviceArgs[1]
+                  if ($deviceWindowText -match '^0[xX]([0-9a-fA-F]+)$') {
+                    try { $deviceWindowValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
+                  }
+                  $deviceFlagsText = [string]$deviceArgs[2]
+                  if ($deviceFlagsText -match '^0[xX]([0-9a-fA-F]+)$') {
+                    try { $deviceFlagsValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
+                  }
+                  if ($deviceWindowValue -ne $expectedWindowValue -or $deviceFlagsValue -ne 8) { continue }
+                  if ([int]$deviceCandidate.line -le $sessionMarkerLine) { continue }
+
+                  foreach ($cooperativeCandidate in $cooperativeEvents) {
+                    if ([int]$cooperativeCandidate.line -le $sessionMarkerLine -or
+                        [Math]::Abs([int]$cooperativeCandidate.line - [int]$deviceCandidate.line) -gt 2) { continue }
+                    $cooperativeValue = $cooperativeCandidate.value
+                    $cooperativeValid = ([int]$cooperativeValue.flags -eq 8 -and
+                      [int]$cooperativeValue.result -eq 0 -and
+                      [bool]$cooperativeValue.windowed)
+                    if (-not $cooperativeValid) { continue }
+
+                    foreach ($activationCandidate in $activationEvents) {
+                      if ([int]$activationCandidate.line -le $sessionMarkerLine -or
+                          [Math]::Abs([int]$activationCandidate.line - [int]$deviceCandidate.line) -gt 2) { continue }
+                      $activationValue = $activationCandidate.value
+                      $activationWindowValue = $null
+                      $activationWindowText = [string]$activationValue.window
+                      if ($activationWindowText -match '^0[xX]([0-9a-fA-F]+)$') {
+                        try { $activationWindowValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
+                      }
+                      $activationValid = ([int]$activationValue.brought -eq 1 -and
+                        [int]$activationValue.foreground -eq 1 -and
+                        $activationWindowValue -eq $expectedWindowValue)
+                      if (-not $activationValid) { continue }
+
+                      $matchedCooperative = $cooperativeCandidate
+                      $matchedDeviceCooperative = $deviceCandidate
+                      $matchedActivation = $activationCandidate
+                      $clusterFound = $true
+                      break
+                    }
+                    if ($clusterFound) { break }
+                  }
+                  if ($clusterFound) { break }
+                }
+              }
+
+              if ($clusterFound) { break }
               if ([DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 250 }
             }
 
-            $expectedWindowValue = $expectedHwnd.ToInt64()
-            $cooperativeValid = $false
-            if ($null -ne $cooperativeEvent) {
-              $cooperativeValid = ([int]$cooperativeEvent.value.flags -eq 8 -and
-                [int]$cooperativeEvent.value.result -eq 0 -and
-                [bool]$cooperativeEvent.value.windowed)
+            $failureReasons = @()
+            if (-not $sessionMarkerValid) {
+              $failureReasons += "current-process npc_startup_exception_handler_installed marker missing or invalid"
             }
-
-            $deviceArgs = @()
-            if ($null -ne $deviceCooperativeEvent) {
-              $deviceArgs = @($deviceCooperativeEvent.value.args)
-            }
-            $deviceWindowValue = $null
-            $deviceFlagsValue = $null
-            if ($deviceArgs.Count -ge 3) {
-              $deviceWindowText = [string]$deviceArgs[1]
-              if ($deviceWindowText -match '^0[xX]([0-9a-fA-F]+)$') {
-                try { $deviceWindowValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
-              }
-              $deviceFlagsText = [string]$deviceArgs[2]
-              if ($deviceFlagsText -match '^0[xX]([0-9a-fA-F]+)$') {
-                try { $deviceFlagsValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
+            if (-not $clusterFound) {
+              if ($cooperativeEvents.Count -eq 0) { $failureReasons += "directdraw_cooperative_level event missing" }
+              if ($deviceCooperativeEvents.Count -eq 0) { $failureReasons += "SetCooperativeLevel device event missing" }
+              if ($activationEvents.Count -eq 0) { $failureReasons += "windowed_initial_activation event missing" }
+              if ($cooperativeEvents.Count -gt 0 -and $deviceCooperativeEvents.Count -gt 0 -and
+                  $activationEvents.Count -gt 0) {
+                $failureReasons += "initialization events did not form one current-process startup cluster within two log lines"
               }
             }
-            $deviceCooperativeValid = ($null -ne $deviceCooperativeEvent -and
-              [int]$deviceCooperativeEvent.value.hresult -eq 0 -and
-              $deviceFlagsValue -eq 8 -and
-              $deviceWindowValue -eq $expectedWindowValue)
 
-            $activationWindowValue = $null
-            if ($null -ne $activationEvent) {
-              $activationWindowText = [string]$activationEvent.value.window
-              if ($activationWindowText -match '^0[xX]([0-9a-fA-F]+)$') {
-                try { $activationWindowValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
-              }
-            }
-            $activationWindowMatches = ($null -ne $activationWindowValue -and
-              $activationWindowValue -eq $expectedWindowValue)
-            $activationValid = ($null -ne $activationEvent -and
-              [int]$activationEvent.value.brought -eq 1 -and
-              [int]$activationEvent.value.foreground -eq 1 -and
-              $activationWindowMatches)
+            $cooperativeLine = $null
+            if ($null -ne $matchedCooperative) { $cooperativeLine = $matchedCooperative.line }
+            $deviceCooperativeLine = $null
+            if ($null -ne $matchedDeviceCooperative) { $deviceCooperativeLine = $matchedDeviceCooperative.line }
+            $activationLine = $null
+            if ($null -ne $matchedActivation) { $activationLine = $matchedActivation.line }
+            $sessionMarkerTimestamp = $null
+            if ($null -ne $sessionMarker) { $sessionMarkerTimestamp = $sessionMarker.value.timestamp_unix }
 
-            $cooperativeValue = $null
-            if ($null -ne $cooperativeEvent) { $cooperativeValue = $cooperativeEvent.value }
-            $deviceCooperativeValue = $null
-            if ($null -ne $deviceCooperativeEvent) { $deviceCooperativeValue = $deviceCooperativeEvent.value }
-            $activationValue = $null
-            if ($null -ne $activationEvent) { $activationValue = $activationEvent.value }
+            Write-Host "YBCS_WINDOWED_INIT_SESSION: client_pid=$clientPid client_started_at=$clientStartedAt marker_valid=$sessionMarkerValid marker_line=$sessionMarkerLine marker_timestamp=$sessionMarkerTimestamp"
+            Write-Host "YBCS_WINDOWED_INIT_EVENT_MATCH: cooperative_line=$cooperativeLine device_cooperative_line=$deviceCooperativeLine activation_line=$activationLine same_startup_cluster=$clusterFound line_distance_limit=2"
+            Write-Host "YBCS_WINDOWED_INIT_SCAN_COMPLETE: baseline_lines=$afterLine rows_final=$lastRowsCount truncated_detected=$logTruncated scan_start=$nextLine timeout_seconds=$timeoutSeconds"
+            $failureReason = "none"
+            if ($failureReasons.Count -gt 0) { $failureReason = $failureReasons -join "; " }
+            Write-Host "YBCS_WINDOWED_INIT_FAILURE_REASON: $failureReason"
 
             return [pscustomobject]@{
-              valid = ($cooperativeValid -and $deviceCooperativeValid -and $activationValid)
+              valid = $clusterFound
               expectedWindow = ("0x{0:x}" -f $expectedWindowValue)
-              cooperativeLevelValid = $cooperativeValid
-              cooperativeLevel = $cooperativeValue
-              deviceCooperativeLevelValid = $deviceCooperativeValid
-              deviceCooperativeLevel = $deviceCooperativeValue
-              initialActivationValid = $activationValid
-              initialActivation = $activationValue
+              cooperativeLevelValid = ($null -ne $matchedCooperative)
+              cooperativeLevel = if ($null -ne $matchedCooperative) { $matchedCooperative.value } else { $null }
+              cooperativeLine = $cooperativeLine
+              deviceCooperativeLevelValid = ($null -ne $matchedDeviceCooperative)
+              deviceCooperativeLevel = if ($null -ne $matchedDeviceCooperative) { $matchedDeviceCooperative.value } else { $null }
+              deviceCooperativeLine = $deviceCooperativeLine
+              initialActivationValid = ($null -ne $matchedActivation)
+              initialActivation = if ($null -ne $matchedActivation) { $matchedActivation.value } else { $null }
+              initialActivationLine = $activationLine
+              sessionMarkerValid = $sessionMarkerValid
+              sessionMarkerLine = $sessionMarkerLine
+              sameStartupCluster = $clusterFound
+              logTruncated = $logTruncated
+              baselineTailMatches = $baselineTailMatches
+              rowsFinal = $lastRowsCount
               attachedRequired = $false
+              failureReason = $failureReason
             }
           }
           function Get-LogLineCount([string]$logPath) {
             if (-not (Test-Path -LiteralPath $logPath)) { return 0 }
             $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
             return $rows.Count
+          }
+          function Get-LastLogLine([string]$logPath) {
+            if (-not (Test-Path -LiteralPath $logPath)) { return $null }
+            $last = @(Get-Content -LiteralPath $logPath -Tail 1 -ErrorAction SilentlyContinue)
+            if ($last.Count -eq 0) { return $null }
+            return [string]$last[0]
           }
           function Wait-LogLine([string]$logPath, [string]$pattern, [int]$afterLine, [int]$timeoutSeconds) {
             $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
@@ -2816,6 +2946,8 @@ jobs:
           $pidFile = Join-Path $ws "ybcs\runtime\ybcs-gui-client.pid.json"
           if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue }
           $startupClientLogBefore = Get-LogLineCount $clientLog
+          $startupClientLogTailBefore = Get-LastLogLine $clientLog
+          Write-Host "YBCS_WINDOWED_INIT_LOG_BASELINE: after_line=$startupClientLogBefore baseline_tail_present=$($null -ne $startupClientLogTailBefore)"
           $launchStartUtc = [DateTime]::UtcNow
           $cmdArguments = '/c "' + $launcher.Name + '"'
           $p = Start-Process -FilePath "cmd.exe" -ArgumentList $cmdArguments -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput (Join-Path $ws "game-stdout.log") -RedirectStandardError (Join-Path $ws "game-stderr.log")
@@ -2961,7 +3093,7 @@ jobs:
               throw "NeoDark did not reach a stable visible window within the unchanged 65-second startup deadline"
             }
             Write-Host "YBCS_STARTUP_DIAGNOSTIC_COMPLETE: stable visible window captured"
-            $windowedInit = Wait-WindowedInitialization $clientLog $startupClientLogBefore $gameHwnd 5
+            $windowedInit = Wait-WindowedInitialization $clientLog $startupClientLogBefore $startupClientLogTailBefore ([double]$clientPidRecord.started_at) $clientPid $gameHwnd 5
             Write-Host "YBCS_WINDOWED_INIT_GATE: $($windowedInit | ConvertTo-Json -Compress -Depth 8)"
             $clientGeometryValid = ([int]$windowMetrics[2] -eq 800 -and [int]$windowMetrics[3] -eq 600)
             if ($clientGeometryValid) {
