@@ -262,13 +262,13 @@ jobs:
                         try {
                           this.ybcsRenderDesc = args[2];
                           this.ybcsRenderLockDescBefore = {
-                            width: ybcsRenderDiagReadU32(args[1], 12),
-                            height: ybcsRenderDiagReadU32(args[1], 8),
-                            pitch: ybcsRenderDiagReadU32(args[1], 16),
-                            surface: args[1].add(36).readPointer().toString(),
-                            pixelFormatFlags: ybcsRenderDiagReadU32(args[1], 76),
-                            rgbBitCount: ybcsRenderDiagReadU32(args[1], 84),
-                            caps: ybcsRenderDiagReadU32(args[1], 104)
+                            width: ybcsRenderDiagReadU32(args[2], 12),
+                            height: ybcsRenderDiagReadU32(args[2], 8),
+                            pitch: ybcsRenderDiagReadU32(args[2], 16),
+                            surface: args[2].add(36).readPointer().toString(),
+                            pixelFormatFlags: ybcsRenderDiagReadU32(args[2], 76),
+                            rgbBitCount: ybcsRenderDiagReadU32(args[2], 84),
+                            caps: ybcsRenderDiagReadU32(args[2], 104)
                           };
                         } catch (error) {
                           this.ybcsRenderLockDescBefore = {error: String(error)};
@@ -2128,7 +2128,109 @@ jobs:
           function Get-WindowedPresentCount([string]$logPath) {
             if (-not (Test-Path -LiteralPath $logPath)) { return 0 }
             $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
-            return @($rows | Where-Object { $_ -match '"kind"\s*:\s*"windowed_present"' }).Count
+            $successfulPresentCount = 0
+            foreach ($row in $rows) {
+              if ($row -notmatch '"kind"\s*:\s*"windowed_present"') { continue }
+              try {
+                $presentEvent = $row | ConvertFrom-Json -ErrorAction Stop
+                if ($null -ne $presentEvent.value.result -and [int]$presentEvent.value.result -eq 0) {
+                  $successfulPresentCount += 1
+                }
+              } catch {}
+            }
+            return $successfulPresentCount
+          }
+          function Wait-WindowedInitialization([string]$logPath, [int]$afterLine, [IntPtr]$expectedHwnd, [int]$timeoutSeconds) {
+            $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
+            $cooperativeEvent = $null
+            $deviceCooperativeEvent = $null
+            $activationEvent = $null
+            $nextLine = [Math]::Max(0, $afterLine)
+            while ([DateTime]::UtcNow -lt $deadline) {
+              if (Test-Path -LiteralPath $logPath) {
+                $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
+                if ($nextLine -gt $rows.Count) { $nextLine = $rows.Count }
+                for ($j = $nextLine; $j -lt $rows.Count; $j++) {
+                  try { $startupEvent = $rows[$j] | ConvertFrom-Json -ErrorAction Stop }
+                  catch { continue }
+                  if ($startupEvent.kind -eq "directdraw_cooperative_level") {
+                    $cooperativeEvent = $startupEvent
+                  } elseif ($startupEvent.kind -eq "windowed_initial_activation") {
+                    $activationEvent = $startupEvent
+                  } elseif ($startupEvent.kind -eq "ybcs_directdraw_device_call" -and
+                            $startupEvent.value.method -eq "SetCooperativeLevel") {
+                    $deviceCooperativeEvent = $startupEvent
+                  }
+                }
+                $nextLine = $rows.Count
+              }
+              if ($null -ne $cooperativeEvent -and
+                  $null -ne $deviceCooperativeEvent -and
+                  $null -ne $activationEvent) { break }
+              if ([DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 250 }
+            }
+
+            $expectedWindowValue = $expectedHwnd.ToInt64()
+            $cooperativeValid = $false
+            if ($null -ne $cooperativeEvent) {
+              $cooperativeValid = ([int]$cooperativeEvent.value.flags -eq 8 -and
+                [int]$cooperativeEvent.value.result -eq 0 -and
+                [bool]$cooperativeEvent.value.windowed)
+            }
+
+            $deviceArgs = @()
+            if ($null -ne $deviceCooperativeEvent) {
+              $deviceArgs = @($deviceCooperativeEvent.value.args)
+            }
+            $deviceWindowValue = $null
+            $deviceFlagsValue = $null
+            if ($deviceArgs.Count -ge 3) {
+              $deviceWindowText = [string]$deviceArgs[1]
+              if ($deviceWindowText -match '^0[xX]([0-9a-fA-F]+)$') {
+                try { $deviceWindowValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
+              }
+              $deviceFlagsText = [string]$deviceArgs[2]
+              if ($deviceFlagsText -match '^0[xX]([0-9a-fA-F]+)$') {
+                try { $deviceFlagsValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
+              }
+            }
+            $deviceCooperativeValid = ($null -ne $deviceCooperativeEvent -and
+              [int]$deviceCooperativeEvent.value.hresult -eq 0 -and
+              $deviceFlagsValue -eq 8 -and
+              $deviceWindowValue -eq $expectedWindowValue)
+
+            $activationWindowValue = $null
+            if ($null -ne $activationEvent) {
+              $activationWindowText = [string]$activationEvent.value.window
+              if ($activationWindowText -match '^0[xX]([0-9a-fA-F]+)$') {
+                try { $activationWindowValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
+              }
+            }
+            $activationWindowMatches = ($null -ne $activationWindowValue -and
+              $activationWindowValue -eq $expectedWindowValue)
+            $activationValid = ($null -ne $activationEvent -and
+              [int]$activationEvent.value.brought -eq 1 -and
+              [int]$activationEvent.value.foreground -eq 1 -and
+              $activationWindowMatches)
+
+            $cooperativeValue = $null
+            if ($null -ne $cooperativeEvent) { $cooperativeValue = $cooperativeEvent.value }
+            $deviceCooperativeValue = $null
+            if ($null -ne $deviceCooperativeEvent) { $deviceCooperativeValue = $deviceCooperativeEvent.value }
+            $activationValue = $null
+            if ($null -ne $activationEvent) { $activationValue = $activationEvent.value }
+
+            return [pscustomobject]@{
+              valid = ($cooperativeValid -and $deviceCooperativeValid -and $activationValid)
+              expectedWindow = ("0x{0:x}" -f $expectedWindowValue)
+              cooperativeLevelValid = $cooperativeValid
+              cooperativeLevel = $cooperativeValue
+              deviceCooperativeLevelValid = $deviceCooperativeValid
+              deviceCooperativeLevel = $deviceCooperativeValue
+              initialActivationValid = $activationValid
+              initialActivation = $activationValue
+              attachedRequired = $false
+            }
           }
           function Get-LogLineCount([string]$logPath) {
             if (-not (Test-Path -LiteralPath $logPath)) { return 0 }
@@ -2710,8 +2812,10 @@ jobs:
           }
           $failureReason = $null
           $shopDifferentialTestOnly = $true
+          Write-Host "YBCS_SHOP_SCOPE: weapon_only=True armor_shop=False"
           $pidFile = Join-Path $ws "ybcs\runtime\ybcs-gui-client.pid.json"
           if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue }
+          $startupClientLogBefore = Get-LogLineCount $clientLog
           $launchStartUtc = [DateTime]::UtcNow
           $cmdArguments = '/c "' + $launcher.Name + '"'
           $p = Start-Process -FilePath "cmd.exe" -ArgumentList $cmdArguments -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput (Join-Path $ws "game-stdout.log") -RedirectStandardError (Join-Path $ws "game-stderr.log")
@@ -2857,6 +2961,18 @@ jobs:
               throw "NeoDark did not reach a stable visible window within the unchanged 65-second startup deadline"
             }
             Write-Host "YBCS_STARTUP_DIAGNOSTIC_COMPLETE: stable visible window captured"
+            $windowedInit = Wait-WindowedInitialization $clientLog $startupClientLogBefore $gameHwnd 5
+            Write-Host "YBCS_WINDOWED_INIT_GATE: $($windowedInit | ConvertTo-Json -Compress -Depth 8)"
+            $clientGeometryValid = ([int]$windowMetrics[2] -eq 800 -and [int]$windowMetrics[3] -eq 600)
+            if ($clientGeometryValid) {
+              Write-Host "YBCS_CLIENT_GEOMETRY_GATE_PASSED: expected=800x600 actual=$($windowMetrics[2])x$($windowMetrics[3])"
+            } else {
+              Write-Host "YBCS_CLIENT_GEOMETRY_GATE_FAILED: expected=800x600 actual=$($windowMetrics[2])x$($windowMetrics[3]) resize_attempted=False retry_count=0"
+            }
+            if (-not $windowedInit.valid -or -not $clientGeometryValid) {
+              Write-Host "YBCS_STARTUP_RENDER_PRECONDITION_FAILED: windowed_init_valid=$($windowedInit.valid) client_geometry_valid=$clientGeometryValid no_ui_input=True"
+              throw "Windowed initialization or expected client geometry failed; no forced resize, no retry, and no UI input attempted"
+            }
             $renderGatePassed = $false
             $renderGatePresentCount = 0
             $renderGateLastProbe = $null
@@ -2866,8 +2982,8 @@ jobs:
               if ($frameProbeAttempt -eq 20) { $probeName = "startup-client-frame-probe-last" }
               $renderGateLastProbe = Capture-ClientFrameProbe $gameHwnd $probeName
               $renderGatePresentCount = Get-WindowedPresentCount (Join-Path $ws "game-stdout.log")
-              Write-Host "YBCS_FIRST_FRAME_PROBE: attempt=$frameProbeAttempt valid=$($renderGateLastProbe.valid) client=$($renderGateLastProbe.width)x$($renderGateLastProbe.height) non_black=$($renderGateLastProbe.nonBlackSamples)/$($renderGateLastProbe.sampledPixels) max_rgb_sum=$($renderGateLastProbe.maxRgbSum) windowed_present=$renderGatePresentCount"
-              if ($renderGateLastProbe.valid -or $renderGatePresentCount -ge 1) {
+              Write-Host "YBCS_FIRST_FRAME_PROBE: attempt=$frameProbeAttempt valid=$($renderGateLastProbe.valid) client=$($renderGateLastProbe.width)x$($renderGateLastProbe.height) non_black=$($renderGateLastProbe.nonBlackSamples)/$($renderGateLastProbe.sampledPixels) max_rgb_sum=$($renderGateLastProbe.maxRgbSum) successful_windowed_present=$renderGatePresentCount"
+              if ($renderGateLastProbe.valid -and $renderGatePresentCount -gt 0) {
                 $renderGatePassed = $true
                 if ($renderGateLastProbe.valid -and $frameProbeAttempt -ne 1 -and $frameProbeAttempt -ne 20) {
                   $validProbe = Capture-ClientFrameProbe $gameHwnd "startup-client-first-valid-frame"
@@ -2878,11 +2994,11 @@ jobs:
               if ($frameProbeAttempt -lt 20) { Start-Sleep -Seconds 1 }
             }
             if (-not $renderGatePassed) {
-              Write-Host "YBCS_FIRST_FRAME_GATE_FAILED: HWND stable but no non-black client pixels and windowed_present=0; no keyboard/mouse input was sent"
+              Write-Host "YBCS_FIRST_FRAME_GATE_FAILED: require successful windowed_present>0 AND non-black client pixels >=8/1024; observed non_black=$($renderGateLastProbe.nonBlackSamples)/$($renderGateLastProbe.sampledPixels) successful_windowed_present=$renderGatePresentCount; no keyboard/mouse input was sent"
               Write-Host "YBCS_FIRST_FRAME_GATE_LAST_PROBE: $($renderGateLastProbe | ConvertTo-Json -Compress)"
               throw "First-frame render gate failed: game window is black or has not presented a frame; no UI input attempted"
             }
-            Write-Host "YBCS_FIRST_FRAME_GATE_PASSED: $($renderGateLastProbe | ConvertTo-Json -Compress) windowed_present=$renderGatePresentCount"
+            Write-Host "YBCS_FIRST_FRAME_GATE_PASSED: $($renderGateLastProbe | ConvertTo-Json -Compress) successful_windowed_present=$renderGatePresentCount both_conditions=True"
             $exceptionHandlerLine = Wait-LogLine $clientLog 'npc_startup_exception_handler_installed' 0 5
             if (-not $exceptionHandlerLine) { throw "Pre-resume startup exception handler installation event was not recorded; no UI input attempted" }
             $exceptionHandlerEvent = $exceptionHandlerLine | ConvertFrom-Json -ErrorAction Stop
