@@ -61,45 +61,46 @@ jobs:
           Set-Content -LiteralPath $navigationDiagLog -Value "YBCS_NAV_DIAG_BEGIN: run=50 map=1000 read_only=True" -Encoding utf8
           cd ybcs
           $weaponCatalogProbe = @'
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path("src/legacy_gui_runtime").resolve()))
-from ybcs_single_player_shop import (
-    OFFLINE_PROGRAM_SHOP_NUMBERS,
-    YbcsSinglePlayerShopService,
-    load_old_item_table,
-)
-root = Path(".")
-program = 13
-shop_number = OFFLINE_PROGRAM_SHOP_NUMBERS[program]
-rows = load_old_item_table(root)
-selected = [row for row in rows if row.shop_number == shop_number and row.price >= 0]
-service = YbcsSinglePlayerShopService.from_resources(
-    root, program_index=program, context_word=0
-)
-if len(service.catalog) != 120:
-    raise SystemExit(f"weapon catalog count mismatch: {len(service.catalog)}")
-if not selected:
-    raise SystemExit("weapon shop source rows are empty")
-first = selected[0]
-first_record = service.catalog[0]
-if (
-    first.item_resource_id != 1
-    or first.name != "匕首"
-    or first.price != 80
-    or first_record.word_0 != 1
-):
-    raise SystemExit(
-        "weapon catalog index-0 source mismatch: "
-        f"id={first.item_resource_id} name={first.name!r} "
-        f"price={first.price} record_id={first_record.word_0}"
-    )
-print(
-    "YBCS_WEAPON_CATALOG_SOURCE_VERIFIED: "
-    f"program={program} shop_number={shop_number} catalog_count={len(service.catalog)} "
-    f"index=0 item_id={first.item_resource_id} name={first.name} price={first.price}"
-)
-'@
+                    import sys
+                    from pathlib import Path
+                    sys.path.insert(0, str(Path("src/legacy_gui_runtime").resolve()))
+                    from ybcs_single_player_shop import (
+                        OFFLINE_PROGRAM_SHOP_NUMBERS,
+                        YbcsSinglePlayerShopService,
+                        load_old_item_table,
+                    )
+                    root = Path(".")
+                    program = 13
+                    shop_number = OFFLINE_PROGRAM_SHOP_NUMBERS[program]
+                    rows = load_old_item_table(root)
+                    selected = [row for row in rows if row.shop_number == shop_number and row.price >= 0]
+                    service = YbcsSinglePlayerShopService.from_resources(
+                        root, program_index=program, context_word=0
+                    )
+                    if len(service.catalog) != 120:
+                        raise SystemExit(f"weapon catalog count mismatch: {len(service.catalog)}")
+                    if not selected:
+                        raise SystemExit("weapon shop source rows are empty")
+                    first = selected[0]
+                    first_record = service.catalog[0]
+                    if (
+                        first.item_resource_id != 1
+                        or first.name != "匕首"
+                        or first.price != 80
+                        or first_record.word_0 != 1
+                    ):
+                        raise SystemExit(
+                            "weapon catalog index-0 source mismatch: "
+                            f"id={first.item_resource_id} name={first.name!r} "
+                            f"price={first.price} record_id={first_record.word_0}"
+                        )
+                    print(
+                        "YBCS_WEAPON_CATALOG_SOURCE_VERIFIED: "
+                        f"program={program} shop_number={shop_number} catalog_count={len(service.catalog)} "
+                        f"index=0 item_id={first.item_resource_id} name={first.name} price={first.price}"
+                    )
+          '@
+          $weaponCatalogProbe = $weaponCatalogProbe -replace '(?m)^ {10}', ''
           $weaponCatalogProbe | python -
           if ($LASTEXITCODE -ne 0) { throw "Weapon catalog source verification failed" }
           $memoryPattern = 'VirtualAlloc|VirtualProtect|MapViewOfFile|PAGE_READONLY|PAGE_READWRITE|CreateFileMapping|NtAllocateVirtualMemory|NtMapViewOfSection|NtProtectVirtualMemory|mmap|Memory\.protect|Memory\.alloc|Process\.enumerateRanges|0x1a0000'
@@ -2229,12 +2230,12 @@ print(
           patched = patched.replace(old_trace_anchor, new_trace_anchor, 1)
 
           old_legacy_scene_hook = b'''  hookLegacySceneInput();
-  installOfflineHeldMouseContinuationPolicy();
-  '''
+            installOfflineHeldMouseContinuationPolicy();
+            '''
           new_legacy_scene_hook = b'''  hookLegacySceneInput();
-  ybcsNavDiagStartAfterLegacyHooks();
-  installOfflineHeldMouseContinuationPolicy();
-  '''
+            ybcsNavDiagStartAfterLegacyHooks();
+            installOfflineHeldMouseContinuationPolicy();
+            '''
           if patched.count(old_legacy_scene_hook) != 1:
               raise SystemExit(f"legacy scene hook timing anchor count must be 1, got {patched.count(old_legacy_scene_hook)}")
           patched = patched.replace(old_legacy_scene_hook, new_legacy_scene_hook, 1)
