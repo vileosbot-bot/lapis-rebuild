@@ -49,6 +49,16 @@ jobs:
           New-Item -ItemType Directory -Force -Path $shotDir | Out-Null
           $clientLog = Join-Path $ws "ybcs\runtime\logs\ybcs-gui-client.jsonl"
           $serverLog = Join-Path $ws "ybcs\runtime\logs\ybcs-gui-server.log"
+          $navigationDiagLog = Join-Path $ws "navigation-diagnostics.log"
+          $script:ybcsNavDiagSeenEvents = @{}
+          $script:ybcsNavDiag06PacketCount = 0
+          $script:ybcsNavDiagClientCompleteCount = 0
+          $script:ybcsNavDiagMainThreadId = $null
+          $script:ybcsNavDiagActivationThreadId = $null
+          $script:ybcsNavDiagDispatchThreadId = $null
+          $script:ybcsNavDiagPreviousProcessCpuMs = $null
+          $script:ybcsNavDiagPreviousMainThreadCpuMs = $null
+          Set-Content -LiteralPath $navigationDiagLog -Value "YBCS_NAV_DIAG_BEGIN: run=49 map=1000 read_only=True" -Encoding utf8
           cd ybcs
           $memoryPattern = 'VirtualAlloc|VirtualProtect|MapViewOfFile|PAGE_READONLY|PAGE_READWRITE|CreateFileMapping|NtAllocateVirtualMemory|NtMapViewOfSection|NtProtectVirtualMemory|mmap|Memory\.protect|Memory\.alloc|Process\.enumerateRanges|0x1a0000'
           $memorySourceRoot = Join-Path $ws "ybcs\src"
@@ -1751,6 +1761,281 @@ jobs:
             });
             installNpcDialogNativeTrace();
           }, 45000);
+          const ybcsNavDiagActiveApplyByThread = Object.create(null);
+          let ybcsNavDiagLastTarget = null;
+          let ybcsNavDiagSampleSequence = 0;
+          function ybcsNavDiagReadPlayerEntity() {
+            try {
+              const begin = WORLD_MANAGER.add(0x7dc).readPointer();
+              const end = WORLD_MANAGER.add(0x7e0).readPointer();
+              if (begin.isNull() || end.isNull()) return null;
+              const byteLength = end.sub(begin).toInt32();
+              if (byteLength < 0 || byteLength > 32 * Process.pointerSize ||
+                  byteLength % Process.pointerSize !== 0) return null;
+              const count = Math.min(32, byteLength / Process.pointerSize);
+              for (let index = 0; index < count; index++) {
+                const entity = begin.add(index * Process.pointerSize).readPointer();
+                if (entity.isNull()) continue;
+                if (signedWord(safeU16(entity.add(0xb4))) === -1) return entity;
+              }
+            } catch (_) {}
+            return null;
+          }
+          function ybcsNavDiagRouteSnapshot(routePointer) {
+            try {
+              if (routePointer === null || routePointer.isNull()) {
+                return {status: "null-route-pointer", pointer: routePointer === null ? null : routePointer.toString()};
+              }
+              const range = Process.findRangeByAddress(routePointer);
+              if (range === null) return {status: "unmapped", pointer: routePointer.toString()};
+              const readable = String(range.protection || "").indexOf("r") !== -1;
+              const offset = routePointer.sub(range.base).toInt32();
+              const remaining = Math.max(0, Number(range.size) - offset);
+              const length = readable ? Math.min(64, remaining) : 0;
+              if (!readable || length <= 0) {
+                return {
+                  status: readable ? "empty-range-tail" : "not-readable",
+                  pointer: routePointer.toString(),
+                  rangeBase: range.base.toString(),
+                  rangeSize: range.size,
+                  rangeProtection: range.protection,
+                  offset: offset,
+                  length: 0
+                };
+              }
+              const raw = routePointer.readVolatile(length);
+              if (raw === null) return {status: "read-null", pointer: routePointer.toString(), length: length};
+              return {
+                status: "readable-bounded-raw",
+                pointer: routePointer.toString(),
+                rangeBase: range.base.toString(),
+                rangeSize: range.size,
+                rangeProtection: range.protection,
+                offset: offset,
+                length: length,
+                hex: npcDialogTraceHex(Array.from(new Uint8Array(raw)))
+              };
+            } catch (error) {
+              return {status: "read-error", pointer: routePointer === null ? null : routePointer.toString(), error: String(error)};
+            }
+          }
+          function ybcsNavDiagSamplePlayerState() {
+            try {
+              const mapWire = safeS16(ptr(0x004f48b4));
+              if (mapWire !== 1000) return;
+              const entity = ybcsNavDiagReadPlayerEntity();
+              if (entity === null) {
+                emit("ybcs_player_navigation_sample", {
+                  sequence: ++ybcsNavDiagSampleSequence,
+                  timestamp_unix: Date.now() / 1000,
+                  mapWire: mapWire,
+                  playerFound: false
+                });
+                return;
+              }
+              const routePointer = entity.add(0x4c).readPointer();
+              emit("ybcs_player_navigation_sample", {
+                sequence: ++ybcsNavDiagSampleSequence,
+                timestamp_unix: Date.now() / 1000,
+                mapWire: mapWire,
+                playerFound: true,
+                thread: Process.getCurrentThreadId(),
+                entityPointer: entity.toString(),
+                entityId: signedWord(safeU16(entity.add(0xb4))),
+                flagsB8: safeU32(entity.add(0xb8)),
+                pixelX: safeS16(entity.add(0xc4)),
+                pixelY: safeS16(entity.add(0xc8)),
+                cellX: safeDword(entity.add(0xd4), true),
+                cellY: safeDword(entity.add(0xd8), true),
+                routePointer: routePointer.toString(),
+                routeBegin: safeDword(entity.add(0xdc), false),
+                routeEnd: safeDword(entity.add(0xe0), false),
+                routeCapacity: safeDword(entity.add(0xe4), false),
+                currentTarget: ybcsNavDiagLastTarget,
+                routeMemory: ybcsNavDiagRouteSnapshot(routePointer)
+              });
+            } catch (error) {
+              emit("ybcs_player_navigation_sample_error", {
+                sequence: ++ybcsNavDiagSampleSequence,
+                timestamp_unix: Date.now() / 1000,
+                error: String(error)
+              });
+            }
+          }
+          function ybcsNavDiagInstallMovementHooks() {
+            const installed = [];
+            const errors = [];
+            function install(name, address, callbacks) {
+              try {
+                attachOnce("ybcs-nav-diag:" + name, ptr(address), callbacks);
+                installed.push({name: name, address: ptr(address).toString()});
+              } catch (error) {
+                errors.push({name: name, address: "0x" + address.toString(16), error: String(error)});
+              }
+            }
+            install("player-movement-target", 0x004baa30, {
+              onEnter(args) {
+                if (args[0].toInt32() !== -1 || safeS16(ptr(0x004f48b4)) !== 1000) return;
+                ybcsNavDiagLastTarget = {
+                  timestamp_unix: Date.now() / 1000,
+                  screenX: args[1].toInt32(),
+                  screenY: args[2].toInt32(),
+                  targetFirst: args[3].toInt32(),
+                  targetSecond: args[4].toInt32(),
+                  flag: args[5].toInt32()
+                };
+                emit("ybcs_player_movement_target", ybcsNavDiagLastTarget);
+              }
+            });
+            install("player-movement-apply-context", 0x004b76a0, {
+              onEnter() {
+                const entity = this.context.ecx;
+                const entityId = entity.isNull() ? null : signedWord(safeU16(entity.add(0xb4)));
+                this.ybcsNavDiagThread = Process.getCurrentThreadId();
+                this.ybcsNavDiagPlayer = entityId === -1 && safeS16(ptr(0x004f48b4)) === 1000;
+                if (!this.ybcsNavDiagPlayer) return;
+                this.ybcsNavDiagEntity = entity;
+                this.ybcsNavDiagEntityPointer = entity.toString();
+                const context = {
+                  entityId: entityId,
+                  entityPointer: this.ybcsNavDiagEntityPointer,
+                  thread: this.ybcsNavDiagThread,
+                  timestamp_unix: Date.now() / 1000,
+                  target: ybcsNavDiagLastTarget
+                };
+                ybcsNavDiagActiveApplyByThread[String(this.ybcsNavDiagThread)] = context;
+                emit("ybcs_player_movement_apply_enter", {
+                  context: context,
+                  pixelX: safeS16(entity.add(0xc4)),
+                  pixelY: safeS16(entity.add(0xc8)),
+                  cellX: safeDword(entity.add(0xd4), true),
+                  cellY: safeDword(entity.add(0xd8), true),
+                  routePointer: entity.add(0x4c).readPointer().toString(),
+                  routeBegin: safeDword(entity.add(0xdc), false),
+                  routeEnd: safeDword(entity.add(0xe0), false),
+                  routeCapacity: safeDword(entity.add(0xe4), false)
+                });
+              },
+              onLeave() {
+                if (!this.ybcsNavDiagPlayer) return;
+                const entity = this.ybcsNavDiagEntity;
+                emit("ybcs_player_movement_apply_return", {
+                  entityPointer: this.ybcsNavDiagEntityPointer,
+                  thread: this.ybcsNavDiagThread,
+                  pixelX: safeS16(entity.add(0xc4)),
+                  pixelY: safeS16(entity.add(0xc8)),
+                  cellX: safeDword(entity.add(0xd4), true),
+                  cellY: safeDword(entity.add(0xd8), true),
+                  routePointer: entity.add(0x4c).readPointer().toString(),
+                  routeBegin: safeDword(entity.add(0xdc), false),
+                  routeEnd: safeDword(entity.add(0xe0), false),
+                  routeCapacity: safeDword(entity.add(0xe4), false)
+                });
+                const key = String(this.ybcsNavDiagThread);
+                const active = ybcsNavDiagActiveApplyByThread[key];
+                if (active && active.entityPointer === this.ybcsNavDiagEntityPointer) delete ybcsNavDiagActiveApplyByThread[key];
+              }
+            });
+            install("player-movement-path-check", 0x004b7470, {
+              onEnter(args) {
+                const context = ybcsNavDiagActiveApplyByThread[String(Process.getCurrentThreadId())] || null;
+                this.ybcsNavDiagPlayerContext = context;
+                if (context === null) return;
+                emit("ybcs_player_movement_path_check_enter", {
+                  context: context,
+                  currentFirst: args[0].toInt32(),
+                  currentSecond: args[1].toInt32(),
+                  targetFirst: args[2].toInt32(),
+                  targetSecond: args[3].toInt32(),
+                  returnAddress: this.returnAddress.toString()
+                });
+              },
+              onLeave(retval) {
+                if (this.ybcsNavDiagPlayerContext === null) return;
+                emit("ybcs_player_movement_path_check_return", {
+                  context: this.ybcsNavDiagPlayerContext,
+                  resultPointer: retval.toString(),
+                  routeMemory: ybcsNavDiagRouteSnapshot(retval)
+                });
+              }
+            });
+            install("player-imf-cell-check", 0x004945e0, {
+              onEnter(args) {
+                const context = ybcsNavDiagActiveApplyByThread[String(Process.getCurrentThreadId())] || null;
+                this.ybcsNavDiagPlayerContext = context;
+                if (context === null) return;
+                const map = this.context.ecx;
+                const first = args[0].toInt32();
+                const second = args[1].toInt32();
+                let width = null;
+                let height = null;
+                let cell = null;
+                try {
+                  width = map.add(0x28).readU32();
+                  height = map.add(0x2c).readU32();
+                  if (first >= 0 && second >= 0 && first < width && second < height) {
+                    const rows = map.add(0x24).readPointer();
+                    if (!rows.isNull()) {
+                      const row = rows.add(first * Process.pointerSize).readPointer();
+                      if (!row.isNull()) cell = row.add(second * 2).readU16();
+                    }
+                  }
+                } catch (_) {}
+                this.ybcsNavDiagCell = {first: first, second: second, width: width, height: height, cell: cell};
+                emit("ybcs_player_imf_cell_check_enter", {
+                  context: context,
+                  cell: this.ybcsNavDiagCell,
+                  returnAddress: this.returnAddress.toString()
+                });
+              },
+              onLeave(retval) {
+                if (this.ybcsNavDiagPlayerContext === null) return;
+                emit("ybcs_player_imf_cell_check_return", {
+                  context: this.ybcsNavDiagPlayerContext,
+                  cell: this.ybcsNavDiagCell || null,
+                  result: retval.toInt32()
+                });
+              }
+            });
+            install("player-local-movement-predicate", 0x004babe0, {
+              onEnter(args) {
+                this.ybcsNavDiagEntity = args[0];
+                this.ybcsNavDiagEntityId = this.ybcsNavDiagEntity.isNull()
+                  ? null : signedWord(safeU16(this.ybcsNavDiagEntity.add(0xb4)));
+                this.ybcsNavDiagPlayer = this.ybcsNavDiagEntityId === -1 && safeS16(ptr(0x004f48b4)) === 1000;
+                if (!this.ybcsNavDiagPlayer) return;
+                emit("ybcs_player_local_movement_predicate_enter", {
+                  entity: this.ybcsNavDiagEntity.toString(),
+                  entityId: this.ybcsNavDiagEntityId,
+                  thread: Process.getCurrentThreadId()
+                });
+              },
+              onLeave(retval) {
+                if (!this.ybcsNavDiagPlayer) return;
+                emit("ybcs_player_local_movement_predicate_return", {
+                  entity: this.ybcsNavDiagEntity.toString(),
+                  entityId: this.ybcsNavDiagEntityId,
+                  result: retval.toInt32(),
+                  thread: Process.getCurrentThreadId()
+                });
+              }
+            });
+            emit("ybcs_player_movement_diagnostic_hooks_installed", {
+              installed: installed,
+              errors: errors,
+              readOnly: true,
+              returnValuesModified: false,
+              controlFlowModified: false
+            });
+          }
+          ybcsNavDiagInstallMovementHooks();
+          const ybcsNavDiagSampleTimer = setInterval(ybcsNavDiagSamplePlayerState, 1000);
+          emit("ybcs_player_navigation_sampler_installed", {
+            intervalMs: 1000,
+            mapWire: 1000,
+            routeMemoryReadLimitBytes: 64,
+            readOnly: true
+          });
           const offlineNpcSingleClickInstallTimer = setTimeout(
             installOfflineNpcSingleClickInteraction,
             OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
@@ -1759,6 +2044,8 @@ jobs:
           if patched.count(old_trace_anchor) != 1:
               raise SystemExit(f"NPC native trace insertion anchor count must be 1, got {patched.count(old_trace_anchor)}")
           patched = patched.replace(old_trace_anchor, new_trace_anchor, 1)
+          if b"ybcs_player_navigation_sampler_installed" not in patched:
+              raise SystemExit("map1000 navigation diagnostic injection is missing")
 
           old_spawn = b'''    device = frida.get_local_device()
               pid = device.spawn([str(exe), *client_arguments])
@@ -1909,6 +2196,7 @@ jobs:
           path.write_bytes(patched)
           print(f"NPC interaction hook patched: {path}; {len(original)} -> {len(patched)} bytes")
           print("Added spawn/attach/script-load/resume/detach and process-exit diagnostics; no game binary modified.")
+          print("Added read-only map1000 player state, movement/path/IMF, bounded route memory, and diagnostic sampler hooks.")
           print("Added click-cell/target probe and native-selection diagnostic; exact 0x08 sender and <9 range gate retained.")
           '@
           $npcPatch | python -
@@ -2382,6 +2670,201 @@ jobs:
             }
             return $null
           }
+          function Write-NavigationDiagnosticSample([int]$processId, [int]$sampleNumber, [int]$timeoutSeconds, [DateTime]$deadline) {
+            $rows = @(Get-Content -LiteralPath $clientLog -Tail 500 -ErrorAction SilentlyContinue)
+            $latestSample = $null
+            $latestWorldPlayer = $null
+            $latestTarget = $null
+            $lastDirectDraw = $null
+            $lastGdi = $null
+            $lastWindowedPresent = $null
+            foreach ($row in $rows) {
+              try {
+                $event = $row | ConvertFrom-Json -ErrorAction Stop
+                if ($event.kind -eq "ybcs_player_navigation_sample") {
+                  $latestSample = $event.value
+                } elseif ($event.kind -eq "world_state" -and $null -ne $event.value.entities) {
+                  foreach ($entity in @($event.value.entities)) {
+                    if ($null -ne $entity -and [int]$entity.id_b4 -eq -1) {
+                      $latestWorldPlayer = $entity
+                      break
+                    }
+                  }
+                } elseif ($event.kind -eq "movement_update_forward" -and [int]$event.value.entityId -eq -1) {
+                  $latestTarget = [pscustomobject]@{
+                    screenX = $event.value.screenX
+                    screenY = $event.value.screenY
+                    targetFirst = $event.value.targetFirst
+                    targetSecond = $event.value.targetSecond
+                    flag = $event.value.flag
+                  }
+                } elseif ($event.kind -eq "ybcs_directdraw_surface_call") {
+                  if ([string]$event.value.method -in @("Blt", "BltFast", "Flip")) { $lastDirectDraw = $event.value }
+                } elseif ($event.kind -eq "ybcs_gdi_present_call") {
+                  $lastGdi = $event.value
+                } elseif ($event.kind -eq "windowed_present") {
+                  $lastWindowedPresent = $event.value
+                } elseif ($event.kind -eq "legacy_send" -and ([string]$event.value.hex) -match '^06') {
+                  if (-not $script:ybcsNavDiagSeenEvents.ContainsKey($row)) {
+                    $script:ybcsNavDiagSeenEvents[$row] = $true
+                    $script:ybcsNavDiag06PacketCount++
+                    $packetLine = "YBCS_NAV_DIAG_06_PACKET: $row"
+                    Add-Content -LiteralPath $navigationDiagLog -Value $packetLine -Encoding utf8
+                    Write-Host $packetLine
+                  }
+                } elseif ($event.kind -eq "windowed_full_map_navigation_complete" -and [int]$event.value.mapWire -eq 1000) {
+                  if (-not $script:ybcsNavDiagSeenEvents.ContainsKey($row)) {
+                    $script:ybcsNavDiagSeenEvents[$row] = $true
+                    $script:ybcsNavDiagClientCompleteCount++
+                    $completeLine = "YBCS_NAV_DIAG_CLIENT_COMPLETE: $row"
+                    Add-Content -LiteralPath $navigationDiagLog -Value $completeLine -Encoding utf8
+                    Write-Host $completeLine
+                  }
+                }
+              } catch {}
+            }
+            if ($null -eq $script:ybcsNavDiagMainThreadId) {
+              $startupRows = @(Get-Content -LiteralPath $clientLog -TotalCount 5000 -ErrorAction SilentlyContinue)
+              foreach ($startupRow in $startupRows) {
+                try {
+                  $startupEvent = $startupRow | ConvertFrom-Json -ErrorAction Stop
+                  if ($startupEvent.kind -eq "windowed_initial_activation" -and $null -ne $startupEvent.value.currentThread) {
+                    $script:ybcsNavDiagActivationThreadId = [int]$startupEvent.value.currentThread
+                  } elseif ($startupEvent.kind -eq "primary_dispatch_entry" -and $null -eq $script:ybcsNavDiagDispatchThreadId) {
+                    $script:ybcsNavDiagDispatchThreadId = [int]$startupEvent.value.thread
+                  }
+                } catch {}
+              }
+              if ($null -ne $script:ybcsNavDiagActivationThreadId) {
+                $script:ybcsNavDiagMainThreadId = $script:ybcsNavDiagActivationThreadId
+              } elseif ($null -ne $script:ybcsNavDiagDispatchThreadId) {
+                $script:ybcsNavDiagMainThreadId = $script:ybcsNavDiagDispatchThreadId
+              }
+            }
+            $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
+            $processCpuMs = $null
+            $processCpuDeltaMs = $null
+            $processWorkingSetBytes = $null
+            $processResponding = $null
+            $mainThreadState = $null
+            $mainThreadWaitReason = $null
+            $mainThreadCpuMs = $null
+            $mainThreadCpuDeltaMs = $null
+            if ($null -ne $process) {
+              try { $processCpuMs = [Math]::Round(([double]$process.CPU) * 1000.0, 1) } catch {}
+              try { $processWorkingSetBytes = [long]$process.WorkingSet64 } catch {}
+              try { $processResponding = [bool]$process.Responding } catch {}
+              if ($null -ne $processCpuMs) {
+                if ($null -ne $script:ybcsNavDiagPreviousProcessCpuMs) {
+                  $processCpuDeltaMs = [Math]::Round(($processCpuMs - $script:ybcsNavDiagPreviousProcessCpuMs), 1)
+                }
+                $script:ybcsNavDiagPreviousProcessCpuMs = $processCpuMs
+              }
+              if ($null -ne $script:ybcsNavDiagMainThreadId) {
+                try {
+                  foreach ($candidateThread in $process.Threads) {
+                    if ([int]$candidateThread.Id -eq [int]$script:ybcsNavDiagMainThreadId) {
+                      try { $mainThreadState = [string]$candidateThread.ThreadState } catch {}
+                      try { $mainThreadWaitReason = [string]$candidateThread.WaitReason } catch {}
+                      try { $mainThreadCpuMs = [Math]::Round($candidateThread.TotalProcessorTime.TotalMilliseconds, 1) } catch {}
+                      break
+                    }
+                  }
+                } catch {}
+              }
+              if ($null -ne $mainThreadCpuMs) {
+                if ($null -ne $script:ybcsNavDiagPreviousMainThreadCpuMs) {
+                  $mainThreadCpuDeltaMs = [Math]::Round(($mainThreadCpuMs - $script:ybcsNavDiagPreviousMainThreadCpuMs), 1)
+                }
+                $script:ybcsNavDiagPreviousMainThreadCpuMs = $mainThreadCpuMs
+              }
+            }
+            $nowUnix = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() / 1000.0
+            $directDrawAgeSeconds = $null
+            $gdiAgeSeconds = $null
+            $playerSampleAgeSeconds = $null
+            if ($null -ne $lastDirectDraw -and $null -ne $lastDirectDraw.timestamp_unix) {
+              $directDrawAgeSeconds = [Math]::Round(($nowUnix - [double]$lastDirectDraw.timestamp_unix), 2)
+            }
+            if ($null -ne $lastGdi -and $null -ne $lastGdi.timestamp_unix) {
+              $gdiAgeSeconds = [Math]::Round(($nowUnix - [double]$lastGdi.timestamp_unix), 2)
+            }
+            if ($null -ne $latestSample -and $null -ne $latestSample.timestamp_unix) {
+              $playerSampleAgeSeconds = [Math]::Round(($nowUnix - [double]$latestSample.timestamp_unix), 2)
+            }
+            $currentTarget = if ($null -ne $latestSample -and $null -ne $latestSample.currentTarget) { $latestSample.currentTarget } else { $latestTarget }
+            $elapsedSeconds = [Math]::Round(($timeoutSeconds - ($deadline - [DateTime]::UtcNow).TotalSeconds), 1)
+            $record = [ordered]@{
+              kind = "navigation_diagnostic_sample"
+              sequence = $sampleNumber
+              timestamp_utc = [DateTime]::UtcNow.ToString("o")
+              elapsed_seconds = $elapsedSeconds
+              map_wire = 1000
+              player_sample = $latestSample
+              player_sample_age_seconds = $playerSampleAgeSeconds
+              latest_world_state_player = $latestWorldPlayer
+              current_target = $currentTarget
+              process = [ordered]@{
+                pid = $processId
+                exists = ($null -ne $process)
+                responding = $processResponding
+                cpu_ms = $processCpuMs
+                cpu_delta_ms = $processCpuDeltaMs
+                working_set_bytes = $processWorkingSetBytes
+              }
+              main_thread = [ordered]@{
+                id = $script:ybcsNavDiagMainThreadId
+                activation_thread_id = $script:ybcsNavDiagActivationThreadId
+                dispatch_thread_id = $script:ybcsNavDiagDispatchThreadId
+                identity_matches = ($null -eq $script:ybcsNavDiagActivationThreadId -or $null -eq $script:ybcsNavDiagDispatchThreadId -or $script:ybcsNavDiagActivationThreadId -eq $script:ybcsNavDiagDispatchThreadId)
+                state = $mainThreadState
+                wait_reason = $mainThreadWaitReason
+                cpu_ms = $mainThreadCpuMs
+                cpu_delta_ms = $mainThreadCpuDeltaMs
+              }
+              render_heartbeat = [ordered]@{
+                directdraw_last = $lastDirectDraw
+                directdraw_age_seconds = $directDrawAgeSeconds
+                gdi_last = $lastGdi
+                gdi_age_seconds = $gdiAgeSeconds
+                windowed_present_last = $lastWindowedPresent
+              }
+              observed_06_packet_count = $script:ybcsNavDiag06PacketCount
+              observed_client_navigation_complete_count = $script:ybcsNavDiagClientCompleteCount
+            }
+            $line = $record | ConvertTo-Json -Compress -Depth 10
+            Add-Content -LiteralPath $navigationDiagLog -Value $line -Encoding utf8
+            Write-Host "YBCS_NAV_DIAG_SAMPLE: $line"
+          }
+          function Wait-RouteArrivalWithDiagnostics([string]$pattern, [int]$afterLine, [int]$timeoutSeconds, [int]$processId) {
+            $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
+            $processedLine = $afterLine
+            $sampleNumber = 0
+            Write-Host "YBCS_NAV_DIAG_WAIT_BEGIN: map=1000 timeout_seconds=$timeoutSeconds server_pattern=$pattern sample_interval_seconds=1"
+            while ([DateTime]::UtcNow -lt $deadline) {
+              if (Test-Path -LiteralPath $serverLog) {
+                $serverRows = @(Get-Content -LiteralPath $serverLog -ErrorAction SilentlyContinue)
+                if ($serverRows.Count -gt $processedLine) {
+                  for ($j = $processedLine; $j -lt $serverRows.Count; $j++) {
+                    if ($serverRows[$j] -match $pattern) {
+                      $arrivalLine = "YBCS_NAV_DIAG_SERVER_ROUTE_ARRIVAL: $($serverRows[$j])"
+                      Add-Content -LiteralPath $navigationDiagLog -Value $arrivalLine -Encoding utf8
+                      Write-Host $arrivalLine
+                      return $serverRows[$j]
+                    }
+                  }
+                  $processedLine = $serverRows.Count
+                }
+              }
+              $sampleNumber++
+              Write-NavigationDiagnosticSample $processId $sampleNumber $timeoutSeconds $deadline
+              Start-Sleep -Seconds 1
+            }
+            $timeoutLine = "YBCS_NAV_DIAG_WAIT_TIMEOUT: map=1000 timeout_seconds=$timeoutSeconds samples=$sampleNumber observed_06_packets=$script:ybcsNavDiag06PacketCount client_navigation_complete=$script:ybcsNavDiagClientCompleteCount"
+            Add-Content -LiteralPath $navigationDiagLog -Value $timeoutLine -Encoding utf8
+            Write-Host $timeoutLine
+            return $null
+          }
           function Wait-WorldEntered([int]$clientAfter,[int]$serverAfter,[int]$stdoutAfter,[int]$timeoutSeconds) {
             $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
             $stdoutPath = Join-Path $ws "game-stdout.log"
@@ -2799,7 +3282,11 @@ jobs:
             if (-not $started) { throw "A-star navigation did not start on map $mapId for ($targetX,$targetY)" }
             if ($nextMap -ne "") {
               $routePattern = 'offline_scene_route_arrival.*target=' + [regex]::Escape("map:old:$nextMap")
-              $arrived = Wait-LogLine $serverLog $routePattern $serverBefore 240
+              if ($mapId -eq 1000) {
+                $arrived = Wait-RouteArrivalWithDiagnostics $routePattern $serverBefore 240 $clientPid
+              } else {
+                $arrived = Wait-LogLine $serverLog $routePattern $serverBefore 240
+              }
               if (-not $arrived) {
                 $complete = Wait-LogLine $clientLog 'windowed_full_map_navigation_complete' $clientBefore 2
                 if ($complete) {
@@ -3603,6 +4090,7 @@ jobs:
           Copy-Item game-stdout.log collected/ -ErrorAction SilentlyContinue
           Copy-Item game-stderr.log collected/ -ErrorAction SilentlyContinue
           Copy-Item startup-crash-diagnostics.log collected/ -ErrorAction SilentlyContinue
+          Copy-Item navigation-diagnostics.log collected/ -ErrorAction SilentlyContinue
           Copy-Item ybcs\runtime\ybcs-gui-client.pid.json collected/ -ErrorAction SilentlyContinue
           Copy-Item npc-window-tree.txt collected/ -ErrorAction SilentlyContinue
           Copy-Item ybcs\runtime\logs\* collected/ -Recurse -ErrorAction SilentlyContinue
