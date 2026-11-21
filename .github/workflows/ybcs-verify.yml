@@ -58,8 +58,50 @@ jobs:
           $script:ybcsNavDiagDispatchThreadId = $null
           $script:ybcsNavDiagPreviousProcessCpuMs = $null
           $script:ybcsNavDiagPreviousMainThreadCpuMs = $null
-          Set-Content -LiteralPath $navigationDiagLog -Value "YBCS_NAV_DIAG_BEGIN: run=49 map=1000 read_only=True" -Encoding utf8
+          Set-Content -LiteralPath $navigationDiagLog -Value "YBCS_NAV_DIAG_BEGIN: run=50 map=1000 read_only=True" -Encoding utf8
           cd ybcs
+          $weaponCatalogProbe = @'
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("src/legacy_gui_runtime").resolve()))
+from ybcs_single_player_shop import (
+    OFFLINE_PROGRAM_SHOP_NUMBERS,
+    YbcsSinglePlayerShopService,
+    load_old_item_table,
+)
+root = Path(".")
+program = 13
+shop_number = OFFLINE_PROGRAM_SHOP_NUMBERS[program]
+rows = load_old_item_table(root)
+selected = [row for row in rows if row.shop_number == shop_number and row.price >= 0]
+service = YbcsSinglePlayerShopService.from_resources(
+    root, program_index=program, context_word=0
+)
+if len(service.catalog) != 120:
+    raise SystemExit(f"weapon catalog count mismatch: {len(service.catalog)}")
+if not selected:
+    raise SystemExit("weapon shop source rows are empty")
+first = selected[0]
+first_record = service.catalog[0]
+if (
+    first.item_resource_id != 1
+    or first.name != "匕首"
+    or first.price != 80
+    or first_record.word_0 != 1
+):
+    raise SystemExit(
+        "weapon catalog index-0 source mismatch: "
+        f"id={first.item_resource_id} name={first.name!r} "
+        f"price={first.price} record_id={first_record.word_0}"
+    )
+print(
+    "YBCS_WEAPON_CATALOG_SOURCE_VERIFIED: "
+    f"program={program} shop_number={shop_number} catalog_count={len(service.catalog)} "
+    f"index=0 item_id={first.item_resource_id} name={first.name} price={first.price}"
+)
+'@
+          $weaponCatalogProbe | python -
+          if ($LASTEXITCODE -ne 0) { throw "Weapon catalog source verification failed" }
           $memoryPattern = 'VirtualAlloc|VirtualProtect|MapViewOfFile|PAGE_READONLY|PAGE_READWRITE|CreateFileMapping|NtAllocateVirtualMemory|NtMapViewOfSection|NtProtectVirtualMemory|mmap|Memory\.protect|Memory\.alloc|Process\.enumerateRanges|0x1a0000'
           $memorySourceRoot = Join-Path $ws "ybcs\src"
           $memorySourceFiles = @(
@@ -1762,7 +1804,10 @@ jobs:
             installNpcDialogNativeTrace();
           }, 45000);
           const ybcsNavDiagActiveApplyByThread = Object.create(null);
+          const ybcsNavDiagActiveDispatchByThread = Object.create(null);
           let ybcsNavDiagLastTarget = null;
+          let ybcsNavDiagLastDispatch = null;
+          let ybcsNavDiagDispatchSequence = 0;
           let ybcsNavDiagSampleSequence = 0;
           function ybcsNavDiagReadPlayerEntity() {
             try {
@@ -1780,6 +1825,33 @@ jobs:
               }
             } catch (_) {}
             return null;
+          }
+          function ybcsNavDiagReadEntitySnapshot(entity) {
+            try {
+              if (entity === null || entity.isNull()) return null;
+              const range = Process.findRangeByAddress(entity);
+              if (range === null || String(range.protection || "").indexOf("r") === -1) {
+                return {status: "unreadable-entity", pointer: entity.toString()};
+              }
+              const routePointer = entity.add(0x4c).readPointer();
+              return {
+                status: "readable-entity",
+                pointer: entity.toString(),
+                entityId: signedWord(safeU16(entity.add(0xb4))),
+                flagsB8: safeU32(entity.add(0xb8)),
+                pixelX: safeS16(entity.add(0xc4)),
+                pixelY: safeS16(entity.add(0xc8)),
+                cellX: safeDword(entity.add(0xd4), true),
+                cellY: safeDword(entity.add(0xd8), true),
+                routePointer: routePointer.toString(),
+                routeBegin: safeDword(entity.add(0xdc), false),
+                routeEnd: safeDword(entity.add(0xe0), false),
+                routeCapacityRaw: safeDword(entity.add(0xe4), false),
+                routeMemory: ybcsNavDiagRouteSnapshot(routePointer)
+              };
+            } catch (error) {
+              return {status: "entity-read-error", error: String(error)};
+            }
           }
           function ybcsNavDiagRouteSnapshot(routePointer) {
             try {
@@ -1850,8 +1922,9 @@ jobs:
                 routePointer: routePointer.toString(),
                 routeBegin: safeDword(entity.add(0xdc), false),
                 routeEnd: safeDword(entity.add(0xe0), false),
-                routeCapacity: safeDword(entity.add(0xe4), false),
+                routeCapacityRaw: safeDword(entity.add(0xe4), false),
                 currentTarget: ybcsNavDiagLastTarget,
+                lastMovementDispatch: ybcsNavDiagLastDispatch,
                 routeMemory: ybcsNavDiagRouteSnapshot(routePointer)
               });
             } catch (error) {
@@ -1873,6 +1946,111 @@ jobs:
                 errors.push({name: name, address: "0x" + address.toString(16), error: String(error)});
               }
             }
+            install("player-primary-dispatch", 0x0048f150, {
+              onEnter(args) {
+                this.ybcsNavDiagPlayerDispatch = false;
+                const mapWire = safeS16(ptr(0x004f48b4));
+                const opcode = args[1].toInt32() & 0xff;
+                if (mapWire !== 1000 || opcode !== 3 || args[0].isNull()) return;
+                let routeEntityPointer = null;
+                let routeEntity = null;
+                let bodyEntityId = null;
+                let requestedX = null;
+                let requestedY = null;
+                let duplicateX = null;
+                let duplicateY = null;
+                let flag = null;
+                try {
+                  const routeState = this.context.ecx.add(4).readPointer();
+                  if (!routeState.isNull()) {
+                    routeEntityPointer = routeState.toString();
+                    routeEntity = routeState.add(0xe8).readS16();
+                  }
+                } catch (_) {}
+                try {
+                  bodyEntityId = args[0].add(1).readS16();
+                  if (bodyEntityId === -1) {
+                    requestedX = args[0].add(3).readU16();
+                    requestedY = args[0].add(5).readU16();
+                    duplicateX = args[0].add(7).readU16();
+                    duplicateY = args[0].add(9).readU16();
+                    flag = args[0].add(11).readU8();
+                  }
+                } catch (_) {}
+                if (routeEntity !== -1 || bodyEntityId !== -1) return;
+                const thread = Process.getCurrentThreadId();
+                const context = {
+                  sequence: ++ybcsNavDiagDispatchSequence,
+                  timestamp_unix: Date.now() / 1000,
+                  thread: thread,
+                  mapWire: mapWire,
+                  opcode: opcode,
+                  entityId: bodyEntityId,
+                  routeEntity: routeEntity,
+                  routeEntityPointer: routeEntityPointer,
+                  bodyHex: safeBytes(args[0], 12),
+                  requestedCellCandidate: requestedX === null || requestedY === null ? null : [requestedX, requestedY],
+                  duplicateCellCandidate: duplicateX === null || duplicateY === null ? null : [duplicateX, duplicateY],
+                  flag: flag,
+                  playerBefore: ybcsNavDiagReadEntitySnapshot(ybcsNavDiagReadPlayerEntity())
+                };
+                this.ybcsNavDiagPlayerDispatch = true;
+                this.ybcsNavDiagDispatchContext = context;
+                ybcsNavDiagActiveDispatchByThread[String(thread)] = context;
+                ybcsNavDiagLastDispatch = context;
+                ybcsNavDiagLastTarget = {
+                  source: "movement_primary_dispatch",
+                  entityId: -1,
+                  requestedCellCandidate: context.requestedCellCandidate,
+                  duplicateCellCandidate: context.duplicateCellCandidate,
+                  flag: flag,
+                  rawBodyHex: context.bodyHex,
+                  sequence: context.sequence
+                };
+                emit("ybcs_player_movement_dispatch_enter", context);
+              },
+              onLeave(retval) {
+                if (!this.ybcsNavDiagPlayerDispatch) return;
+                const thread = Process.getCurrentThreadId();
+                emit("ybcs_player_movement_dispatch_return", {
+                  context: this.ybcsNavDiagDispatchContext,
+                  result: retval.toInt32(),
+                  playerAfter: ybcsNavDiagReadEntitySnapshot(ybcsNavDiagReadPlayerEntity())
+                });
+                const key = String(thread);
+                const active = ybcsNavDiagActiveDispatchByThread[key];
+                if (active && active.sequence === this.ybcsNavDiagDispatchContext.sequence) {
+                  delete ybcsNavDiagActiveDispatchByThread[key];
+                }
+              }
+            });
+            install("player-entity-lookup", 0x004ba9c0, {
+              onEnter(args) {
+                this.ybcsNavDiagPlayerLookup = args[0].toInt32() === -1 &&
+                  safeS16(ptr(0x004f48b4)) === 1000;
+                if (!this.ybcsNavDiagPlayerLookup) return;
+                this.ybcsNavDiagLookupThread = Process.getCurrentThreadId();
+                this.ybcsNavDiagDispatchContext =
+                  ybcsNavDiagActiveDispatchByThread[String(this.ybcsNavDiagLookupThread)] || null;
+                emit("ybcs_player_entity_lookup_enter", {
+                  entityId: args[0].toInt32(),
+                  thread: this.ybcsNavDiagLookupThread,
+                  dispatchContext: this.ybcsNavDiagDispatchContext
+                });
+              },
+              onLeave(retval) {
+                if (!this.ybcsNavDiagPlayerLookup) return;
+                let resultPointer = null;
+                try { resultPointer = retval.toString(); } catch (_) {}
+                emit("ybcs_player_entity_lookup_return", {
+                  entityId: -1,
+                  thread: this.ybcsNavDiagLookupThread,
+                  resultPointer: resultPointer,
+                  playerEntity: retval.isNull() ? null : ybcsNavDiagReadEntitySnapshot(retval),
+                  dispatchContext: this.ybcsNavDiagDispatchContext
+                });
+              }
+            });
             install("player-movement-target", 0x004baa30, {
               onEnter(args) {
                 if (args[0].toInt32() !== -1 || safeS16(ptr(0x004f48b4)) !== 1000) return;
@@ -1913,7 +2091,7 @@ jobs:
                   routePointer: entity.add(0x4c).readPointer().toString(),
                   routeBegin: safeDword(entity.add(0xdc), false),
                   routeEnd: safeDword(entity.add(0xe0), false),
-                  routeCapacity: safeDword(entity.add(0xe4), false)
+                  routeCapacityRaw: safeDword(entity.add(0xe4), false)
                 });
               },
               onLeave() {
@@ -1929,7 +2107,7 @@ jobs:
                   routePointer: entity.add(0x4c).readPointer().toString(),
                   routeBegin: safeDword(entity.add(0xdc), false),
                   routeEnd: safeDword(entity.add(0xe0), false),
-                  routeCapacity: safeDword(entity.add(0xe4), false)
+                  routeCapacityRaw: safeDword(entity.add(0xe4), false)
                 });
                 const key = String(this.ybcsNavDiagThread);
                 const active = ybcsNavDiagActiveApplyByThread[key];
@@ -2028,14 +2206,19 @@ jobs:
               controlFlowModified: false
             });
           }
-          ybcsNavDiagInstallMovementHooks();
-          const ybcsNavDiagSampleTimer = setInterval(ybcsNavDiagSamplePlayerState, 1000);
-          emit("ybcs_player_navigation_sampler_installed", {
-            intervalMs: 1000,
-            mapWire: 1000,
-            routeMemoryReadLimitBytes: 64,
-            readOnly: true
-          });
+          let ybcsNavDiagSampleTimer = null;
+          function ybcsNavDiagStartAfterLegacyHooks() {
+            if (ybcsNavDiagSampleTimer !== null) return;
+            ybcsNavDiagInstallMovementHooks();
+            ybcsNavDiagSampleTimer = setInterval(ybcsNavDiagSamplePlayerState, 1000);
+            emit("ybcs_player_navigation_sampler_installed", {
+              intervalMs: 1000,
+              mapWire: 1000,
+              routeMemoryReadLimitBytes: 64,
+              readOnly: true,
+              phase: "after-hookLegacySceneInput"
+            });
+          }
           const offlineNpcSingleClickInstallTimer = setTimeout(
             installOfflineNpcSingleClickInteraction,
             OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
@@ -2044,6 +2227,33 @@ jobs:
           if patched.count(old_trace_anchor) != 1:
               raise SystemExit(f"NPC native trace insertion anchor count must be 1, got {patched.count(old_trace_anchor)}")
           patched = patched.replace(old_trace_anchor, new_trace_anchor, 1)
+
+          old_legacy_scene_hook = b'''  hookLegacySceneInput();
+  installOfflineHeldMouseContinuationPolicy();
+  '''
+          new_legacy_scene_hook = b'''  hookLegacySceneInput();
+  ybcsNavDiagStartAfterLegacyHooks();
+  installOfflineHeldMouseContinuationPolicy();
+  '''
+          if patched.count(old_legacy_scene_hook) != 1:
+              raise SystemExit(f"legacy scene hook timing anchor count must be 1, got {patched.count(old_legacy_scene_hook)}")
+          patched = patched.replace(old_legacy_scene_hook, new_legacy_scene_hook, 1)
+
+          static_movement_hook_anchors = [
+              b'hook(0x0048F150, "movement_primary_dispatch", {',
+              b'hook(0x004BA9C0, "movement_entity_lookup", {',
+              b'hook(0x004BAA30, "movement_update_forward", {',
+              b'hook(0x004B76A0, "movement_update_apply", {',
+              b'hook(0x004B7470, "movement_path_check", {',
+              b'hook(0x004BABE0, "movement_local_predicate", {',
+              b'hook(0x004945E0, "imf_cell_check", {'
+          ]
+          for anchor in static_movement_hook_anchors:
+              if patched.count(anchor) != 1:
+                  raise SystemExit(f"existing movement hook source anchor count must be 1: {anchor!r}")
+          if b"ybcsNavDiagStartAfterLegacyHooks();" not in patched:
+              raise SystemExit("post-hookLegacySceneInput diagnostic start call is missing")
+          print("YBCS_MOVEMENT_STATIC_SOURCE_ANCHORS: existing hookLegacySceneInput addresses and argument layouts verified; no new collision/predicate address guessed.")
           if b"ybcs_player_navigation_sampler_installed" not in patched:
               raise SystemExit("map1000 navigation diagnostic injection is missing")
 
@@ -2675,6 +2885,8 @@ jobs:
             $latestSample = $null
             $latestWorldPlayer = $null
             $latestTarget = $null
+            $latestDispatch = $null
+            $latestEntityLookup = $null
             $lastDirectDraw = $null
             $lastGdi = $null
             $lastWindowedPresent = $null
@@ -2690,6 +2902,11 @@ jobs:
                       break
                     }
                   }
+                } elseif ($event.kind -eq "ybcs_player_movement_dispatch_enter") {
+                  $latestDispatch = $event.value
+                  $latestTarget = $event.value
+                } elseif ($event.kind -eq "ybcs_player_entity_lookup_return") {
+                  $latestEntityLookup = $event.value
                 } elseif ($event.kind -eq "movement_update_forward" -and [int]$event.value.entityId -eq -1) {
                   $latestTarget = [pscustomobject]@{
                     screenX = $event.value.screenX
@@ -2804,6 +3021,8 @@ jobs:
               player_sample_age_seconds = $playerSampleAgeSeconds
               latest_world_state_player = $latestWorldPlayer
               current_target = $currentTarget
+              movement_dispatch = $latestDispatch
+              entity_lookup = $latestEntityLookup
               process = [ordered]@{
                 pid = $processId
                 exists = ($null -ne $process)
@@ -2836,7 +3055,60 @@ jobs:
             Add-Content -LiteralPath $navigationDiagLog -Value $line -Encoding utf8
             Write-Host "YBCS_NAV_DIAG_SAMPLE: $line"
           }
-          function Wait-RouteArrivalWithDiagnostics([string]$pattern, [int]$afterLine, [int]$timeoutSeconds, [int]$processId) {
+          function Write-NavigationDiagnosticFinalEvents([int]$clientAfterLine, [int]$serverAfterLine) {
+            $final06Count = 0
+            $finalCompleteCount = 0
+            $finalDispatchCount = 0
+            $finalLookupCount = 0
+            if (Test-Path -LiteralPath $clientLog) {
+              $clientRows = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+              for ($j = $clientAfterLine; $j -lt $clientRows.Count; $j++) {
+                $row = $clientRows[$j]
+                try {
+                  $event = $row | ConvertFrom-Json -ErrorAction Stop
+                  if ($event.kind -eq "legacy_send" -and ([string]$event.value.hex) -match '^06') {
+                    $final06Count++
+                    $line = "YBCS_NAV_DIAG_FINAL_06_PACKET: $row"
+                    Add-Content -LiteralPath $navigationDiagLog -Value $line -Encoding utf8
+                    Write-Host $line
+                  } elseif ($event.kind -eq "windowed_full_map_navigation_complete" -and [int]$event.value.mapWire -eq 1000) {
+                    $finalCompleteCount++
+                    $line = "YBCS_NAV_DIAG_FINAL_CLIENT_COMPLETE: $row"
+                    Add-Content -LiteralPath $navigationDiagLog -Value $line -Encoding utf8
+                    Write-Host $line
+                  } elseif ($event.kind -in @(
+                    "ybcs_player_movement_dispatch_enter",
+                    "ybcs_player_movement_dispatch_return",
+                    "ybcs_player_entity_lookup_enter",
+                    "ybcs_player_entity_lookup_return",
+                    "ybcs_player_movement_path_check_return",
+                    "ybcs_player_imf_cell_check_return",
+                    "ybcs_player_local_movement_predicate_return"
+                  )) {
+                    if ($event.kind -like "*dispatch*") { $finalDispatchCount++ }
+                    if ($event.kind -like "*entity_lookup*") { $finalLookupCount++ }
+                    $line = "YBCS_NAV_DIAG_FINAL_CLIENT_MOVEMENT_EVENT: $row"
+                    Add-Content -LiteralPath $navigationDiagLog -Value $line -Encoding utf8
+                    Write-Host $line
+                  }
+                } catch {}
+              }
+            }
+            $finalServerArrivalCount = 0
+            if (Test-Path -LiteralPath $serverLog) {
+              $serverRows = @(Get-Content -LiteralPath $serverLog -ErrorAction SilentlyContinue)
+              for ($j = $serverAfterLine; $j -lt $serverRows.Count; $j++) {
+                if ($serverRows[$j] -match 'offline_scene_route_arrival.*target=map:old:2000') {
+                  $finalServerArrivalCount++
+                  $line = "YBCS_NAV_DIAG_FINAL_SERVER_ROUTE_ARRIVAL: $($serverRows[$j])"
+                  Add-Content -LiteralPath $navigationDiagLog -Value $line -Encoding utf8
+                  Write-Host $line
+                }
+              }
+            }
+            Write-Host "YBCS_NAV_DIAG_FINAL_EVENT_COUNTS: client_06=$final06Count client_navigation_complete=$finalCompleteCount player_dispatch_events=$finalDispatchCount player_entity_lookup_events=$finalLookupCount server_route_arrivals=$finalServerArrivalCount"
+          }
+          function Wait-RouteArrivalWithDiagnostics([string]$pattern, [int]$afterLine, [int]$clientAfterLine, [int]$timeoutSeconds, [int]$processId) {
             $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
             $processedLine = $afterLine
             $sampleNumber = 0
@@ -2850,6 +3122,7 @@ jobs:
                       $arrivalLine = "YBCS_NAV_DIAG_SERVER_ROUTE_ARRIVAL: $($serverRows[$j])"
                       Add-Content -LiteralPath $navigationDiagLog -Value $arrivalLine -Encoding utf8
                       Write-Host $arrivalLine
+                      Write-NavigationDiagnosticFinalEvents $clientAfterLine $afterLine
                       return $serverRows[$j]
                     }
                   }
@@ -2863,6 +3136,7 @@ jobs:
             $timeoutLine = "YBCS_NAV_DIAG_WAIT_TIMEOUT: map=1000 timeout_seconds=$timeoutSeconds samples=$sampleNumber observed_06_packets=$script:ybcsNavDiag06PacketCount client_navigation_complete=$script:ybcsNavDiagClientCompleteCount"
             Add-Content -LiteralPath $navigationDiagLog -Value $timeoutLine -Encoding utf8
             Write-Host $timeoutLine
+            Write-NavigationDiagnosticFinalEvents $clientAfterLine $afterLine
             return $null
           }
           function Wait-WorldEntered([int]$clientAfter,[int]$serverAfter,[int]$stdoutAfter,[int]$timeoutSeconds) {
@@ -3283,7 +3557,7 @@ jobs:
             if ($nextMap -ne "") {
               $routePattern = 'offline_scene_route_arrival.*target=' + [regex]::Escape("map:old:$nextMap")
               if ($mapId -eq 1000) {
-                $arrived = Wait-RouteArrivalWithDiagnostics $routePattern $serverBefore 240 $clientPid
+                $arrived = Wait-RouteArrivalWithDiagnostics $routePattern $serverBefore $clientBefore 240 $clientPid
               } else {
                 $arrived = Wait-LogLine $serverLog $routePattern $serverBefore 240
               }
@@ -3958,61 +4232,100 @@ jobs:
               throw "Shop catalog scroll could not read valid client geometry"
             }
             $shopScrollX = $shopOriginX + [int][Math]::Round(764.0 * $shopClientWidth / 800.0)
-            $shopScrollBottomY = $shopOriginY + [int][Math]::Round(547.0 * $shopClientHeight / 600.0)
-            $shopScrollTopY = $shopOriginY + [int][Math]::Round(512.0 * $shopClientHeight / 600.0)
+            $shopScrollTopArrowY = $shopOriginY + [int][Math]::Round(488.0 * $shopClientHeight / 600.0)
             $weaponCellScreenX = $shopOriginX + [int][Math]::Round(514.0 * $shopClientWidth / 800.0)
             $weaponCellScreenY = $shopOriginY + [int][Math]::Round(504.0 * $shopClientHeight / 600.0)
-            Write-Host "YBCS_SHOP_CATALOG_EXPECTED: program=13 shop_number=1 catalog_count=120 item=1 name=匕首 index=0 price=80 client=(514,504)"
-            Write-Host "YBCS_SHOP_CATALOG_TARGETS: catalog_count=120 shop_number=1 weapon_item=1 index=0 client=(514,504) screen=($weaponCellScreenX,$weaponCellScreenY)"
-            Write-Host "YBCS_SHOP_SCROLL_THUMB_DRAG_BEGIN: screen=($shopScrollX,$shopScrollBottomY) target=($shopScrollX,$shopScrollTopY) source=shop-catalog-bottom-before-scroll.png"
-            if (-not [WinInput]::SetCursorPos($shopScrollX, $shopScrollBottomY)) {
-              throw "Could not position cursor on the screenshot-verified shop catalog scrollbar thumb"
+            $catalogRegionLeft = $shopOriginX + [int][Math]::Round(480.0 * $shopClientWidth / 800.0)
+            $catalogRegionTop = $shopOriginY + [int][Math]::Round(480.0 * $shopClientHeight / 600.0)
+            $catalogRegionRight = $shopOriginX + [int][Math]::Round(750.0 * $shopClientWidth / 800.0)
+            $catalogRegionBottom = $shopOriginY + [int][Math]::Round(580.0 * $shopClientHeight / 600.0)
+            Write-Host "YBCS_SHOP_CATALOG_EXPECTED: program=13 shop_number=1 catalog_count=120 item=1 name=匕首 index=0 price=80"
+            Write-Host "YBCS_SHOP_CATALOG_SOURCE_VERIFIED: source probe confirmed item_id=1 name=匕首 price=80 at catalog index=0"
+            Write-Host "YBCS_SHOP_SCROLL_TOP_BEGIN: method=real-ui-up-arrow screenshot_each_click=True max_clicks=40"
+            function Get-ShopCatalogRegionDiff(
+              [string]$beforePath,
+              [string]$afterPath,
+              [int]$left,
+              [int]$top,
+              [int]$right,
+              [int]$bottom
+            ) {
+              $before = [System.Drawing.Bitmap]::FromFile($beforePath)
+              $after = [System.Drawing.Bitmap]::FromFile($afterPath)
+              try {
+                if ($before.Width -ne $after.Width -or $before.Height -ne $after.Height) {
+                  return [pscustomobject]@{ changed = $true; changedPixels = -1 }
+                }
+                $changedPixels = 0
+                $x0 = [Math]::Max(0, $left)
+                $y0 = [Math]::Max(0, $top)
+                $x1 = [Math]::Min($before.Width - 1, $right)
+                $y1 = [Math]::Min($before.Height - 1, $bottom)
+                for ($y = $y0; $y -le $y1; $y += 2) {
+                  for ($x = $x0; $x -le $x1; $x += 2) {
+                    $a = $before.GetPixel($x, $y)
+                    $b = $after.GetPixel($x, $y)
+                    $delta = [Math]::Abs($a.R - $b.R) + [Math]::Abs($a.G - $b.G) + [Math]::Abs($a.B - $b.B)
+                    if ($delta -ge 36) { $changedPixels++ }
+                  }
+                }
+                return [pscustomobject]@{
+                  changed = ($changedPixels -ge 10)
+                  changedPixels = $changedPixels
+                }
+              } finally {
+                $before.Dispose()
+                $after.Dispose()
+              }
             }
-            $shopScrollMouseDown = $false
-            try {
+            $shopScrollChangedAny = $false
+            $shopScrollStableCount = 0
+            $shopScrollClicks = 0
+            $previousScrollShot = Join-Path $shotDir "shop-catalog-bottom-before-scroll.png"
+            $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            for ($step = 1; $step -le 40; $step++) {
+              if (-not [WinInput]::SetCursorPos($shopScrollX, $shopScrollTopArrowY)) {
+                throw "Could not position cursor on the catalog scrollbar up-arrow"
+              }
               [WinInput]::mouse_event([WinInput]::LEFTDOWN, 0, 0, 0, [UIntPtr]::Zero)
-              $shopScrollMouseDown = $true
-              for ($step = 1; $step -le 5; $step++) {
-                $dragY = $shopScrollBottomY + [int][Math]::Round(($shopScrollTopY - $shopScrollBottomY) * $step / 5.0)
-                if (-not [WinInput]::SetCursorPos($shopScrollX, $dragY)) {
-                  throw "Could not move shop catalog scrollbar thumb during verified drag"
-                }
-                Start-Sleep -Milliseconds 60
+              Start-Sleep -Milliseconds 40
+              [WinInput]::mouse_event([WinInput]::LEFTUP, 0, 0, 0, [UIntPtr]::Zero)
+              $shopScrollClicks++
+              Start-Sleep -Milliseconds 180
+              if (-not [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40)) {
+                throw "Could not move cursor away before catalog scroll screenshot"
               }
-            } finally {
-              if ($shopScrollMouseDown) {
-                [WinInput]::mouse_event([WinInput]::LEFTUP, 0, 0, 0, [UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 80
+              Shot "shop-catalog-scroll-$step"
+              $currentScrollShot = Join-Path $shotDir "shop-catalog-scroll-$step.png"
+              $diff = Get-ShopCatalogRegionDiff $previousScrollShot $currentScrollShot $catalogRegionLeft $catalogRegionTop $catalogRegionRight $catalogRegionBottom
+              Write-Host "YBCS_SHOP_SCROLL_STEP: click=$step content_changed=$($diff.changed) changed_pixels=$($diff.changedPixels)"
+              if ($diff.changed) {
+                $shopScrollChangedAny = $true
+                $shopScrollStableCount = 0
+              } elseif ($shopScrollChangedAny) {
+                $shopScrollStableCount++
+              }
+              $previousScrollShot = $currentScrollShot
+              if ($shopScrollChangedAny -and $shopScrollStableCount -ge 2) { break }
+              if ($step -ge 3 -and -not $shopScrollChangedAny) {
+                throw "Catalog up-arrow clicks produced no content movement; product click prohibited"
               }
             }
-            Start-Sleep -Milliseconds 750
+            if (-not $shopScrollChangedAny -or $shopScrollStableCount -lt 2) {
+              throw "Catalog did not reach a stable top position within 40 verified up-arrow clicks; product click prohibited"
+            }
             Shot "shop-catalog-top"
-            $shopTopBitmap = [System.Drawing.Bitmap]::FromFile((Join-Path $shotDir "shop-catalog-top.png"))
-            $shopThumbBestY = -1
-            $shopThumbBestScore = 0
-            try {
-              $shopProbeStartY = $shopOriginY + [int][Math]::Round(500.0 * $shopClientHeight / 600.0)
-              $shopProbeEndY = $shopOriginY + [int][Math]::Round(555.0 * $shopClientHeight / 600.0)
-              for ($probeY = $shopProbeStartY; $probeY -le $shopProbeEndY; $probeY++) {
-                $score = 0
-                for ($probeX = $shopScrollX - 2; $probeX -le $shopScrollX + 2; $probeX++) {
-                  if ($probeX -lt 0 -or $probeY -lt 0 -or $probeX -ge $shopTopBitmap.Width -or $probeY -ge $shopTopBitmap.Height) { continue }
-                  $pixel = $shopTopBitmap.GetPixel($probeX, $probeY)
-                  if ($pixel.R -ge 245 -and $pixel.G -ge 240 -and $pixel.B -ge 210) { $score++ }
-                }
-                if ($score -gt $shopThumbBestScore) {
-                  $shopThumbBestScore = $score
-                  $shopThumbBestY = $probeY
-                }
-              }
-            } finally {
-              $shopTopBitmap.Dispose()
+            Write-Host "YBCS_SHOP_CATALOG_TOP_CONFIRMED: method=up-arrow-content-stable clicks=$shopScrollClicks stable_no_change=$shopScrollStableCount region=($catalogRegionLeft,$catalogRegionTop)-($catalogRegionRight,$catalogRegionBottom)"
+            if (-not [WinInput]::SetCursorPos($weaponCellScreenX, $weaponCellScreenY)) {
+              throw "Could not hover the source-verified weapon catalog index-0 cell"
             }
-            $shopTopLimitY = $shopOriginY + [int][Math]::Round(530.0 * $shopClientHeight / 600.0)
-            Write-Host "YBCS_SHOP_SCROLL_THUMB_VERIFY: best_y=$shopThumbBestY bright_pixel_score=$shopThumbBestScore top_limit=$shopTopLimitY"
-            if ($shopThumbBestY -lt 0 -or $shopThumbBestY -ge $shopTopLimitY -or $shopThumbBestScore -lt 2) {
-              throw "Shop catalog scrollbar top position was not visually confirmed; no product cell was clicked"
+            Start-Sleep -Milliseconds 900
+            Shot "shop-weapon-item1-hover"
+            if (-not [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40)) {
+              throw "Could not move cursor away after item-1 hover screenshot"
             }
-            Write-Host "YBCS_SHOP_CATALOG_TOP_CONFIRMED: catalog_count=120 shop_number=1 first_item=1 name=匕首 index=0 price=80"
+            Start-Sleep -Milliseconds 250
             $weaponBefore = Get-LogLineCount $serverLog
             Write-Host "YBCS_SHOP_WEAPON_CLICK_BEGIN: item=1 catalog_index=0 logical_client=(514,504) screen=($weaponCellScreenX,$weaponCellScreenY) clicks=1"
             Click-Client 514 504
@@ -4023,33 +4336,34 @@ jobs:
             if (-not $cursorMoved) { throw "Could not move cursor away after the weapon item click; no further game input sent" }
             Start-Sleep -Milliseconds 250
             $weaponResultScreenshot = "shop-weapon-after-click.png"
-            if ($weaponPurchaseEvent -and $weaponPurchaseEvent -match "accepted=True") {
-              Write-Host "YBCS_SHOP_WEAPON_PURCHASE_EVENT: $weaponPurchaseEvent"
-              $priceMatch = [regex]::Match($weaponPurchaseEvent, 'price=(\d+)')
-              $moneyMatch = [regex]::Match($weaponPurchaseEvent, 'player_money=(\d+)->(\d+)')
-              $countMatch = [regex]::Match($weaponPurchaseEvent, 'selected_count=([^;]+)')
-              if (-not $priceMatch.Success -or -not $moneyMatch.Success -or -not $countMatch.Success) {
-                throw "Accepted weapon purchase event did not expose price, money delta, and selected_count: $weaponPurchaseEvent"
-              }
-              $purchasePrice = [int]$priceMatch.Groups[1].Value
-              $moneyBefore = [long]$moneyMatch.Groups[1].Value
-              $moneyAfter = [long]$moneyMatch.Groups[2].Value
-              $selectedCountText = [string]$countMatch.Groups[1].Value
-              if ($purchasePrice -ne 80 -or
-                  $moneyAfter -ne ($moneyBefore - 80) -or
-                  ($selectedCountText -ne "None" -and $selectedCountText -ne "1")) {
-                throw "Weapon purchase was accepted but did not prove exactly one ID 1 item at 80 gold: $weaponPurchaseEvent"
-              }
-              Write-Host "YBCS_SHOP_WEAPON_PURCHASE_CONFIRMED: item=1 quantity=1 price=$purchasePrice player_money=$moneyBefore->$moneyAfter selected_count=$selectedCountText"
-              $weaponResultScreenshot = "shop-weapon-inventory-after-purchase.png"
-              Shot "shop-weapon-inventory-after-purchase"
-            } elseif ($weaponPurchaseEvent) {
+            if (-not $weaponPurchaseEvent) {
+              Shot "shop-weapon-after-click"
+              throw "No accepted or rejected offline_shop_purchase event within 10 seconds; no purchase success may be inferred"
+            }
+            if ($weaponPurchaseEvent -notmatch "accepted=True") {
               Write-Host "YBCS_SHOP_WEAPON_PURCHASE_REJECTED: $weaponPurchaseEvent"
               Shot "shop-weapon-after-click"
-            } else {
-              Write-Host "YBCS_SHOP_WEAPON_NO_PURCHASE_EVENT: no accepted or rejected offline_shop_purchase event within 10 seconds; inspect screenshot for quantity dialog versus no response; no confirmation input sent"
-              Shot "shop-weapon-after-click"
+              throw "Weapon purchase was rejected by the service; no further game input sent"
             }
+            Write-Host "YBCS_SHOP_WEAPON_PURCHASE_EVENT: $weaponPurchaseEvent"
+            $priceMatch = [regex]::Match($weaponPurchaseEvent, 'price=(\d+)')
+            $moneyMatch = [regex]::Match($weaponPurchaseEvent, 'player_money=(\d+)->(\d+)')
+            $countMatch = [regex]::Match($weaponPurchaseEvent, 'selected_count=([^;]+)')
+            if (-not $priceMatch.Success -or -not $moneyMatch.Success -or -not $countMatch.Success) {
+              throw "Accepted weapon purchase event did not expose price, money delta, and selected_count: $weaponPurchaseEvent"
+            }
+            $purchasePrice = [int]$priceMatch.Groups[1].Value
+            $moneyBefore = [long]$moneyMatch.Groups[1].Value
+            $moneyAfter = [long]$moneyMatch.Groups[2].Value
+            $selectedCountText = [string]$countMatch.Groups[1].Value
+            if ($purchasePrice -ne 80 -or
+                $moneyAfter -ne ($moneyBefore - 80) -or
+                ($selectedCountText -ne "None" -and $selectedCountText -ne "1")) {
+              throw "Weapon purchase was accepted but did not prove exactly one ID 1 item at 80 gold: $weaponPurchaseEvent"
+            }
+            Write-Host "YBCS_SHOP_WEAPON_PURCHASE_CONFIRMED: item=1 quantity=1 price=$purchasePrice player_money=$moneyBefore->$moneyAfter selected_count=$selectedCountText"
+            $weaponResultScreenshot = "shop-weapon-inventory-after-purchase.png"
+            Shot "shop-weapon-inventory-after-purchase"
             Write-FocusDiagnostic "after-weapon-item-1-click"
             Write-Host "YBCS_SHOP_WEAPON_CLICK_OBSERVATION: product_clicks=1 screenshot=$weaponResultScreenshot quantity_confirmation_sent=False further_game_input_sent=False"
             Write-Host "YBCS_SHOP_WEAPON_TEST_COMPLETE: item=1 expected_price=80 catalog_index=0"
