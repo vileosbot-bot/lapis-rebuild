@@ -60,50 +60,29 @@ jobs:
           $script:ybcsNavDiagPreviousMainThreadCpuMs = $null
           Set-Content -LiteralPath $navigationDiagLog -Value "YBCS_NAV_DIAG_BEGIN: run=50 map=1000 read_only=True" -Encoding utf8
           cd ybcs
-          $weaponCatalogProbe = @'
+          $medicineCatalogProbe = @'
                     import sys
                     sys.stdout.reconfigure(encoding="utf-8")
                     from pathlib import Path
                     sys.path.insert(0, str(Path("src/legacy_gui_runtime").resolve()))
-                    from ybcs_single_player_shop import (
-                        OFFLINE_PROGRAM_SHOP_NUMBERS,
-                        YbcsSinglePlayerShopService,
-                        load_old_item_table,
-                    )
+                    from ybcs_single_player_shop import OFFLINE_PROGRAM_SHOP_NUMBERS, YbcsSinglePlayerShopService, load_old_item_table
                     root = Path(".")
-                    program = 13
+                    program = 15
                     shop_number = OFFLINE_PROGRAM_SHOP_NUMBERS[program]
                     rows = load_old_item_table(root)
                     selected = [row for row in rows if row.shop_number == shop_number and row.price >= 0]
-                    service = YbcsSinglePlayerShopService.from_resources(
-                        root, program_index=program, context_word=0
-                    )
-                    if len(service.catalog) != 120:
-                        raise SystemExit(f"weapon catalog count mismatch: {len(service.catalog)}")
-                    if not selected:
-                        raise SystemExit("weapon shop source rows are empty")
-                    first = selected[0]
-                    first_record = service.catalog[0]
-                    if (
-                        first.item_resource_id != 1
-                        or first.name != "匕首"
-                        or first.price != 80
-                        or first_record.word_0 != 1
-                    ):
-                        raise SystemExit(
-                            "weapon catalog index-0 source mismatch: "
-                            f"id={first.item_resource_id} name={first.name!r} "
-                            f"price={first.price} record_id={first_record.word_0}"
-                        )
-                    print(
-                        "YBCS_WEAPON_CATALOG_SOURCE_VERIFIED: "
-                        f"program={program} shop_number={shop_number} catalog_count={len(service.catalog)} "
-                        f"index=0 item_id={first.item_resource_id} name={first.name} price={first.price}"
-                    )
+                    service = YbcsSinglePlayerShopService.from_resources(root, program_index=program, context_word=0)
+                    if len(service.catalog) != 105 or len(selected) < 6:
+                        raise SystemExit(f"medicine catalog size mismatch: service={len(service.catalog)} selected={len(selected)}")
+                    red, blue = selected[0], selected[5]
+                    red_record, blue_record = service.catalog[0], service.catalog[5]
+                    if (red.item_resource_id != 4001 or red.name != "恢复药" or red.price != 50 or red.equip_position != 7 or red_record.word_0 != 4001 or red_record.word_1 != 30 or blue.item_resource_id != 4006 or blue.price != 100 or blue_record.word_0 != 4006):
+                        raise SystemExit(f"medicine catalog mismatch: red={red!r} red_record={red_record!r} blue={blue!r}")
+                    print("YBCS_MEDICINE_CATALOG_SOURCE_VERIFIED: program=15 shop_number=3 catalog_count=105 red_index=0 red_item_id=4001 red_name=恢复药 red_price=50 red_word1=30 blue_index=5 blue_item_id=4006 blue_price=100")
           '@
-          $weaponCatalogProbe = $weaponCatalogProbe -replace '(?m)^ {10}', ''
-          $weaponCatalogProbe | python -
-          if ($LASTEXITCODE -ne 0) { throw "Weapon catalog source verification failed" }
+          $medicineCatalogProbe = $medicineCatalogProbe -replace '(?m)^ {10}', ''
+          $medicineCatalogProbe | python -
+          if ($LASTEXITCODE -ne 0) { throw "Medicine catalog source verification failed" }
           $memoryPattern = 'VirtualAlloc|VirtualProtect|MapViewOfFile|PAGE_READONLY|PAGE_READWRITE|CreateFileMapping|NtAllocateVirtualMemory|NtMapViewOfSection|NtProtectVirtualMemory|mmap|Memory\.protect|Memory\.alloc|Process\.enumerateRanges|0x1a0000'
           $memorySourceRoot = Join-Path $ws "ybcs\src"
           $memorySourceFiles = @(
@@ -132,7 +111,7 @@ jobs:
           Write-Host "STATIC_DISPATCH_ANALYSIS binary=NeoDark.exe image_base=0x00400000 architecture=PE32"
           Write-Host "STATIC_HIT_TEST 0x004572A0: x_rel=arg0-[this+0x14]; y_rel=arg1-[this+0x18]; rows=[this+0x110..this+0x114] pointer array; row.Kind=[row+0]; active_kind=[this+0x11c]; RECT=[row+0x4]; transform=(dx=+20,dy=-15) via [0x004E2478]; point-in-rect via [0x004E2510]; hit stores ordinal at [this+0x120], no hit stores -1 at 0x004573C2"
           Write-Host "STATIC_ORDINAL_RULE: only rows whose Kind equals [this+0x11c] are eligible; eligible ordinal starts at 0 and increments after each miss; first containing RECT wins"
-          Write-Host "STATIC_PROGRAM13_RESOURCE: ordinal0=进行对话 (49 09 dialogue request); ordinal1=购买武器 (30 target/action service request); ordinal2=不需要; resource program=13; selectable_count=3"
+          Write-Host "STATIC_PROGRAM15_RESOURCE: ordinal0=进行对话 (49 09 dialogue request); ordinal1=购买消耗品 (30 target/action service request); ordinal2=不需要; resource program=15; selectable_count=3"
           Write-Host "STATIC_CLICK_HANDLER 0x004571F0: if [this+0x11c]==2 then push [this+0x120] and call 0x00457A90"
           Write-Host "STATIC_DISPATCH 0x00457A90: ordinal=[esp+0x4]; range 0..3; jump table=[0x00457CB8+ordinal*4]"
           Write-Host "STATIC_ORDINAL0 0x00457ADE: packet=[0x49,0x09,word([this+0x108])] length=4; call target=0x004A6FD0"
@@ -1720,8 +1699,8 @@ jobs:
                       if (target.address === 0x004571F0 &&
                           !npcMemoryMenuSnapshotEmitted &&
                           menuAfter && menuAfter.fields &&
-                          menuAfter.fields.program === 13 &&
-                          menuAfter.fields.target === 21200 &&
+                          menuAfter.fields.program === 15 &&
+                          menuAfter.fields.target === 21230 &&
                           menuAfter.fields.state === 2) {
                         npcMemoryMenuSnapshotEmitted = true;
                         setTimeout(function() {
@@ -2221,6 +2200,166 @@ jobs:
               phase: "after-hookLegacySceneInput"
             });
           }
+          let shopRuntimeTraceInstalled = false;
+          function installShopRuntimeTrace() {
+            if (shopRuntimeTraceInstalled) return;
+            const installed=[],errors=[],hits=Object.create(null),lastHits=Object.create(null),purchases=Object.create(null),quantities=Object.create(null);
+            let sequence=0;
+            function key(){return String(Process.getCurrentThreadId());}
+            function u16(p,o){try{return ptr(p).add(o).readU16();}catch(_){return null;}}
+            function u32(p,o){try{return ptr(p).add(o).readU32();}catch(_){return null;}}
+            function s32(p,o){try{return ptr(p).add(o).readS32();}catch(_){return null;}}
+            function ptrAt(p,o){try{const v=ptr(p).add(o).readPointer();return v.isNull()?null:v.toString();}catch(_){return null;}}
+            function ec(c,stage,x){if(c)emit("shop_click_decision",Object.assign({trace_id:c.traceId,stage:stage,timestamp_unix:Date.now()/1000,thread:c.thread,dialog_pointer:c.dialogPointer||null,grid_position:c.gridPosition||null,item_id:c.itemId===undefined?null:c.itemId,action:"buy",accepted:null,reason:null},x||{}));}
+            function eq(c,stage,x){if(c)emit("shop_quantity_state",Object.assign({trace_id:c.traceId,stage:stage,timestamp_unix:Date.now()/1000,thread:c.thread,dialog_id:0x1aa,resource:"dlg\\\\HowMany.Tdg",exists_before:c.existsBefore===undefined?null:c.existsBefore,status_field_e0:c.statusField===undefined?null:c.statusField,gate_rejected:c.gateRejected===undefined?null:c.gateRejected,created_new:c.createdNew===undefined?null:c.createdNew,resolved:c.resolved===undefined?null:c.resolved,dialog_pointer:c.dialogPointer||null,mode:6,data_applied:c.dataApplied===undefined?null:c.dataApplied,visible:null,reason:c.reason||null},x||{}));}
+            function hook(name,address,cb){try{attachOnce("shop-runtime:"+name,ptr(address),cb);installed.push({name:name,address:ptr(address).toString()});}catch(e){errors.push({name:name,address:ptr(address).toString(),error:String(e)});}}
+            hook("grid-hit-test",0x00463420,{onEnter(){
+              const k=key(),d=this.context.ecx;
+              hits[k]={
+                thread:Process.getCurrentThreadId(),dialogPointer:d.toString(),
+                page:u32(d,0x34),catalogCount:u32(d,0x8a4),
+                controlId:null,loopIndex:null,hitEax:null,samples:[],
+                startedAtMs:Date.now()
+              };
+              this.shopKey=k;
+            },onLeave(r){
+              const k=this.shopKey,h=k?hits[k]:null;if(!h)return;
+              const ix=r.toInt32();
+              const expected=(h.loopIndex!==null&&h.page!==null)?h.loopIndex+6*h.page:null;
+              h.catalogIndex=ix;
+              h.gridPosition=h.loopIndex===null?null:{
+                slot:h.loopIndex,control_id:h.controlId,page:h.page,catalog_index:ix
+              };
+              h.indexMatchesSlot=expected===null?null:expected===ix;
+              h.completedAtMs=Date.now();
+              lastHits[k]=h;
+              emit("shop_click_decision",{
+                trace_id:++sequence,stage:"grid_hit_test",
+                timestamp_unix:Date.now()/1000,thread:h.thread,
+                dialog_pointer:h.dialogPointer,grid_position:h.gridPosition,
+                slot:h.loopIndex,control_id:h.controlId,page:h.page,
+                catalog_index:ix,expected_catalog_index:expected,
+                index_matches_slot:h.indexMatchesSlot,catalog_count:h.catalogCount,
+                hit_eax:h.hitEax,hit_samples:h.samples,action:"grid_hit_test",
+                accepted:ix>=0,reason:ix>=0?null:"no_catalog_cell_hit"
+              });
+              delete hits[k];
+            }});
+            hook("grid-hit-instruction",0x00463482,{onEnter(){
+              const h=hits[key()];if(!h)return;
+              const eax=this.context.eax.toInt32(),esi=this.context.esi.toInt32();
+              if(h.samples.length<12)h.samples.push({eax:eax,esi:esi,control_id:0x2b+esi});
+              if(eax!==0){h.hitEax=eax;h.loopIndex=esi;h.controlId=0x2b+esi;}
+            }});
+            hook("purchase-entry",0x00463730,{onEnter(args){
+              const k=key(),d=this.context.ecx,ix=args[0]?args[0].toInt32():-1;
+              const hit=lastHits[k]||null;
+              const hitMatches=!!hit&&hit.dialogPointer===d.toString()&&hit.catalogIndex===ix;
+              const pageAtPurchase=u32(d,0x34),catalogCountAtPurchase=u32(d,0x8a4);
+              const slotFromIndex=pageAtPurchase===null?null:ix-6*pageAtPurchase;
+              const derivedGridPosition=slotFromIndex!==null&&slotFromIndex>=0&&slotFromIndex<=11?{
+                slot:slotFromIndex,control_id:0x2b+slotFromIndex,page:pageAtPurchase,
+                catalog_index:ix,source:"purchase_index_page"
+              }:null;
+              const gridPosition=hitMatches?hit.gridPosition:derivedGridPosition;
+              const gridPositionSource=hitMatches?"native_hit_test":(derivedGridPosition?"purchase_index_page":null);
+              const row=ix>=0&&ix<(catalogCountAtPurchase===null?120:catalogCountAtPurchase)?d.add(0x124+ix*0x10):null,words=[];
+              if(row!==null)for(let i=0;i<5;i++)words.push(u16(row,i*2));
+              const c={
+                traceId:++sequence,thread:Process.getCurrentThreadId(),dialogPointer:d.toString(),
+                gridPosition:gridPosition,gridPositionSource:gridPositionSource,catalogIndex:ix,
+                pageAtPurchase:pageAtPurchase,catalogCountAtPurchase:catalogCountAtPurchase,slotFromIndex:slotFromIndex,
+                itemId:words.length?words[0]:null,word1:words.length>1?words[1]:null,
+                recordWords:words,hitTestObserved:!!hit,hitTestMatches:hitMatches,
+                hitTestCatalogIndex:hit?hit.catalogIndex:null,
+                hitTestAgeMs:hit?Date.now()-hit.completedAtMs:null,
+                purchaseDialogPointer:d.toString()
+              };
+              purchases[k]=c;
+              ec(c,"purchase_entry",{
+                catalog_index:ix,item_id:c.itemId,word1:c.word1,record_words:words,
+                grid_position_source:c.gridPositionSource,page_at_purchase:c.pageAtPurchase,
+                catalog_count_at_purchase:c.catalogCountAtPurchase,slot_from_index:c.slotFromIndex,
+                hit_test_observed:c.hitTestObserved,hit_test_matches:c.hitTestMatches,
+                hit_test_catalog_index:c.hitTestCatalogIndex,hit_test_age_ms:c.hitTestAgeMs,
+                accepted:null,reason:null,action:"select_for_purchase"
+              });
+              delete lastHits[k];
+            },onLeave(r){
+              const c=purchases[key()];
+              if(c)ec(c,"purchase_function_return_observed_only",{
+                retval:r.toString(),retval_used_as_decision:false,
+                accepted_not_inferred_from_retval:true
+              });
+            }});
+            hook("item-metadata-call",0x00463749,{onEnter(){
+              const c=purchases[key()];if(!c)return;
+              ec(c,"item_metadata_lookup_call",{registers_before_call:{
+                eax:this.context.eax.toString(),ebx:this.context.ebx.toString(),
+                ecx:this.context.ecx.toString(),edx:this.context.edx.toString(),
+                esi:this.context.esi.toString(),edi:this.context.edi.toString()
+              },item_id:c.itemId,word1:c.word1});
+            }});
+            hook("item-metadata-result",0x00463754,{onEnter(){
+              const c=purchases[key()];if(!c)return;
+              const p=this.context.eax;c.metadataFound=!p.isNull();c.metadataPointer=p.toString();
+              c.equipPosition=p.isNull()?null:u16(p,0xc);
+              ec(c,"item_metadata_check",{
+                metadata_pointer:c.metadataPointer,metadata_found:c.metadataFound,
+                equip_position:c.equipPosition,eflags:this.context.eflags,
+                accepted:null,reason:c.metadataFound?null:"item_metadata_missing"
+              });
+            }});
+            hook("inventory-capacity",0x00463777,{onEnter(){const c=purchases[key()];if(c)ec(c,"inventory_capacity_check",{inventory_limit:28,registers:{eax:this.context.eax.toString(),ebx:this.context.ebx.toString(),ecx:this.context.ecx.toString(),edx:this.context.edx.toString(),esi:this.context.esi.toString(),edi:this.context.edi.toString(),eflags:this.context.eflags}});}});
+            hook("counted-purchase-branch",0x00463805,{onEnter(){const c=purchases[key()];if(!c)return;const f=this.context.eflags;c.branchToQuantity=(f&0x40)===0;ec(c,"counted_purchase_branch",{eflags:f,zero_flag:(f&0x40)!==0,branch_to_quantity_dialog:c.branchToQuantity,accepted:null,reason:null});}});
+            hook("quantity-dialog-pointer",0x00463883,{onEnter(){
+              const c=purchases[key()];if(!c)return;
+              const p=this.context.eax;
+              c.quantityDialogEmpty=p.isNull();c.quantityDialogPointer=p.toString();
+              ec(c,"quantity_dialog_pointer_check",{
+                dialog_pointer:c.quantityDialogPointer,pointer_empty:c.quantityDialogEmpty,
+                dialog_available:!c.quantityDialogEmpty,accepted:null,
+                reason:c.quantityDialogEmpty?"quantity_dialog_unavailable":null
+              });
+            }});
+            hook("purchase-reject-path",0x004638EE,{onEnter(){const c=purchases[key()];if(c)ec(c,"purchase_reject_path",{accepted:false,reason:c.metadataFound===false?"item_metadata_missing":"native_purchase_reject_path"});}});
+            hook("quantity-manager",0x00416C70,{onEnter(args){const k=key(),id=args[0]?args[0].toInt32():-1;if(id!==0x1aa)return;const c=purchases[k]||{traceId:++sequence,thread:Process.getCurrentThreadId(),itemId:null};c.dialogId=id;c.managerPointer=this.context.ecx.toString();c.existsBefore=null;c.statusField=null;c.gateRejected=false;c.creationPathEntered=false;c.createdNew=false;c.resolved=null;c.dataApplied=null;quantities[k]=c;this.shopKey=k;eq(c,"manager_enter",{manager_pointer:c.managerPointer,caller:this.returnAddress?this.returnAddress.toString():null});},onLeave(r){const c=this.shopKey?quantities[this.shopKey]:null;if(!c)return;c.resolved=!r.isNull();c.dialogPointer=r.isNull()?null:r.toString();c.reason=r.isNull()?(c.gateRejected?"state_2_dialog_id_1aa_creation_gate":"quantity_dialog_unresolved"):null;eq(c,"manager_return",{resolved:c.resolved,dialog_pointer:c.dialogPointer,gate_rejected:c.gateRejected,creation_path_entered:c.creationPathEntered,created_new:c.createdNew,reason:c.reason,return_value:r.toString()});}});
+            hook("existing-object-query",0x00418860,{onEnter(){const k=key();if(!quantities[k])return;this.shopKey=k;eq(quantities[k],"existing_object_query_enter",{ecx:this.context.ecx.toString()});},onLeave(r){const c=this.shopKey?quantities[this.shopKey]:null;if(!c)return;c.existsBefore=!r.isNull();if(c.existsBefore)c.dialogPointer=r.toString();eq(c,"existing_object_query_return",{exists_before:c.existsBefore,existing_pointer:r.isNull()?null:r.toString()});}});
+            hook("state-field-e0",0x00416D98,{onEnter(){const c=quantities[key()];if(c){c.statusField=this.context.eax.toInt32();eq(c,"state_gate_compare",{status_object_field_e0:c.statusField,compare_value:2,equals_two:c.statusField===2});}}});
+            hook("state-gate-reject",0x00416DB3,{onEnter(){const c=quantities[key()];if(c){c.gateRejected=true;c.reason="state_2_dialog_id_1aa_creation_gate";eq(c,"creation_gate_reject",{status_field_e0:c.statusField,gate_rejected:true,reason:c.reason});}}});
+            hook("new-dialog-create",0x00417E37,{onEnter(){const c=quantities[key()];if(c){c.creationPathEntered=true;eq(c,"new_dialog_create_enter",{allocation_size:0x110,creation_path_entered:true,resource:"dlg\\\\HowMany.Tdg"});}}});
+            hook("new-dialog-register",0x00418406,{onEnter(){const c=quantities[key()];if(c){c.createdNew=true;c.createdDialogPointer=this.context.eax.toString();eq(c,"new_dialog_register",{created_new:true,eax_new_pointer:c.createdDialogPointer,edi_before_instruction:this.context.edi.toString()});}}});
+            hook("quantity-data-apply",0x0043F0B0,{onEnter(){
+              const k=key(),c=quantities[k];if(!c||c.itemId!==4001)return;
+              const d=this.context.ecx;this.shopKey=k;c.dataDialogPointer=d.toString();
+              eq(c,"data_apply_enter",{
+                data_dialog_pointer:c.dataDialogPointer,mode_field_100:u32(d,0x100),
+                data_pointer_fc:ptrAt(d,0xfc),item_id:c.itemId,word1:c.word1,
+                expected_mode:6,visible:null
+              });
+            },onLeave(r){
+              const c=this.shopKey?quantities[this.shopKey]:null;
+              if(c&&c.itemId===4001){c.dataApplied=true;eq(c,"data_apply_return",{
+                data_applied:true,data_dialog_pointer:c.dataDialogPointer,
+                return_value:r.toString(),visible:null
+              });}
+            }});
+            const requiredHooks=[
+              "grid-hit-test","grid-hit-instruction","purchase-entry","item-metadata-call",
+              "item-metadata-result","inventory-capacity","counted-purchase-branch",
+              "quantity-dialog-pointer","purchase-reject-path","quantity-manager",
+              "existing-object-query","state-field-e0","state-gate-reject",
+              "new-dialog-create","new-dialog-register","quantity-data-apply"
+            ];
+            const missingHooks=requiredHooks.filter(function(name){
+              return !installed.some(function(item){return item.name===name;});
+            });
+            shopRuntimeTraceInstalled=errors.length===0&&missingHooks.length===0;
+            emit("shop_runtime_trace_installed",{
+              installed:installed,errors:errors,required_hooks:requiredHooks,missing_hooks:missingHooks,
+              read_only:true,visible_observation:"screenshots; runtime visible field intentionally null"
+            });
+          }
           const offlineNpcSingleClickInstallTimer = setTimeout(
             installOfflineNpcSingleClickInteraction,
             OFFLINE_NPC_SINGLE_CLICK_INSTALL_DELAY_MS
@@ -2235,6 +2374,7 @@ jobs:
           '''
           new_legacy_scene_hook = b'''  hookLegacySceneInput();
             ybcsNavDiagStartAfterLegacyHooks();
+            installShopRuntimeTrace();
             installOfflineHeldMouseContinuationPolicy();
           '''
           if patched.count(old_legacy_scene_hook) != 1:
@@ -3763,7 +3903,7 @@ jobs:
           }
           $failureReason = $null
           $shopDifferentialTestOnly = $true
-          Write-Host "YBCS_SHOP_SCOPE: weapon_only=True armor_shop=False"
+          Write-Host "YBCS_SHOP_SCOPE: medicine_only=True armor_shop=False"
           $pidFile = Join-Path $ws "ybcs\runtime\ybcs-gui-client.pid.json"
           if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue }
           $startupClientLogBefore = Get-LogLineCount $clientLog
@@ -3969,6 +4109,12 @@ jobs:
               if ($nativeHookNames -notcontains $requiredHook) { throw "Required native diagnostic Hook was not restored: $requiredHook" }
             }
             Write-Host "YBCS_HOOK_RESTORE_COMPLETE: memory_api=$memoryApiLine native_trace=$nativeTraceLine"
+            $shopTraceInstallLine = Wait-LogLine $clientLog 'shop_runtime_trace_installed' 0 10
+            if (-not $shopTraceInstallLine) { throw "Shop runtime diagnostic hooks did not install; no product click attempted" }
+            $shopTraceInstallEvent = $shopTraceInstallLine | ConvertFrom-Json -ErrorAction Stop
+            if (@($shopTraceInstallEvent.value.errors).Count -gt 0) { throw "Shop runtime diagnostic hooks reported errors: $shopTraceInstallLine" }
+            if (@($shopTraceInstallEvent.value.missing_hooks).Count -gt 0) { throw "Shop runtime diagnostic hooks are incomplete: $shopTraceInstallLine" }
+            Write-Host "YBCS_SHOP_RUNTIME_TRACE_READY: $shopTraceInstallLine"
             Focus-Game
             Shot "shot-00-preclick"
             $worldClientBefore = Get-LogLineCount $clientLog
@@ -3988,30 +4134,30 @@ jobs:
             Shot "route-1030-start"
             Navigate-MapTarget 1030 6 138 122 534 "route-1030" "1020"
             Navigate-MapTarget 1020 7 177 148 270 "route-1020" "1000"
-            Write-Host "YBCS_WEAPON_DOOR_TARGET: map=1000 cell=(35,193) fullmap_click=(249,358)"
-            Navigate-MapTarget 1000 35 193 249 358 "route-1000" "2000"
-            Write-Host "YBCS_WEAPON_STAND_TARGET: map=2000 cell=(28,32) fullmap_click=(469,297)"
+            Write-Host "YBCS_MEDICINE_DOOR_TARGET: map=1000 cell=(28,116) fullmap_click=(225,226)"
+            Navigate-MapTarget 1000 28 116 225 226 "route-1000" "2300"
+            Write-Host "YBCS_MEDICINE_STAND_TARGET: map=2300 cell=(26,34) fullmap_click=(449,314)"
             $worldEntityReadbackAfter = Get-LogLineCount $clientLog
-            Navigate-MapTarget 2000 28 32 469 297 "route-2000-stand" ""
+            Navigate-MapTarget 2300 26 34 449 314 "route-2300" ""
+            Shot "route-2300-before-npc"
 
-            Shot "route-2000-before-npc"
-            $worldEntityReadback = Wait-WorldEntities 2000 28 32 21200 28 26 $worldEntityReadbackAfter 20
+            $worldEntityReadback = Wait-WorldEntities 2300 26 34 21230 34 34 $worldEntityReadbackAfter 20
             if (-not $worldEntityReadback) {
-              throw "Actual world_state did not confirm player=(28,32) and weapon NPC 21200=(28,26); no NPC click attempted"
+              throw "Actual world_state did not confirm player=(26,34) and medicine NPC 21230=(34,34); no NPC click attempted"
             }
             Write-Host "YBCS_WORLD_ENTITY_READBACK_EVENT: $worldEntityReadback"
             $menuBefore = Get-LogLineCount $serverLog
             $clientBeforeNpcClick = Get-LogLineCount $clientLog
-            Write-Host "NPC interaction: map=2000 entity=21200 cell=(28,26) player_stand=(28,32) click_client=(400,204)"
-            Click-Client 400 204
-            $npcProbe = Wait-LogLine $clientLog 'offline_npc_single_click_probe.*"mapWire"\s*:\s*2000.*"clickedCell"\s*:\s*\[\s*28,\s*26\s*\].*"targetFound"\s*:\s*true.*"targetEntityId"\s*:\s*21200.*"rowFound"\s*:\s*true' $clientBeforeNpcClick 8
-            if (-not $npcProbe) { throw "NPC click did not resolve to weapon NPC 21200 at cell (28,26); no menu option click attempted" }
-            Write-Host "YBCS_WEAPON_NPC_CLICK_PROBE: $npcProbe"
-            $npcAction = Wait-LogLine $clientLog 'offline_npc_single_click_action.*"mapWire"\s*:\s*2000.*"entityId"\s*:\s*21200.*"distance"\s*:\s*6.*"exclusiveDistanceLimit"\s*:\s*9' $clientBeforeNpcClick 8
-            if (-not $npcAction) { throw "Weapon NPC single-click action was not confirmed at distance 6; no menu option click attempted" }
-            Write-Host "YBCS_WEAPON_NPC_SINGLE_CLICK_ACTION: $npcAction"
-            $menuOpened = Wait-LogLine $serverLog 'offline_native_npc_menu_opened.*entity=21200.*program=13' $menuBefore 20
-            if (-not $menuOpened) { throw "Click at NPC 21200 did not open NPCScript program 13" }
+            Write-Host "NPC interaction: map=2300 entity=21230 cell=(34,34) player_stand=(26,34) click_client=(656,300)"
+            Click-Client 656 300
+            $npcProbe = Wait-LogLine $clientLog 'offline_npc_single_click_probe.*"mapWire"\s*:\s*2300.*"clickedCell"\s*:\s*\[\s*34,\s*34\s*\].*"targetFound"\s*:\s*true.*"targetEntityId"\s*:\s*21230.*"rowFound"\s*:\s*true' $clientBeforeNpcClick 8
+            if (-not $npcProbe) { throw "NPC click did not resolve to medicine NPC 21230 at cell (34,34); no menu option click attempted" }
+            Write-Host "YBCS_MEDICINE_NPC_CLICK_PROBE: $npcProbe"
+            $npcAction = Wait-LogLine $clientLog 'offline_npc_single_click_action.*"mapWire"\s*:\s*2300.*"entityId"\s*:\s*21230.*"distance"\s*:\s*8.*"exclusiveDistanceLimit"\s*:\s*9' $clientBeforeNpcClick 8
+            if (-not $npcAction) { throw "Medicine NPC single-click action was not confirmed at distance 8; no menu option click attempted" }
+            Write-Host "YBCS_MEDICINE_NPC_SINGLE_CLICK_ACTION: $npcAction"
+            $menuOpened = Wait-LogLine $serverLog 'offline_native_npc_menu_opened.*entity=21230.*program=15' $menuBefore 20
+            if (-not $menuOpened) { throw "Click at NPC 21230 did not open NPCScript program 15" }
             if ($menuOpened -notmatch 'selectable_count=3') { throw "Weapon NPC menu did not confirm exactly three selectable options: $menuOpened" }
             Write-Host "NPC menu opened: $menuOpened"
             Start-Sleep -Seconds 2
@@ -4033,7 +4179,7 @@ jobs:
             Start-Sleep -Milliseconds 250
             Shot "npc-greeting-after-click"
             $greetingAfterShot = Join-Path $shotDir "npc-greeting-after-click.png"
-            $dialogueResolved = Wait-LogLine $serverLog 'offline_native_npc_menu_dialogue_resolved.*entity=21200.*program=13' $greetingBefore 2
+            $dialogueResolved = Wait-LogLine $serverLog 'offline_native_npc_menu_dialogue_resolved.*entity=21230.*program=15' $greetingBefore 2
             $ordinal0Dispatch = Wait-LogLine $clientLog 'npc_menu_dispatch_lifecycle.*"phase":\s*"enter".*"dispatchOrdinal":\s*0' $clientBeforeGreeting 1
             $menuDiff = Get-DialogMenuDiff $greetingBeforeShot $greetingAfterShot
             Write-Host "NPC dialog pixel diff against pre-click screenshot: greeting=$($menuDiff.greeting) option1=$($menuDiff.option1) option2=$($menuDiff.option2)"
@@ -4081,8 +4227,8 @@ jobs:
                     if ($event.kind -ne "npc_menu_hit_test_return") { continue }
                     $menu = $event.value.menuObjectAfter
                     if ($null -eq $menu -or $null -eq $menu.fields -or
-                        [int]$menu.fields.program -ne 13 -or
-                        [int]$menu.fields.target -ne 21200 -or
+                        [int]$menu.fields.program -ne 15 -or
+                        [int]$menu.fields.target -ne 21230 -or
                         [int]$menu.fields.state -ne 2 -or
                         $null -eq $menu.suggestedOrdinal1HitTestPoint) { continue }
                     $menuEvidence = $menu
@@ -4140,8 +4286,8 @@ jobs:
                       $menu = $value.menuObjectAfter
                       if ($null -eq $menu -or $null -eq $menu.fields -or $null -eq $value.point) { continue }
                       if ([int]$value.point.x -ne $expectedX -or [int]$value.point.y -ne $expectedY) { continue }
-                      if ([int]$menu.fields.program -ne 13 -or
-                          [int]$menu.fields.target -ne 21200 -or
+                      if ([int]$menu.fields.program -ne 15 -or
+                          [int]$menu.fields.target -ne 21230 -or
                           [int]$menu.fields.state -ne 2 -or
                           [int]$menu.fields.selectedOrdinal -ne $expectedOrdinal -or
                           [int]$value.predictedOrdinal -ne $expectedOrdinal) { continue }
@@ -4172,17 +4318,17 @@ jobs:
             $ordinal1HoverMenu = $ordinal1HoverValue.menuObjectAfter
             $preClickSelectedOrdinal = [int]$ordinal1HoverMenu.fields.selectedOrdinal
             $preClickPredictedOrdinal = [int]$ordinal1HoverValue.predictedOrdinal
-            if ([int]$ordinal1HoverMenu.fields.program -ne 13 -or
-                [int]$ordinal1HoverMenu.fields.target -ne 21200 -or
+            if ([int]$ordinal1HoverMenu.fields.program -ne 15 -or
+                [int]$ordinal1HoverMenu.fields.target -ne 21230 -or
                 [int]$ordinal1HoverMenu.fields.state -ne 2 -or
                 $preClickSelectedOrdinal -ne 1 -or
                 $preClickPredictedOrdinal -ne 1 -or
                 [int]$ordinal1HoverValue.point.x -ne $clientX -or
                 [int]$ordinal1HoverValue.point.y -ne $clientY) {
-              throw "Pre-click menu state changed or did not equal program=13 target=21200 state=2 selectedOrdinal=1 predictedOrdinal=1; no click attempted"
+              throw "Pre-click menu state changed or did not equal program=15 target=21230 state=2 selectedOrdinal=1 predictedOrdinal=1; no click attempted"
             }
             Write-Host "NPC_ORDINAL1_HOVER_CONFIRMED program=$($ordinal1HoverMenu.fields.program) target=$($ordinal1HoverMenu.fields.target) state=$($ordinal1HoverMenu.fields.state) selectedOrdinal=$preClickSelectedOrdinal predictedOrdinal=$preClickPredictedOrdinal logical_client=($clientX,$clientY) screen=($screenX,$screenY) heartbeat_before=$heartbeatBeforeOrdinal1Hover heartbeat_after=$(Get-ClientHeartbeatCount $clientLog)"
-            Write-Host "NPC_ORDINAL1_PRECLICK_GATE: selectedOrdinal=1 AND predictedOrdinal=1 AND program=13 AND target=21200 AND state=2; all checks passed"
+            Write-Host "NPC_ORDINAL1_PRECLICK_GATE: selectedOrdinal=1 AND predictedOrdinal=1 AND program=15 AND target=21230 AND state=2; all checks passed"
             $memoryMapSnapshot = Wait-LogLine $clientLog 'npc_process_memory_map_snapshot_end.*"phase"\s*:\s*"pre-ordinal1-click"' 0 15
             if (-not $memoryMapSnapshot) {
               throw "Pre-click VirtualQuery full memory map snapshot did not complete; no purchase click attempted"
@@ -4198,9 +4344,9 @@ jobs:
             Shot "npc-menu-ordinal1-hover-confirmed"
             $clientBeforeOrdinal1Click = Get-LogLineCount $clientLog
             $serverBeforeShopOpen = Get-LogLineCount $serverLog
-            $expectedShopRequestHex = "30d052ffff"
-            Write-Host "YBCS_NATIVE_SHOP_REQUEST_EXPECTED: entity=21200 action=-1 bytes=$expectedShopRequestHex"
-            Write-Host "NPC_ORDINAL1_CLICK_BEGIN label=购买武器 logical_client=($clientX,$clientY) screen=($screenX,$screenY) pre_click_selectedOrdinal=$preClickSelectedOrdinal pre_click_predictedOrdinal=$preClickPredictedOrdinal"
+            $expectedShopRequestHex = "30ee52ffff"
+            Write-Host "YBCS_NATIVE_SHOP_REQUEST_EXPECTED: entity=21230 action=-1 bytes=$expectedShopRequestHex"
+            Write-Host "NPC_ORDINAL1_CLICK_BEGIN label=购买消耗品 logical_client=($clientX,$clientY) screen=($screenX,$screenY) pre_click_selectedOrdinal=$preClickSelectedOrdinal pre_click_predictedOrdinal=$preClickPredictedOrdinal"
             Click-Screen $screenX $screenY
             Start-Sleep -Milliseconds 250
             Shot "npc-menu-ordinal1-after-click"
@@ -4211,14 +4357,14 @@ jobs:
             $clickHandlerEvent = $clickHandlerLine | ConvertFrom-Json -ErrorAction Stop
             $clickMenu = $clickHandlerEvent.value.menuObject
             $clickPoint = $clickMenu.point
-            if ([int]$clickMenu.fields.program -ne 13 -or
-                [int]$clickMenu.fields.target -ne 21200 -or
+            if ([int]$clickMenu.fields.program -ne 15 -or
+                [int]$clickMenu.fields.target -ne 21230 -or
                 [int]$clickMenu.fields.state -ne 2 -or
                 [int]$clickMenu.fields.selectedOrdinal -ne 1 -or
                 [int]$clickMenu.predictedOrdinal -ne 1 -or
                 [int]$clickPoint.x -ne $clientX -or
                 [int]$clickPoint.y -ne $clientY) {
-              throw "Native click-handler did not read program=13 target=21200 state=2 selectedOrdinal=1 predictedOrdinal=1 at the validated point"
+              throw "Native click-handler did not read program=15 target=21230 state=2 selectedOrdinal=1 predictedOrdinal=1 at the validated point"
             }
             Write-Host "NPC_ORDINAL1_CLICK_HANDLER_CONFIRMED selectedOrdinal=$($clickMenu.fields.selectedOrdinal) predictedOrdinal=$($clickMenu.predictedOrdinal) point=($($clickPoint.x),$($clickPoint.y))"
             $dispatchEnter = Wait-LogLine $clientLog 'npc_menu_dispatch_lifecycle.*"phase":\s*"enter".*"dispatchOrdinal":\s*1' $clientBeforeOrdinal1Click 8
@@ -4243,8 +4389,8 @@ jobs:
             if ([int]$packetValue.length -ne 5 -or
                 $null -eq $packetValue.packetHex -or
                 $packetValue.packetHex.Length -lt 10 -or
-                $packetValue.packetHex.Substring(0,10).ToLowerInvariant() -ne "30d052ffff") {
-              throw "Native 0x004A6FD0 arguments were not length=5 with packet prefix 30d052ffff: $packetDispatch"
+                $packetValue.packetHex.Substring(0,10).ToLowerInvariant() -ne "30ee52ffff") {
+              throw "Native 0x004A6FD0 arguments were not length=5 with packet prefix 30ee52ffff: $packetDispatch"
             }
             Write-Host "NPC_ORDINAL1_PACKET_DISPATCH_ENTRY: $packetDispatch"
             $copyBufferLine = Wait-LogLine $clientLog 'npc_native_copy_buffer_enter' $clientBeforeOrdinal1Click 8
@@ -4260,23 +4406,23 @@ jobs:
                 $copyReturnAddress -notmatch '^0x4[0-9a-f]{5}$' -or
                 $null -eq $copyBufferValue.sourcePreview -or
                 $copyBufferValue.sourcePreview.Length -lt 10 -or
-                $copyBufferValue.sourcePreview.Substring(0,10).ToLowerInvariant() -ne "30d052ffff") {
-              throw "Native copy function arguments did not match length=5 source=0x19fb8c game-code-return-address with packet 30d052ffff: $copyBufferLine"
+                $copyBufferValue.sourcePreview.Substring(0,10).ToLowerInvariant() -ne "30ee52ffff") {
+              throw "Native copy function arguments did not match length=5 source=0x19fb8c game-code-return-address with packet 30ee52ffff: $copyBufferLine"
             }
             Write-Host "NPC_ORDINAL1_COPY_BUFFER_ENTRY: $copyBufferLine"
             $nativeShopRequest = Wait-NativeShopRequest $clientBeforeOrdinal1Click 15 $expectedShopRequestHex
             if (-not $nativeShopRequest) {
-              throw "Client entered native packet dispatch but did not send native 0x30 request 30d052ffff for target 21200 action -1"
+              throw "Client entered native packet dispatch but did not send native 0x30 request 30ee52ffff for target 21230 action -1"
             }
             Write-Host "NATIVE_0x30_SHOP_REQUEST_CONFIRMED: $nativeShopRequest"
-            $shopOpened = Wait-LogLine $serverLog 'offline_shop_opened.*entity=21200.*program=13' $serverBeforeShopOpen 20
+            $shopOpened = Wait-LogLine $serverLog 'offline_shop_opened.*entity=21230.*program=15' $serverBeforeShopOpen 20
             if (-not $shopOpened) {
-              throw "Native 0x30 request was sent but server did not report offline_shop_opened for entity 21200 program 13"
+              throw "Native 0x30 request was sent but server did not report offline_shop_opened for entity 21230 program 15"
             }
-            if ($shopOpened -notmatch "shop_number=1" -or $shopOpened -notmatch "catalog_count=120") {
-              throw "Weapon shop opened with an unexpected shop_number or catalog_count: $shopOpened"
+            if ($shopOpened -notmatch "shop_number=3" -or $shopOpened -notmatch "catalog_count=105") {
+              throw "Medicine shop opened with an unexpected shop_number or catalog_count: $shopOpened"
             }
-            Write-Host "weapon shop opened: $shopOpened"
+            Write-Host "medicine shop opened: $shopOpened"
             Start-Sleep -Seconds 2
             Shot "shop-open"
             Shot "shop-before-purchase"
@@ -4292,92 +4438,48 @@ jobs:
               throw "Shop catalog scroll could not read valid client geometry"
             }
             $shopScrollX = $shopOriginX + [int][Math]::Round(764.0 * $shopClientWidth / 800.0)
-            $shopScrollTopArrowY = $shopOriginY + [int][Math]::Round(488.0 * $shopClientHeight / 600.0)
-            $weaponCellScreenX = $shopOriginX + [int][Math]::Round(514.0 * $shopClientWidth / 800.0)
-            $weaponCellScreenY = $shopOriginY + [int][Math]::Round(504.0 * $shopClientHeight / 600.0)
-            $catalogRegionLeft = $shopOriginX + [int][Math]::Round(480.0 * $shopClientWidth / 800.0)
-            $catalogRegionTop = $shopOriginY + [int][Math]::Round(480.0 * $shopClientHeight / 600.0)
-            $catalogRegionRight = $shopOriginX + [int][Math]::Round(750.0 * $shopClientWidth / 800.0)
-            $catalogRegionBottom = $shopOriginY + [int][Math]::Round(580.0 * $shopClientHeight / 600.0)
-            Write-Host "YBCS_SHOP_CATALOG_EXPECTED: program=13 shop_number=1 catalog_count=120 item=1 name=匕首 index=0 price=80"
-            Write-Host "YBCS_SHOP_CATALOG_SOURCE_VERIFIED: source probe confirmed item_id=1 name=匕首 price=80 at catalog index=0"
-            Write-Host "YBCS_SHOP_SCROLL_TOP_BEGIN: method=real-ui-up-arrow screenshot_each_click=True max_clicks=40"
-            function Get-ShopCatalogRegionDiff(
-              [string]$beforePath,
-              [string]$afterPath,
-              [int]$left,
-              [int]$top,
-              [int]$right,
-              [int]$bottom
-            ) {
-              $before = [System.Drawing.Bitmap]::FromFile($beforePath)
-              $after = [System.Drawing.Bitmap]::FromFile($afterPath)
-              try {
-                if ($before.Width -ne $after.Width -or $before.Height -ne $after.Height) {
-                  return [pscustomobject]@{ changed = $true; changedPixels = -1 }
-                }
-                $changedPixels = 0
-                $x0 = [Math]::Max(0, $left)
-                $y0 = [Math]::Max(0, $top)
-                $x1 = [Math]::Min($before.Width - 1, $right)
-                $y1 = [Math]::Min($before.Height - 1, $bottom)
-                for ($y = $y0; $y -le $y1; $y += 2) {
-                  for ($x = $x0; $x -le $x1; $x += 2) {
-                    $a = $before.GetPixel($x, $y)
-                    $b = $after.GetPixel($x, $y)
-                    $delta = [Math]::Abs($a.R - $b.R) + [Math]::Abs($a.G - $b.G) + [Math]::Abs($a.B - $b.B)
-                    if ($delta -ge 36) { $changedPixels++ }
-                  }
-                }
-                return [pscustomobject]@{
-                  changed = ($changedPixels -ge 10)
-                  changedPixels = $changedPixels
-                }
-              } finally {
-                $before.Dispose()
-                $after.Dispose()
-              }
-            }
-            $shopScrollChangedAny = $false
-            $shopScrollStableCount = 0
-            $shopScrollClicks = 0
-            $previousScrollShot = Join-Path $shotDir "shop-catalog-bottom-before-scroll.png"
-            $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-            for ($step = 1; $step -le 40; $step++) {
-              if (-not [WinInput]::SetCursorPos($shopScrollX, $shopScrollTopArrowY)) {
-                throw "Could not position cursor on the catalog scrollbar up-arrow"
-              }
+            $shopScrollBottomY = $shopOriginY + [int][Math]::Round(547.0 * $shopClientHeight / 600.0)
+            $shopScrollTopY = $shopOriginY + [int][Math]::Round(512.0 * $shopClientHeight / 600.0)
+            $redCellScreenX = $shopOriginX + [int][Math]::Round(514.0 * $shopClientWidth / 800.0)
+            $redCellScreenY = $shopOriginY + [int][Math]::Round(504.0 * $shopClientHeight / 600.0)
+            $blueCellScreenX = $shopOriginX + [int][Math]::Round(735.0 * $shopClientWidth / 800.0)
+            $blueCellScreenY = $shopOriginY + [int][Math]::Round(504.0 * $shopClientHeight / 600.0)
+            Write-Host "YBCS_SHOP_CATALOG_TARGETS: catalog_count=105 shop_number=3 red_item=4001 index=0 client=(514,504) screen=($redCellScreenX,$redCellScreenY) blue_item=4006 index=5 client=(735,504) screen=($blueCellScreenX,$blueCellScreenY)"
+            Write-Host "YBCS_SHOP_SCROLL_THUMB_DRAG_BEGIN: screen=($shopScrollX,$shopScrollBottomY) target=($shopScrollX,$shopScrollTopY) source=verified Run-43 medicine-shop route"
+            if (-not [WinInput]::SetCursorPos($shopScrollX, $shopScrollBottomY)) { throw "Could not position cursor on the shop catalog scrollbar thumb" }
+            $shopScrollMouseDown = $false
+            try {
               [WinInput]::mouse_event([WinInput]::LEFTDOWN, 0, 0, 0, [UIntPtr]::Zero)
-              Start-Sleep -Milliseconds 40
-              [WinInput]::mouse_event([WinInput]::LEFTUP, 0, 0, 0, [UIntPtr]::Zero)
-              $shopScrollClicks++
-              Start-Sleep -Milliseconds 180
-              if (-not [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40)) {
-                throw "Could not move cursor away before catalog scroll screenshot"
+              $shopScrollMouseDown = $true
+              for ($step = 1; $step -le 5; $step++) {
+                $dragY = $shopScrollBottomY + [int][Math]::Round(($shopScrollTopY - $shopScrollBottomY) * $step / 5.0)
+                if (-not [WinInput]::SetCursorPos($shopScrollX, $dragY)) { throw "Could not move the catalog scrollbar thumb during verified drag" }
+                Start-Sleep -Milliseconds 60
               }
-              Start-Sleep -Milliseconds 80
-              Shot "shop-catalog-scroll-$step"
-              $currentScrollShot = Join-Path $shotDir "shop-catalog-scroll-$step.png"
-              $diff = Get-ShopCatalogRegionDiff $previousScrollShot $currentScrollShot $catalogRegionLeft $catalogRegionTop $catalogRegionRight $catalogRegionBottom
-              Write-Host "YBCS_SHOP_SCROLL_STEP: click=$step content_changed=$($diff.changed) changed_pixels=$($diff.changedPixels)"
-              if ($diff.changed) {
-                $shopScrollChangedAny = $true
-                $shopScrollStableCount = 0
-              } elseif ($shopScrollChangedAny) {
-                $shopScrollStableCount++
-              }
-              $previousScrollShot = $currentScrollShot
-              if ($shopScrollChangedAny -and $shopScrollStableCount -ge 2) { break }
-              if ($step -ge 3 -and -not $shopScrollChangedAny) {
-                throw "Catalog up-arrow clicks produced no content movement; product click prohibited"
-              }
-            }
-            if (-not $shopScrollChangedAny -or $shopScrollStableCount -lt 2) {
-              throw "Catalog did not reach a stable top position within 40 verified up-arrow clicks; product click prohibited"
-            }
+            } finally { if ($shopScrollMouseDown) { [WinInput]::mouse_event([WinInput]::LEFTUP, 0, 0, 0, [UIntPtr]::Zero) } }
+            Start-Sleep -Milliseconds 750
             Shot "shop-catalog-top"
-            Write-Host "YBCS_SHOP_CATALOG_TOP_CONFIRMED: method=up-arrow-content-stable clicks=$shopScrollClicks stable_no_change=$shopScrollStableCount region=($catalogRegionLeft,$catalogRegionTop)-($catalogRegionRight,$catalogRegionBottom)"
-            if (-not [WinInput]::SetCursorPos($weaponCellScreenX, $weaponCellScreenY)) {
+            $shopTopBitmap = [System.Drawing.Bitmap]::FromFile((Join-Path $shotDir "shop-catalog-top.png"))
+            $shopThumbBestY = -1
+            $shopThumbBestScore = 0
+            try {
+              $shopProbeStartY = $shopOriginY + [int][Math]::Round(500.0 * $shopClientHeight / 600.0)
+              $shopProbeEndY = $shopOriginY + [int][Math]::Round(555.0 * $shopClientHeight / 600.0)
+              for ($probeY = $shopProbeStartY; $probeY -le $shopProbeEndY; $probeY++) {
+                $score = 0
+                for ($probeX = $shopScrollX - 2; $probeX -le $shopScrollX + 2; $probeX++) {
+                  if ($probeX -lt 0 -or $probeY -lt 0 -or $probeX -ge $shopTopBitmap.Width -or $probeY -ge $shopTopBitmap.Height) { continue }
+                  $pixel = $shopTopBitmap.GetPixel($probeX, $probeY)
+                  if ($pixel.R -ge 245 -and $pixel.G -ge 240 -and $pixel.B -ge 210) { $score++ }
+                }
+                if ($score -gt $shopThumbBestScore) { $shopThumbBestScore=$score; $shopThumbBestY=$probeY }
+              }
+            } finally { $shopTopBitmap.Dispose() }
+            $shopTopLimitY = $shopOriginY + [int][Math]::Round(530.0 * $shopClientHeight / 600.0)
+            Write-Host "YBCS_SHOP_SCROLL_THUMB_VERIFY: best_y=$shopThumbBestY bright_pixel_score=$shopThumbBestScore top_limit=$shopTopLimitY"
+            if ($shopThumbBestY -lt 0 -or $shopThumbBestY -ge $shopTopLimitY -or $shopThumbBestScore -lt 2) { throw "Shop catalog scrollbar top position was not visually confirmed; no product cell was clicked" }
+            Write-Host "YBCS_SHOP_CATALOG_TOP_CONFIRMED: catalog_count=105 shop_number=3 first_item=4001 index=0 sixth_item=4006 index=5"
+            if (-not [WinInput]::SetCursorPos($redCellScreenX, $redCellScreenY)) {
               throw "Could not hover the source-verified weapon catalog index-0 cell"
             }
             Start-Sleep -Milliseconds 900
@@ -4386,67 +4488,53 @@ jobs:
               throw "Could not move cursor away after item-1 hover screenshot"
             }
             Start-Sleep -Milliseconds 250
-                        $weaponBefore = Get-LogLineCount $serverLog
-            $clientBeforeWeaponPurchase = Get-LogLineCount $clientLog
-            Write-Host "YBCS_SHOP_WEAPON_CLICK_BEGIN: item=1 catalog_index=0 logical_client=(514,504) screen=($weaponCellScreenX,$weaponCellScreenY) clicks=1 method=short-left-click"
+            $redBefore = Get-LogLineCount $serverLog
+            $clientBeforeRedClick = Get-LogLineCount $clientLog
+            Write-Host "YBCS_SHOP_RED_CLICK_BEGIN: item=4001 catalog_index=0 logical_client=(514,504) screen=($redCellScreenX,$redCellScreenY) clicks=1 method=short-left-click"
             Focus-Game
-            if (-not [WinInput]::ClickLogicalClientShort($gameHwnd, 514, 504)) {
-              throw "Short logical-client weapon click failed at (514,504); no further game input sent"
-            }
-            Write-Host "YBCS_SHOP_WEAPON_SHORT_CLICK_SENT: item=1 logical_client=(514,504) press_ms=40 button_events=LEFTDOWN,LEFTUP clicks=1"
-            Shot "shop-weapon-after-click-immediate"
-            Start-Sleep -Milliseconds 250
-            Shot "shop-weapon-after-click-250ms"
-            Start-Sleep -Milliseconds 750
-            Shot "shop-weapon-after-click"
-            Start-Sleep -Seconds 2
-            Shot "shop-weapon-after-click-3s"
+            if (-not [WinInput]::ClickLogicalClientShort($gameHwnd, 514, 504)) { throw "Short logical-client red-potion click failed at (514,504); no further game input sent" }
+            Write-Host "YBCS_SHOP_RED_SHORT_CLICK_SENT: item=4001 logical_client=(514,504) press_ms=40 button_events=LEFTDOWN,LEFTUP clicks=1"
+            Shot "shop-red-after-click-immediate"
             $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-            $cursorMoved = [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40)
-            if (-not $cursorMoved) { throw "Could not move cursor away after the weapon item click; no further game input sent" }
-            $nativeWeaponSelection = Wait-NativeWeaponPurchaseSelection $clientBeforeWeaponPurchase 5
-            if (-not $nativeWeaponSelection) {
-              Shot "shop-weapon-after-click-no-native-selection"
-              throw "No native Buy 49/03 purchase-selection request (length=14/16, record_id=1) within 5 seconds after one 40ms UI click; no further game input sent"
+            if (-not [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40)) { throw "Could not move cursor away after red-potion click" }
+            Start-Sleep -Milliseconds 250
+            Shot "shop-red-after-click-250ms"
+            Start-Sleep -Milliseconds 750
+            Shot "shop-red-after-click-1s"
+            Start-Sleep -Seconds 2
+            Shot "shop-red-after-click-3s"
+            Shot "shop-red-quantity-dialog"
+            Write-FocusDiagnostic "after-red-item-4001-click"
+            $clientRowsAfterRed = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
+            $shopClickTraceRows = New-Object System.Collections.Generic.List[string]
+            $shopQuantityTraceRows = New-Object System.Collections.Generic.List[string]
+            for ($j = $clientBeforeRedClick; $j -lt $clientRowsAfterRed.Count; $j++) {
+              try {
+                $traceEvent = $clientRowsAfterRed[$j] | ConvertFrom-Json -ErrorAction Stop
+                if ($traceEvent.kind -eq "shop_click_decision") { $shopClickTraceRows.Add([string]$clientRowsAfterRed[$j]) }
+                elseif ($traceEvent.kind -eq "shop_quantity_state") { $shopQuantityTraceRows.Add([string]$clientRowsAfterRed[$j]) }
+              } catch {}
             }
-            Write-Host "YBCS_SHOP_WEAPON_NATIVE_SELECTION_CONFIRMED: length=$($nativeWeaponSelection.length) packet=$($nativeWeaponSelection.packetHex) returnAddress=$($nativeWeaponSelection.returnAddress) record_id=$($nativeWeaponSelection.recordId) selected_count=$($nativeWeaponSelection.selectedCount)"
-            $weaponPurchaseEvent = Wait-ShopPurchase 1 $weaponBefore
-            $weaponResultScreenshot = "shop-weapon-after-click.png"
-            if (-not $weaponPurchaseEvent) {
-              Shot "shop-weapon-after-click-no-purchase-event"
-              throw "Native Buy 49/03 purchase-selection request was observed, but no accepted or rejected offline_shop_purchase event arrived within 10 seconds; no purchase success may be inferred"
-            }
-            if ($weaponPurchaseEvent -notmatch "accepted=True") {
-              Write-Host "YBCS_SHOP_WEAPON_PURCHASE_REJECTED: $weaponPurchaseEvent"
-              Shot "shop-weapon-after-click"
-              throw "Weapon purchase was rejected by the service; no further game input sent"
-            }
-            Write-Host "YBCS_SHOP_WEAPON_PURCHASE_EVENT: $weaponPurchaseEvent"
-            $priceMatch = [regex]::Match($weaponPurchaseEvent, 'price=(\d+)')
-            $moneyMatch = [regex]::Match($weaponPurchaseEvent, 'player_money=(\d+)->(\d+)')
-            $countMatch = [regex]::Match($weaponPurchaseEvent, 'selected_count=([^;]+)')
-            if (-not $priceMatch.Success -or -not $moneyMatch.Success -or -not $countMatch.Success) {
-              throw "Accepted weapon purchase event did not expose price, money delta, and selected_count: $weaponPurchaseEvent"
-            }
-            $purchasePrice = [int]$priceMatch.Groups[1].Value
-            $moneyBefore = [long]$moneyMatch.Groups[1].Value
-            $moneyAfter = [long]$moneyMatch.Groups[2].Value
-            $selectedCountText = [string]$countMatch.Groups[1].Value
-            if ($purchasePrice -ne 80 -or
-                $moneyAfter -ne ($moneyBefore - 80) -or
-                ($selectedCountText -ne "None" -and $selectedCountText -ne "1")) {
-              throw "Weapon purchase was accepted but did not prove exactly one ID 1 item at 80 gold: $weaponPurchaseEvent"
-            }
-            Write-Host "YBCS_SHOP_WEAPON_PURCHASE_CONFIRMED: item=1 quantity=1 price=$purchasePrice player_money=$moneyBefore->$moneyAfter selected_count=$selectedCountText"
-            $weaponResultScreenshot = "shop-weapon-inventory-after-purchase.png"
-            Shot "shop-weapon-inventory-after-purchase"
-            Write-FocusDiagnostic "after-weapon-item-1-click"
-            Write-Host "YBCS_SHOP_WEAPON_CLICK_OBSERVATION: product_clicks=1 screenshot=$weaponResultScreenshot quantity_confirmation_sent=False further_game_input_sent=False"
-            Write-Host "YBCS_SHOP_WEAPON_TEST_COMPLETE: item=1 expected_price=80 catalog_index=0"
+            Write-Host "YBCS_SHOP_RUNTIME_EVIDENCE_COUNTS: click_decision=$($shopClickTraceRows.Count) quantity_state=$($shopQuantityTraceRows.Count)"
+            foreach ($traceRow in $shopClickTraceRows) { Write-Host "YBCS_SHOP_CLICK_DECISION_EVIDENCE: $traceRow" }
+            foreach ($traceRow in $shopQuantityTraceRows) { Write-Host "YBCS_SHOP_QUANTITY_STATE_EVIDENCE: $traceRow" }
+            if ($shopClickTraceRows.Count -eq 0) { Write-Host "YBCS_SHOP_CLICK_DECISION_EVIDENCE_MISSING: no shop_click_decision event after the red click" }
+            if ($shopQuantityTraceRows.Count -eq 0) { Write-Host "YBCS_SHOP_QUANTITY_STATE_EVIDENCE_MISSING: no shop_quantity_state event after the red click" }
+            $visualEvidence = [ordered]@{kind="shop_quantity_state";value=[ordered]@{
+              stage="runner_screenshot_observation";source="runner-screenshot";item_id=4001;catalog_index=0
+              click_count=1;quantity_input_sent=$false;confirmation_input_sent=$false;visible=$null
+              screenshots=@("shop-red-after-click-immediate.png","shop-red-after-click-250ms.png","shop-red-after-click-1s.png","shop-red-after-click-3s.png","shop-red-quantity-dialog.png")
+            }}
+            $visualEvidence | ConvertTo-Json -Compress -Depth 6 | Set-Content -LiteralPath (Join-Path $ws "shop-quantity-visual.jsonl") -Encoding utf8
+            $unexpectedRedPurchase = Wait-LogLine $serverLog 'offline_shop_purchase.*record=\(4001,\s*30,\s*0,\s*0,\s*0\)' $redBefore 3
+            if ($unexpectedRedPurchase) { throw "Red item click produced a purchase event before quantity confirmation: $unexpectedRedPurchase" }
+            Write-Host "YBCS_SHOP_RED_NO_PURCHASE_EVENT: no offline_shop_purchase for item=4001 after the single selection click"
+            Write-Host "YBCS_SHOP_RED_ITEM_CLICK: catalog_index=0 item=4001 logical_client=(514,504) quantity_input_sent=False confirmation_input_sent=False further_game_input_sent=False"
+            Write-Host "YBCS_SHOP_DIAGNOSTIC_COMPLETE: one_red_click=True purchase_not_requested=True"
           }
           catch {
             $failureReason = $_.Exception.Message
-            Write-Host "WEAPON SHOP TEST STOPPED: $failureReason"
+            Write-Host "MEDICINE SHOP TEST STOPPED: $failureReason"
             Shot "automation-stopped"
           }
           try { Write-StartupCrashEvidence $launchStartUtc }
@@ -4481,6 +4569,7 @@ jobs:
           Copy-Item game-stderr.log collected/ -ErrorAction SilentlyContinue
           Copy-Item startup-crash-diagnostics.log collected/ -ErrorAction SilentlyContinue
           Copy-Item navigation-diagnostics.log collected/ -ErrorAction SilentlyContinue
+          Copy-Item shop-quantity-visual.jsonl collected/ -ErrorAction SilentlyContinue
           Copy-Item ybcs\runtime\ybcs-gui-client.pid.json collected/ -ErrorAction SilentlyContinue
           Copy-Item npc-window-tree.txt collected/ -ErrorAction SilentlyContinue
           Copy-Item ybcs\runtime\logs\* collected/ -Recurse -ErrorAction SilentlyContinue
