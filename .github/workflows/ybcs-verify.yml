@@ -2232,11 +2232,11 @@ jobs:
 
           old_legacy_scene_hook = b'''  hookLegacySceneInput();
             installOfflineHeldMouseContinuationPolicy();
-            '''
+          '''
           new_legacy_scene_hook = b'''  hookLegacySceneInput();
             ybcsNavDiagStartAfterLegacyHooks();
             installOfflineHeldMouseContinuationPolicy();
-            '''
+          '''
           if patched.count(old_legacy_scene_hook) != 1:
               raise SystemExit(f"legacy scene hook timing anchor count must be 1, got {patched.count(old_legacy_scene_hook)}")
           patched = patched.replace(old_legacy_scene_hook, new_legacy_scene_hook, 1)
