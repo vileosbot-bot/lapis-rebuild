@@ -521,8 +521,8 @@
       "branch": "feat/agent-ops-budget-source-20261122",
       "base_sha": "52742b7179fa9da0da24025a2549237d264eed29",
       "head_sha": null,
-      "status": "created",
-      "progress": "已登记；总管复述核对后放行，待派活。",
+      "status": "dispatched",
+      "progress": "已派活；工人实施中。",
       "next_action": "工人按简报实施 --source 必填化并记 CP0–CP3。",
       "deadline": "2026-11-23T12:00:00+08:00",
       "risk_level": "low",
@@ -545,7 +545,16 @@
       "pull_request_url": null,
       "legacy_import": false,
       "acceptance_status": "pending",
-      "checkpoints": {},
+      "checkpoints": {
+        "CP0": {
+          "completed": true,
+          "conversation_url": "https://chatgpt.com/c/6b02a88a-58ac-83e8-9b93-29202a63ac71",
+          "branch": "feat/agent-ops-budget-source-20261122",
+          "base_sha": "52742b7179fa9da0da24025a2549237d264eed29",
+          "head_sha_at_checkpoint": "52742b7179fa9da0da24025a2549237d264eed29",
+          "source": "总管在复述核对后放行；分支与 SHA 由 GitHub 实际读回。"
+        }
+      },
       "notes": [
         "Day 4 全链路联调任务；预算小档 15 轮/60 分钟。",
         "head_sha_verified_at=null：尚未派活，尚无可验证分支 SHA。"
