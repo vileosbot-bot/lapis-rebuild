@@ -522,8 +522,8 @@
       "base_sha": "52742b7179fa9da0da24025a2549237d264eed29",
       "head_sha": "3b2f9f3ece907ee0ea37e763e1fc60c531091a61",
       "status": "dispatched",
-      "progress": "代码已提交；工人未运行本地 CLI/self-test，待总管本地验证。",
-      "next_action": "总管在临时登记表副本运行缺失/显式 --source CLI 验证及 task_registry.py self-test；随后盲审。",
+      "progress": "PR #32 已创建并保持 open、未合并；送审时 CI 为 pending，待总管本地验证与盲审。",
+      "next_action": "总管本地执行临时登记表 CLI 验证和 task_registry.py self-test；盲审 PR #32，并独立核对最终 CI。",
       "deadline": "2026-11-23T12:00:00+08:00",
       "risk_level": "low",
       "approval_required": true,
@@ -542,7 +542,7 @@
       ],
       "depends_on": [],
       "blocked_by": [],
-      "pull_request_url": null,
+      "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/32",
       "legacy_import": false,
       "acceptance_status": "pending",
       "checkpoints": {
@@ -616,6 +616,32 @@
             "docs/agent-ops/budget-rules.md": "Unchanged: it describes the P5 ledger as a general baseline/source; it does not state that --source has a default."
           },
           "next_action": "Total manager to run the delegated local CLI and self-test checks, then perform blind review."
+        },
+        "CP3": {
+          "completed": true,
+          "pull_request_number": 32,
+          "pull_request_url": "https://github.com/vileosbot-bot/lapis-rebuild/pull/32",
+          "head_branch": "feat/agent-ops-budget-source-20261122",
+          "head_sha": "34534f10cc76d2bdb1a6ed9c7fd84c47690151fd",
+          "base_branch": "main",
+          "base_sha": "52742b7179fa9da0da24025a2549237d264eed29",
+          "pr_state": "open",
+          "merged": false,
+          "ci_status": "pending",
+          "ci_head_sha": "34534f10cc76d2bdb1a6ed9c7fd84c47690151fd",
+          "workflow_runs": [
+            {
+              "id": 45004958166,
+              "run_number": 108,
+              "name": "Web and parser validation",
+              "status": "in_progress",
+              "conclusion": null,
+              "jobs_url": "https://api.github.com/repos/vileosbot-bot/lapis-rebuild/actions/runs/45004958166/jobs",
+              "logs_url": "https://api.github.com/repos/vileosbot-bot/lapis-rebuild/actions/runs/45004958166/logs"
+            }
+          ],
+          "check_runs": [],
+          "ci_snapshot_note": "送审时 Run #108 正在运行，combined status 未返回已完成状态；按快照口径记录 pending。最终 CI 由总管验收时独立核对，不回填本快照。"
         }
       },
       "notes": [
