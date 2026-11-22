@@ -553,6 +553,25 @@
           "base_sha": "52742b7179fa9da0da24025a2549237d264eed29",
           "head_sha_at_checkpoint": "52742b7179fa9da0da24025a2549237d264eed29",
           "source": "总管在复述核对后放行；分支与 SHA 由 GitHub 实际读回。"
+        },
+        "CP1": {
+          "completed": true,
+          "recorded_before_artifact_changes": true,
+          "authorization_scope": [
+            "只改 tools/agent_ops/budget_tracker.py（--source 改必填）与 docs/agent-ops/task-registry.yml（D4-1 登记与检查点）；docstring 与 budget-rules.md 只在误述默认值时才改措辞。",
+            "不写 main、不合并 PR；不改游戏逻辑、测试用例、测试数据、workflow、门禁脚本、备份脚本。",
+            "不动投资系统仓库、agent-memory 记忆库和 04:00 备份配置；不改 P1-4 已合并的成本记录。",
+            "并行活跃上限保持 10；不迁 Docker、不挂 VPS、不购买新平台。"
+          ],
+          "plan_steps": [
+            "把 budget_tracker.py 第 227 行 --source 改为必填，去掉默认值。",
+            "检查 docstring 与 budget-rules.md 是否误述默认值，误述才改。",
+            "全仓 grep 确认没有调用方依赖默认值；有则停下报告。",
+            "临时登记表副本上跑 CLI 验证：缺 --source 被拒、显式 --source 成功存入。",
+            "task_registry.py self-test 全过；记 CP2、开 PR、记 CP3，只开 PR 不合并。"
+          ],
+          "release_status": "granted",
+          "release_source": "总管在复述核对后放行。"
         }
       },
       "notes": [
