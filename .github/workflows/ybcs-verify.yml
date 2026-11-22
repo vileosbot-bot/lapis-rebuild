@@ -2210,8 +2210,9 @@ jobs:
             function u32(p,o){try{return ptr(p).add(o).readU32();}catch(_){return null;}}
             function s32(p,o){try{return ptr(p).add(o).readS32();}catch(_){return null;}}
             function ptrAt(p,o){try{const v=ptr(p).add(o).readPointer();return v.isNull()?null:v.toString();}catch(_){return null;}}
+            function words16(p,n){const out=[];for(let i=0;i<n;i++){try{out.push(ptr(p).add(i*2).readU16());}catch(_){out.push(null);}}return out;}
             function ec(c,stage,x){if(c)emit("shop_click_decision",Object.assign({trace_id:c.traceId,stage:stage,timestamp_unix:Date.now()/1000,thread:c.thread,dialog_pointer:c.dialogPointer||null,grid_position:c.gridPosition||null,item_id:c.itemId===undefined?null:c.itemId,action:"buy",accepted:null,reason:null},x||{}));}
-            function eq(c,stage,x){if(c)emit("shop_quantity_state",Object.assign({trace_id:c.traceId,stage:stage,timestamp_unix:Date.now()/1000,thread:c.thread,dialog_id:0x1aa,resource:"dlg\\\\HowMany.Tdg",exists_before:c.existsBefore===undefined?null:c.existsBefore,status_field_e0:c.statusField===undefined?null:c.statusField,gate_rejected:c.gateRejected===undefined?null:c.gateRejected,created_new:c.createdNew===undefined?null:c.createdNew,resolved:c.resolved===undefined?null:c.resolved,dialog_pointer:c.dialogPointer||null,mode:6,data_applied:c.dataApplied===undefined?null:c.dataApplied,visible:null,reason:c.reason||null},x||{}));}
+            function eq(c,stage,x){if(c)emit("shop_quantity_state",Object.assign({trace_id:c.traceId,stage:stage,timestamp_unix:Date.now()/1000,thread:c.thread,dialog_id:0x1aa,item_id:c.itemId===undefined?null:c.itemId,catalog_index:c.catalogIndex===undefined?null:c.catalogIndex,word1:c.word1===undefined?null:c.word1,resource:"dlg\\\\HowMany.Tdg",exists_before:c.existsBefore===undefined?null:c.existsBefore,status_field_e0:c.statusField===undefined?null:c.statusField,gate_rejected:c.gateRejected===undefined?null:c.gateRejected,created_new:c.createdNew===undefined?null:c.createdNew,resolved:c.resolved===undefined?null:c.resolved,dialog_pointer:c.dialogPointer||null,mode:6,data_applied:c.dataApplied===undefined?null:c.dataApplied,visible:null,reason:c.reason||null},x||{}));}
             function hook(name,address,cb){try{attachOnce("shop-runtime:"+name,ptr(address),cb);installed.push({name:name,address:ptr(address).toString()});}catch(e){errors.push({name:name,address:ptr(address).toString(),error:String(e)});}}
             hook("grid-hit-test",0x00463420,{onEnter(){
               const k=key(),d=this.context.ecx;
@@ -2329,19 +2330,31 @@ jobs:
             hook("new-dialog-create",0x00417E37,{onEnter(){const c=quantities[key()];if(c){c.creationPathEntered=true;eq(c,"new_dialog_create_enter",{allocation_size:0x110,creation_path_entered:true,resource:"dlg\\\\HowMany.Tdg"});}}});
             hook("new-dialog-register",0x00418406,{onEnter(){const c=quantities[key()];if(c){c.createdNew=true;c.createdDialogPointer=this.context.eax.toString();eq(c,"new_dialog_register",{created_new:true,eax_new_pointer:c.createdDialogPointer,edi_before_instruction:this.context.edi.toString()});}}});
             hook("quantity-data-apply",0x0043F0B0,{onEnter(){
-              const k=key(),c=quantities[k];if(!c||c.itemId!==4001)return;
+              const k=key(),c=quantities[k];if(!c||(c.itemId!==4001&&c.itemId!==4006))return;
               const d=this.context.ecx;this.shopKey=k;c.dataDialogPointer=d.toString();
+              const dataPointer=ptrAt(d,0xfc);
+              const dataWords=dataPointer?words16(ptr(dataPointer),16):[];
+              const dialogWords=words16(d.add(0x100),16);
               eq(c,"data_apply_enter",{
                 data_dialog_pointer:c.dataDialogPointer,mode_field_100:u32(d,0x100),
-                data_pointer_fc:ptrAt(d,0xfc),item_id:c.itemId,word1:c.word1,
+                data_pointer_fc:dataPointer,data_words_u16:dataWords,dialog_words_u16:dialogWords,
+                item_id:c.itemId,word1:c.word1,quantity_source_word1:c.word1,
                 expected_mode:6,visible:null
               });
             },onLeave(r){
               const c=this.shopKey?quantities[this.shopKey]:null;
-              if(c&&c.itemId===4001){c.dataApplied=true;eq(c,"data_apply_return",{
-                data_applied:true,data_dialog_pointer:c.dataDialogPointer,
-                return_value:r.toString(),visible:null
-              });}
+              if(c&&(c.itemId===4001||c.itemId===4006)){
+                c.dataApplied=true;
+                const d=ptr(c.dataDialogPointer);
+                const dataPointer=ptrAt(d,0xfc);
+                const dataWords=dataPointer?words16(ptr(dataPointer),16):[];
+                const dialogWords=words16(d.add(0x100),16);
+                eq(c,"data_apply_return",{
+                  data_applied:true,data_dialog_pointer:c.dataDialogPointer,
+                  data_pointer_fc:dataPointer,data_words_u16:dataWords,dialog_words_u16:dialogWords,
+                  item_id:c.itemId,word1:c.word1,return_value:r.toString(),visible:null
+                });
+              }
             }});
             const requiredHooks=[
               "grid-hit-test","grid-hit-instruction","purchase-entry","item-metadata-call",
@@ -2543,8 +2556,42 @@ jobs:
               raise SystemExit(f"process handle cleanup anchor count must be 1, got {patched.count(old_close)}")
           patched = patched.replace(old_close, new_close, 1)
 
+          old_window_globals = b"let windowActivated = false;\n"
+          new_window_globals = b"let windowActivated = false;\nlet ybcsWindowOwnerCandidateScore = -Infinity;\nlet ybcsWindowApiEventCount = 0;\nlet ybcsCreateWindowEventCount = 0;\nlet windowedGeometryNormalizationDepth = 0;\nlet windowedBackBufferPresentLastAt = 0;\n"
+          if patched.count(old_window_globals) != 1:
+              raise SystemExit(f"window global anchor count must be 1, got {patched.count(old_window_globals)}")
+          patched = patched.replace(old_window_globals, new_window_globals, 1)
+          old_window_helper = b"function readWindowClass(hwnd) {"
+          new_window_helper = "function ybcsWindowApiMetrics(hwnd) {\n  try {\n    const getClientAddress=findUser32Export(\"GetClientRect\"),getWindowAddress=findUser32Export(\"GetWindowRect\");\n    if(getClientAddress===null||getWindowAddress===null)return null;\n    const getClient=new NativeFunction(getClientAddress,\"bool\",[\"pointer\",\"pointer\"]);\n    const getWindow=new NativeFunction(getWindowAddress,\"bool\",[\"pointer\",\"pointer\"]);\n    const client=Memory.alloc(16),window=Memory.alloc(16);\n    if(!getClient(hwnd,client)||!getWindow(hwnd,window))return null;\n    return {clientWidth:client.add(8).readS32()-client.readS32(),clientHeight:client.add(12).readS32()-client.add(4).readS32(),\n      windowWidth:window.add(8).readS32()-window.readS32(),windowHeight:window.add(12).readS32()-window.add(4).readS32(),\n      clientRect:[client.readS32(),client.add(4).readS32(),client.add(8).readS32(),client.add(12).readS32()],\n      windowRect:[window.readS32(),window.add(4).readS32(),window.add(8).readS32(),window.add(12).readS32()]};\n  } catch(_){return null;}\n}\nfunction ybcsWindowApiFrame(hwnd) {\n  try {\n    const address=findUser32Export(\"GetWindowLongA\");if(address===null)return {width:requestedWidth,height:requestedHeight};\n    const getStyle=new NativeFunction(address,\"int\",[\"pointer\",\"int\"]);\n    return windowFrameSize(desiredWindowStyle(getStyle(hwnd,GWL_STYLE)>>>0),normalizedGameInputExStyle(getStyle(hwnd,GWL_EXSTYLE)>>>0,true));\n  } catch(_){return {width:requestedWidth,height:requestedHeight};}\n}\nfunction ybcsWindowApiCaller(context,returnAddress) {\n  let caller=null,stack=[];\n  try{caller=returnAddress?DebugSymbol.fromAddress(returnAddress).toString():null;}catch(_){}\n  try{stack=Thread.backtrace(context,Backtracer.ACCURATE).slice(0,8).map(function(a){try{return DebugSymbol.fromAddress(a).toString();}catch(_){return a.toString();}});}catch(_){}\n  return {caller:caller,stack:stack};\n}\nfunction ybcsWindowOwnerConsider(hwnd,details) {\n  if(hwnd===null||hwnd.isNull())return false;\n  try {\n    const pidAddress=findUser32Export(\"GetWindowThreadProcessId\"),parentAddress=findUser32Export(\"GetParent\"),styleAddress=findUser32Export(\"GetWindowLongA\");\n    if(pidAddress===null||parentAddress===null||styleAddress===null)return false;\n    const getPid=new NativeFunction(pidAddress,\"uint32\",[\"pointer\",\"pointer\"]),getParent=new NativeFunction(parentAddress,\"pointer\",[\"pointer\"]);\n    const getStyle=new NativeFunction(styleAddress,\"int\",[\"pointer\",\"int\"]);\n    const processId=Memory.alloc(4);getPid(hwnd,processId);const pid=processId.readU32(),parent=getParent(hwnd),style=getStyle(hwnd,GWL_STYLE)>>>0,exStyle=getStyle(hwnd,GWL_EXSTYLE)>>>0;\n    if(pid!==Process.id||!parent.isNull()||(style&WS_CHILD)!==0||(exStyle&0x80)!==0)return false;\n    const metrics=ybcsWindowApiMetrics(hwnd),width=metrics&&metrics.clientWidth>0?metrics.clientWidth:Number(details.width||0);\n    const height=metrics&&metrics.clientHeight>0?metrics.clientHeight:Number(details.height||0);\n    const distance=Math.abs(width-requestedWidth)+Math.abs(height-requestedHeight),sizeMatch=distance<=128;\n    const className=String(details.className||readWindowClass(hwnd)||\"\"),title=String(details.title||\"\");\n    if(!sizeMatch&&!/Afx|NeoDark/i.test(className)&&title.length===0)return false;\n    if(/^#32770$/.test(className))return false;\n    const score=(sizeMatch?100000:0)+(/Afx|NeoDark/i.test(className)?10000:0)+(title.length>0?1000:0)-distance;\n    if(score<=ybcsWindowOwnerCandidateScore)return samePointer(hwnd,cooperativeWindow);\n    const previous=cooperativeWindow.isNull()?null:cooperativeWindow.toString();\n    cooperativeWindow=hwnd;ybcsWindowOwnerCandidateScore=score;windowPositioned=false;windowActivated=false;\n    emit(\"windowed_owner_window_resolved\",{timestamp_unix:Date.now()/1000,window:hwnd.toString(),pid:Process.id,\n      reason:details.reason||\"top-level-window-candidate\",previous_window:previous,class_name:className,title:title,\n      client_width_before:width,client_height_before:height,requested_width:requestedWidth,requested_height:requestedHeight,\n      style:style,ex_style:exStyle,candidate_score:score});\n    return true;\n  }catch(error){emit(\"windowed_owner_window_candidate_error\",{timestamp_unix:Date.now()/1000,error:String(error)});return false;}\n}\nfunction installYbcsWindowApiTrace() {\n  if(!FORCE_WINDOW)return;\n  [\"CreateWindowExA\",\"CreateWindowExW\"].forEach(function(name){\n    const address=findUser32Export(name);if(address===null)return;\n    attachOnce(\"ybcs-window-api:\"+name,address,{\n      onEnter(args){\n        const wide=name.endsWith(\"W\");let className=\"\",title=\"\";\n        try{className=args[1].isNull()?\"\":(wide?args[1].readUtf16String():args[1].readCString());}catch(_){}\n        try{title=args[2].isNull()?\"\":(wide?args[2].readUtf16String():args[2].readCString());}catch(_){}\n        this.ybcsCreateWindow={api:name,exStyle:args[0].toUInt32(),className:className,title:title,style:args[3].toUInt32(),\n          x:args[4].toInt32(),y:args[5].toInt32(),width:args[6].toInt32(),height:args[7].toInt32(),parent:args[8],\n          caller:ybcsWindowApiCaller(this.context,this.returnAddress)};\n      },\n      onLeave(retval){\n        const item=this.ybcsCreateWindow;if(!item||retval.isNull())return;\n        const metrics=ybcsWindowApiMetrics(retval);\n        if(ybcsCreateWindowEventCount<40){ybcsCreateWindowEventCount++;emit(\"windowed_window_created\",{\n          sequence:ybcsCreateWindowEventCount,timestamp_unix:Date.now()/1000,api:item.api,window:retval.toString(),pid:Process.id,\n          class_name:item.className,title:item.title,style:item.style,ex_style:item.exStyle,x:item.x,y:item.y,width:item.width,height:item.height,\n          parent:item.parent.isNull()?null:item.parent.toString(),metrics:metrics,caller:item.caller.caller,stack:item.caller.stack});}\n        ybcsWindowOwnerConsider(retval,{reason:item.api,className:item.className,title:item.title,width:item.width,height:item.height});\n      }\n    });\n  });\n  const setPosAddress=findUser32Export(\"SetWindowPos\");\n  if(setPosAddress!==null)attachOnce(\"ybcs-window-api:SetWindowPos\",setPosAddress,{\n    onEnter(args){\n      const hwnd=args[0];if(cooperativeWindow.isNull())ybcsWindowOwnerConsider(hwnd,{reason:\"SetWindowPos-fallback\"});\n      if(cooperativeWindow.isNull()||!samePointer(hwnd,cooperativeWindow))return;\n      const flags=args[6].toUInt32(),requested={x:args[2].toInt32(),y:args[3].toInt32(),width:args[4].toInt32(),height:args[5].toInt32(),flags:flags};\n      const before=ybcsWindowApiMetrics(hwnd),frame=ybcsWindowApiFrame(hwnd);let forced=false;\n      if((flags&SWP_NOSIZE)===0){args[4]=ptr(frame.width);args[5]=ptr(frame.height);forced=true;}\n      this.ybcsWindowApi={api:\"SetWindowPos\",window:hwnd.toString(),requested:requested,\n        applied:{x:args[2].toInt32(),y:args[3].toInt32(),width:args[4].toInt32(),height:args[5].toInt32(),flags:flags},\n        forced:forced,before:before,caller:ybcsWindowApiCaller(this.context,this.returnAddress),internal:windowedGeometryNormalizationDepth>0};\n    },\n    onLeave(retval){const item=this.ybcsWindowApi;if(!item)return;item.after=ybcsWindowApiMetrics(ptr(item.window));item.result=retval.toInt32();item.timestamp_unix=Date.now()/1000;if(ybcsWindowApiEventCount<100){ybcsWindowApiEventCount++;item.sequence=ybcsWindowApiEventCount;emit(\"windowed_window_geometry_api\",item);}}\n  });\n  const moveAddress=findUser32Export(\"MoveWindow\");\n  if(moveAddress!==null)attachOnce(\"ybcs-window-api:MoveWindow\",moveAddress,{\n    onEnter(args){\n      const hwnd=args[0];if(cooperativeWindow.isNull())ybcsWindowOwnerConsider(hwnd,{reason:\"MoveWindow-fallback\"});\n      if(cooperativeWindow.isNull()||!samePointer(hwnd,cooperativeWindow))return;\n      const requested={x:args[1].toInt32(),y:args[2].toInt32(),width:args[3].toInt32(),height:args[4].toInt32(),repaint:args[5].toInt32()};\n      const before=ybcsWindowApiMetrics(hwnd),frame=ybcsWindowApiFrame(hwnd);args[3]=ptr(frame.width);args[4]=ptr(frame.height);\n      this.ybcsWindowApi={api:\"MoveWindow\",window:hwnd.toString(),requested:requested,\n        applied:{x:args[1].toInt32(),y:args[2].toInt32(),width:args[3].toInt32(),height:args[4].toInt32()},\n        forced:true,before:before,caller:ybcsWindowApiCaller(this.context,this.returnAddress),internal:windowedGeometryNormalizationDepth>0};\n    },\n    onLeave(retval){const item=this.ybcsWindowApi;if(!item)return;item.after=ybcsWindowApiMetrics(ptr(item.window));item.result=retval.toInt32();item.timestamp_unix=Date.now()/1000;if(ybcsWindowApiEventCount<100){ybcsWindowApiEventCount++;item.sequence=ybcsWindowApiEventCount;emit(\"windowed_window_geometry_api\",item);}}\n  });\n  const showAddress=findUser32Export(\"ShowWindow\");\n  if(showAddress!==null)attachOnce(\"ybcs-window-api:ShowWindow\",showAddress,{\n    onEnter(args){const hwnd=args[0];if(cooperativeWindow.isNull()||!samePointer(hwnd,cooperativeWindow))return;const requested=args[1].toInt32();this.ybcsWindowApi={api:\"ShowWindow\",window:hwnd.toString(),requested_command:requested,before:ybcsWindowApiMetrics(hwnd),caller:ybcsWindowApiCaller(this.context,this.returnAddress),internal:windowedGeometryNormalizationDepth>0};if(requested===3)args[1]=ptr(9);this.ybcsWindowApi.applied_command=args[1].toInt32();},\n    onLeave(retval){const item=this.ybcsWindowApi;if(!item)return;item.after=ybcsWindowApiMetrics(ptr(item.window));item.result=retval.toInt32();item.timestamp_unix=Date.now()/1000;if(ybcsWindowApiEventCount<100){ybcsWindowApiEventCount++;item.sequence=ybcsWindowApiEventCount;emit(\"windowed_window_geometry_api\",item);}}\n  });\n  const placementAddress=findUser32Export(\"SetWindowPlacement\");\n  if(placementAddress!==null)attachOnce(\"ybcs-window-api:SetWindowPlacement\",placementAddress,{\n    onEnter(args){\n      const hwnd=args[0];if(cooperativeWindow.isNull()||!samePointer(hwnd,cooperativeWindow)||args[1].isNull())return;\n      const placement=args[1],requested={length:placement.readU32(),flags:placement.add(4).readU32(),showCommand:placement.add(8).readU32(),\n        rect:[placement.add(28).readS32(),placement.add(32).readS32(),placement.add(36).readS32(),placement.add(40).readS32()]};\n      const frame=ybcsWindowApiFrame(hwnd);if(requested.showCommand===3)placement.add(8).writeU32(9);\n      placement.add(28).writeS32(40);placement.add(32).writeS32(40);placement.add(36).writeS32(40+frame.width);placement.add(40).writeS32(40+frame.height);\n      this.ybcsWindowApi={api:\"SetWindowPlacement\",window:hwnd.toString(),requested:requested,\n        applied:{showCommand:placement.add(8).readU32(),rect:[40,40,40+frame.width,40+frame.height]},\n        before:ybcsWindowApiMetrics(hwnd),caller:ybcsWindowApiCaller(this.context,this.returnAddress),internal:windowedGeometryNormalizationDepth>0};\n    },\n    onLeave(retval){const item=this.ybcsWindowApi;if(!item)return;item.after=ybcsWindowApiMetrics(ptr(item.window));item.result=retval.toInt32();item.timestamp_unix=Date.now()/1000;if(ybcsWindowApiEventCount<100){ybcsWindowApiEventCount++;item.sequence=ybcsWindowApiEventCount;emit(\"windowed_window_geometry_api\",item);}}\n  });\n}".encode("utf-8") + old_window_helper
+          if patched.count(old_window_helper) != 1:
+              raise SystemExit(f"window API helper anchor must be 1, got {patched.count(old_window_helper)}")
+          patched = patched.replace(old_window_helper, new_window_helper, 1)
+          old_normalize_window = "      setPos(\n        cooperativeWindow,\n        ptr(HWND_NOTOPMOST),\n        40,\n        40,\n        frame.width,\n        frame.height,\n        SWP_FRAMECHANGED | SWP_SHOWWINDOW\n      );\n      windowPositioned = true;".encode("utf-8")
+          new_normalize_window = "      let positionResult = false;\n      let actualMetrics = null;\n      windowedGeometryNormalizationDepth++;\n      try {\n        positionResult = setPos(\n          cooperativeWindow, ptr(HWND_NOTOPMOST), 40, 40,\n          frame.width, frame.height, SWP_FRAMECHANGED | SWP_SHOWWINDOW\n        );\n      } finally { windowedGeometryNormalizationDepth--; }\n      actualMetrics = ybcsWindowApiMetrics(cooperativeWindow);\n      if (actualMetrics === null || actualMetrics.clientWidth !== requestedWidth || actualMetrics.clientHeight !== requestedHeight) {\n        const correctionWidth = frame.width + requestedWidth - (actualMetrics ? actualMetrics.clientWidth : 0);\n        const correctionHeight = frame.height + requestedHeight - (actualMetrics ? actualMetrics.clientHeight : 0);\n        windowedGeometryNormalizationDepth++;\n        try {\n          positionResult = setPos(\n            cooperativeWindow, ptr(HWND_NOTOPMOST), 40, 40,\n            correctionWidth, correctionHeight, SWP_FRAMECHANGED | SWP_SHOWWINDOW\n          );\n        } finally { windowedGeometryNormalizationDepth--; }\n        actualMetrics = ybcsWindowApiMetrics(cooperativeWindow);\n      }\n      const clientSizeValid = actualMetrics !== null &&\n        actualMetrics.clientWidth === requestedWidth && actualMetrics.clientHeight === requestedHeight;\n      emit(\"windowed_owner_window_normalized\", {\n        timestamp_unix: Date.now()/1000, window: cooperativeWindow.toString(),\n        set_window_pos_result: !!positionResult, client_width: actualMetrics ? actualMetrics.clientWidth : null,\n        client_height: actualMetrics ? actualMetrics.clientHeight : null,\n        window_width: actualMetrics ? actualMetrics.windowWidth : null,\n        window_height: actualMetrics ? actualMetrics.windowHeight : null,\n        requested_width: requestedWidth, requested_height: requestedHeight,\n        frame_width: frame.width, frame_height: frame.height\n      });\n      if (!positionResult || !clientSizeValid) {\n        windowPositioned = false;\n        emit(\"windowed_owner_window_normalize_failed\", {\n          timestamp_unix: Date.now()/1000, window: cooperativeWindow.toString(),\n          client_width: actualMetrics ? actualMetrics.clientWidth : null,\n          client_height: actualMetrics ? actualMetrics.clientHeight : null,\n          requested_width: requestedWidth, requested_height: requestedHeight\n        });\n        return;\n      }\n      windowPositioned = true;".encode("utf-8")
+          if patched.count(old_normalize_window) != 1:
+              raise SystemExit(f"normalizeWindow anchor must be 1, got {patched.count(old_normalize_window)}")
+          patched = patched.replace(old_normalize_window, new_normalize_window, 1)
+          old_back_buffer_return = b"          if (!samePointer(this.surface, primarySurface)) return;"
+          new_back_buffer_return = "          if ((methodName === \"BltFast\" && samePointer(this.surface, backBufferSurface) && retval.toInt32() === 0) ||\n              (methodName === \"ReleaseDC\" && samePointer(this.surface, backBufferSurface) && retval.toInt32() === 0)) {\n            const now = Date.now();\n            if (!cooperativeWindow.isNull() && now - windowedBackBufferPresentLastAt >= 50) {\n              windowedBackBufferPresentLastAt = now;\n              const presentResult = presentWindowedFrame();\n              if (presentResult === 0) {\n                emit(\"windowed_present\", {\n                  timestamp_unix: now/1000, surface: primarySurface.isNull() ? null : primarySurface.toString(),\n                  source: backBufferSurface.toString(), replacement: \"GDI StretchBlt(window-client; back-buffer update)\",\n                  result: 0, trigger: methodName, thread: Process.getCurrentThreadId()\n                });\n              } else {\n                emit(\"windowed_present_attempt\", {\n                  timestamp_unix: now/1000, surface: primarySurface.isNull() ? null : primarySurface.toString(),\n                  source: backBufferSurface.toString(), result: presentResult, trigger: methodName,\n                  thread: Process.getCurrentThreadId()\n                });\n              }\n            }\n          }\n          if (!samePointer(this.surface, primarySurface)) return;".encode("utf-8")
+          if patched.count(old_back_buffer_return) != 1:
+              raise SystemExit(f"back-buffer present anchor must be 1, got {patched.count(old_back_buffer_return)}")
+          patched = patched.replace(old_back_buffer_return, new_back_buffer_return, 1)
+          old_window_hook_call = b"hookWindowManagement();\nhookWindowedInput();"
+          new_window_hook_call = b"hookWindowManagement();\ninstallYbcsWindowApiTrace();\nhookWindowedInput();"
+          if patched.count(old_window_hook_call) != 1:
+              raise SystemExit(f"window hook startup anchor must be 1, got {patched.count(old_window_hook_call)}")
+          patched = patched.replace(old_window_hook_call, new_window_hook_call, 1)
+          status_path = Path("src/legacy_gui_runtime/ybcs_live_session_bridge.py")
+          status_original = status_path.read_bytes()
+          old_status = b'            "inventory_count": len(domain.inventory.records),\n'
+          new_status = b'            "inventory_count": len(domain.inventory.records),\n            "inventory_records": [list(record.words) for record in domain.inventory.records],\n'
+          if status_original.count(old_status) != 1:
+              raise SystemExit(f"read-only inventory status anchor must be 1, got {status_original.count(old_status)}")
+          status_patched = status_original.replace(old_status, new_status, 1)
+          compile(status_patched.decode("utf-8"), str(status_path), "exec")
           compile(patched.decode("utf-8"), str(path), "exec")
           path.write_bytes(patched)
+          status_path.write_bytes(status_patched)
           print(f"NPC interaction hook patched: {path}; {len(original)} -> {len(patched)} bytes")
           print("Added spawn/attach/script-load/resume/detach and process-exit diagnostics; no game binary modified.")
           print("Added read-only map1000 player state, movement/path/IMF, bounded route memory, and diagnostic sampler hooks.")
@@ -2647,15 +2694,27 @@ jobs:
             public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
             [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
             [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+            [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
             public static IntPtr FindVisibleWindowForProcess(int pid) {
               IntPtr found = IntPtr.Zero;
+              int bestScore = Int32.MinValue;
               EnumWindowsProc callback = delegate(IntPtr hWnd, IntPtr lParam) {
                 uint ownerPid;
                 GetWindowThreadProcessId(hWnd, out ownerPid);
-                if (ownerPid == (uint)pid && IsWindowVisible(hWnd)) {
-                  found = hWnd;
-                  return false;
-                }
+                if (ownerPid != (uint)pid || !IsWindowVisible(hWnd)) return true;
+                if (GetWindow(hWnd, 4) != IntPtr.Zero) return true;
+                RECT client;
+                if (!GetClientRect(hWnd, out client)) return true;
+                int width = client.Right - client.Left;
+                int height = client.Bottom - client.Top;
+                if (width <= 0 || height <= 0) return true;
+                StringBuilder className = new StringBuilder(256);
+                GetClassName(hWnd, className, className.Capacity);
+                int distance = Math.Abs(width - 800) + Math.Abs(height - 600);
+                bool preferredClass = className.ToString().IndexOf("Afx", StringComparison.OrdinalIgnoreCase) >= 0;
+                int score = (width == 800 && height == 600 ? 1000000 : 0)
+                  + (preferredClass ? 10000 : 0) - distance * 100;
+                if (score > bestScore) { bestScore = score; found = hWnd; }
                 return true;
               };
               EnumWindows(callback, IntPtr.Zero);
@@ -2796,219 +2855,122 @@ jobs:
             return $successfulPresentCount
           }
           function Wait-WindowedInitialization([string]$logPath, [int]$afterLine, [string]$baselineTail, [double]$clientStartedAt, [int]$clientPid, [IntPtr]$expectedHwnd, [int]$timeoutSeconds) {
-            $deadline = [DateTime]::UtcNow.AddSeconds($timeoutSeconds)
-            $cooperativeEvents = @()
-            $deviceCooperativeEvents = @()
-            $activationEvents = @()
-            $sessionMarker = $null
-            $sessionMarkerLine = 0
-            $sessionMarkerValid = $false
-            $nextLine = [Math]::Max(0, $afterLine)
-            $scanInitialized = $false
-            $logTruncated = $false
-            $baselineTailMatches = ($afterLine -eq 0)
-            $cursorAnchorLine = $null
-            $lastRowsCount = 0
-            $firstScanLogged = $false
-
-            while ([DateTime]::UtcNow -lt $deadline) {
-              if (Test-Path -LiteralPath $logPath) {
-                $rows = @(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue)
-                $rowsNow = $rows.Count
-
-                if (-not $scanInitialized) {
-                  if ($afterLine -eq 0) {
-                    $baselineTailMatches = $true
-                    $nextLine = 0
-                  } elseif ($afterLine -gt $rowsNow) {
-                    $baselineTailMatches = $false
-                    $logTruncated = $true
-                    $nextLine = 0
-                  } else {
-                    $baselineTailMatches = ($null -ne $baselineTail -and
-                      [string]$rows[$afterLine - 1] -ceq $baselineTail)
-                    if ($baselineTailMatches) {
-                      $nextLine = $afterLine
-                    } else {
-                      $logTruncated = $true
-                      $nextLine = 0
-                    }
+            $deadline=[DateTime]::UtcNow.AddSeconds($timeoutSeconds)
+            $displayModeEvents=@();$deviceDisplayModeEvents=@();$primarySurfaceEvents=@()
+            $backBufferEvents=@();$ownerWindowEvents=@();$normalizedWindowEvents=@();$activationEvents=@()
+            $sessionMarker=$null;$sessionMarkerLine=0;$sessionMarkerValid=$false
+            $nextLine=[Math]::Max(0,$afterLine);$scanInitialized=$false;$logTruncated=$false
+            $baselineTailMatches=($afterLine -eq 0);$cursorAnchorLine=$null;$lastRowsCount=0
+            $matchedDisplayMode=$null;$matchedDeviceDisplayMode=$null;$matchedPrimarySurface=$null
+            $matchedBackBuffer=$null;$matchedOwnerWindow=$null;$matchedNormalizedWindow=$null;$matchedActivation=$null
+            $clusterFound=$false;$sameStartupCluster=$false;$initializationMode="none"
+            $expectedWindowValue=$expectedHwnd.ToInt64()
+            while([DateTime]::UtcNow -lt $deadline) {
+              if(Test-Path -LiteralPath $logPath) {
+                $rows=@(Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue);$rowsNow=$rows.Count
+                if(-not $scanInitialized) {
+                  if($afterLine -eq 0){$baselineTailMatches=$true;$nextLine=0}
+                  elseif($afterLine -gt $rowsNow){$baselineTailMatches=$false;$logTruncated=$true;$nextLine=0}
+                  else {
+                    $baselineTailMatches=($null -ne $baselineTail -and [string]$rows[$afterLine-1] -ceq $baselineTail)
+                    if($baselineTailMatches){$nextLine=$afterLine}else{$logTruncated=$true;$nextLine=0}
                   }
-                  $scanInitialized = $true
+                  $scanInitialized=$true
                   Write-Host "YBCS_WINDOWED_INIT_SCAN: baseline_lines=$afterLine rows_now=$rowsNow truncated_detected=$logTruncated scan_start=$nextLine baseline_tail_matches=$baselineTailMatches"
-                  $firstScanLogged = $true
                 } else {
-                  $runtimeTruncated = ($rowsNow -lt $nextLine)
-                  if (-not $runtimeTruncated -and $nextLine -gt 0 -and
-                      $null -ne $cursorAnchorLine -and $rowsNow -ge $nextLine) {
-                    $runtimeTruncated = ([string]$rows[$nextLine - 1] -cne $cursorAnchorLine)
-                  }
-                  if ($runtimeTruncated) {
-                    $logTruncated = $true
-                    Write-Host "YBCS_WINDOWED_INIT_LOG_TRUNCATED: old_cursor=$nextLine current_rows=$rowsNow new_scan_start=0"
-                    $nextLine = 0
-                    $cursorAnchorLine = $null
-                    $cooperativeEvents = @()
-                    $deviceCooperativeEvents = @()
-                    $activationEvents = @()
-                    $sessionMarker = $null
-                    $sessionMarkerLine = 0
-                    $sessionMarkerValid = $false
+                  $runtimeTruncated=($rowsNow -lt $nextLine)
+                  if(-not $runtimeTruncated -and $nextLine -gt 0 -and $null -ne $cursorAnchorLine -and $rowsNow -ge $nextLine){$runtimeTruncated=([string]$rows[$nextLine-1] -cne $cursorAnchorLine)}
+                  if($runtimeTruncated) {
+                    $logTruncated=$true;Write-Host "YBCS_WINDOWED_INIT_LOG_TRUNCATED: old_cursor=$nextLine current_rows=$rowsNow new_scan_start=0"
+                    $nextLine=0;$cursorAnchorLine=$null
+                    $displayModeEvents=@();$deviceDisplayModeEvents=@();$primarySurfaceEvents=@()
+                    $backBufferEvents=@();$ownerWindowEvents=@();$normalizedWindowEvents=@();$activationEvents=@()
+                    $sessionMarker=$null;$sessionMarkerLine=0;$sessionMarkerValid=$false
                   }
                 }
-
-                for ($j = $nextLine; $j -lt $rowsNow; $j++) {
-                  try { $startupEvent = $rows[$j] | ConvertFrom-Json -ErrorAction Stop }
-                  catch { continue }
-
-                  if ($startupEvent.kind -eq "npc_startup_exception_handler_installed") {
-                    $markerTimestamp = 0.0
-                    try { $markerTimestamp = [double]$startupEvent.value.timestamp_unix } catch {}
-                    $markerValid = ([bool]$startupEvent.value.installed -and
-                      [string]$startupEvent.value.phase -eq "before-device-resume" -and
-                      $clientStartedAt -gt 0 -and
-                      $markerTimestamp -ge $clientStartedAt)
-                    if ($markerValid) {
-                      $sessionMarker = $startupEvent
-                      $sessionMarkerLine = $j + 1
-                      $sessionMarkerValid = $true
-                    }
-                  } elseif ($startupEvent.kind -eq "directdraw_cooperative_level") {
-                    $cooperativeEvents += [pscustomobject]@{ line=($j + 1); value=$startupEvent.value }
-                  } elseif ($startupEvent.kind -eq "ybcs_directdraw_device_call" -and
-                            $startupEvent.value.method -eq "SetCooperativeLevel") {
-                    $deviceCooperativeEvents += [pscustomobject]@{ line=($j + 1); value=$startupEvent.value }
-                  } elseif ($startupEvent.kind -eq "windowed_initial_activation") {
-                    $activationEvents += [pscustomobject]@{ line=($j + 1); value=$startupEvent.value }
+                for($j=$nextLine;$j -lt $rowsNow;$j++) {
+                  try{$event=$rows[$j] | ConvertFrom-Json -ErrorAction Stop}catch{continue}
+                  $lineNumber=$j+1
+                  if($event.kind -eq "npc_startup_exception_handler_installed") {
+                    $markerTimestamp=0.0;try{$markerTimestamp=[double]$event.value.timestamp_unix}catch{}
+                    $markerValid=([bool]$event.value.installed -and [string]$event.value.phase -eq "before-device-resume" -and $clientStartedAt -gt 0 -and $markerTimestamp -ge $clientStartedAt)
+                    if($markerValid){$sessionMarker=$event;$sessionMarkerLine=$lineNumber;$sessionMarkerValid=$true}
+                  } elseif($event.kind -eq "directdraw_display_mode") {
+                    $displayModeEvents += [pscustomobject]@{line=$lineNumber;value=$event.value}
+                  } elseif($event.kind -eq "ybcs_directdraw_device_call" -and $event.value.method -eq "SetDisplayMode") {
+                    $deviceDisplayModeEvents += [pscustomobject]@{line=$lineNumber;value=$event.value}
+                  } elseif($event.kind -eq "windowed_primary_surface") {
+                    $primarySurfaceEvents += [pscustomobject]@{line=$lineNumber;value=$event.value}
+                  } elseif($event.kind -eq "windowed_back_buffer_create") {
+                    $backBufferEvents += [pscustomobject]@{line=$lineNumber;value=$event.value}
+                  } elseif($event.kind -eq "windowed_owner_window_resolved") {
+                    $ownerWindowEvents += [pscustomobject]@{line=$lineNumber;value=$event.value}
+                  } elseif($event.kind -eq "windowed_owner_window_normalized") {
+                    $normalizedWindowEvents += [pscustomobject]@{line=$lineNumber;value=$event.value}
+                  } elseif($event.kind -eq "windowed_initial_activation") {
+                    $activationEvents += [pscustomobject]@{line=$lineNumber;value=$event.value}
                   }
                 }
-
-                $nextLine = $rowsNow
-                $lastRowsCount = $rowsNow
-                if ($rowsNow -gt 0) {
-                  $cursorAnchorLine = [string]$rows[$rowsNow - 1]
-                } else {
-                  $cursorAnchorLine = $null
-                }
+                $nextLine=$rowsNow;$lastRowsCount=$rowsNow
+                if($rowsNow -gt 0){$cursorAnchorLine=[string]$rows[$rowsNow-1]}
               }
-
-              $expectedWindowValue = $expectedHwnd.ToInt64()
-              $clusterFound = $false
-              $matchedCooperative = $null
-              $matchedDeviceCooperative = $null
-              $matchedActivation = $null
-
-              if ($sessionMarkerValid -and $null -ne $sessionMarker) {
-                foreach ($deviceCandidate in $deviceCooperativeEvents) {
-                  $deviceValue = $deviceCandidate.value
-                  $deviceTimestamp = 0.0
-                  try { $deviceTimestamp = [double]$deviceValue.timestamp_unix } catch {}
-                  if ([int]$deviceValue.hresult -ne 0 -or $deviceTimestamp -lt $clientStartedAt) { continue }
-
-                  $deviceArgs = @($deviceValue.args)
-                  if ($deviceArgs.Count -lt 3) { continue }
-                  $deviceWindowValue = $null
-                  $deviceFlagsValue = $null
-                  $deviceWindowText = [string]$deviceArgs[1]
-                  if ($deviceWindowText -match '^0[xX]([0-9a-fA-F]+)$') {
-                    try { $deviceWindowValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
-                  }
-                  $deviceFlagsText = [string]$deviceArgs[2]
-                  if ($deviceFlagsText -match '^0[xX]([0-9a-fA-F]+)$') {
-                    try { $deviceFlagsValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
-                  }
-                  if ($deviceWindowValue -ne $expectedWindowValue -or $deviceFlagsValue -ne 8) { continue }
-                  if ([int]$deviceCandidate.line -le $sessionMarkerLine) { continue }
-
-                  foreach ($cooperativeCandidate in $cooperativeEvents) {
-                    if ([int]$cooperativeCandidate.line -le $sessionMarkerLine -or
-                        [Math]::Abs([int]$cooperativeCandidate.line - [int]$deviceCandidate.line) -gt 2) { continue }
-                    $cooperativeValue = $cooperativeCandidate.value
-                    $cooperativeValid = ([int]$cooperativeValue.flags -eq 8 -and
-                      [int]$cooperativeValue.result -eq 0 -and
-                      [bool]$cooperativeValue.windowed)
-                    if (-not $cooperativeValid) { continue }
-
-                    foreach ($activationCandidate in $activationEvents) {
-                      if ([int]$activationCandidate.line -le $sessionMarkerLine -or
-                          [Math]::Abs([int]$activationCandidate.line - [int]$deviceCandidate.line) -gt 2) { continue }
-                      $activationValue = $activationCandidate.value
-                      $activationWindowValue = $null
-                      $activationWindowText = [string]$activationValue.window
-                      if ($activationWindowText -match '^0[xX]([0-9a-fA-F]+)$') {
-                        try { $activationWindowValue = [Convert]::ToInt64($Matches[1], 16) } catch {}
-                      }
-                      $activationValid = ([int]$activationValue.brought -eq 1 -and
-                        [int]$activationValue.foreground -eq 1 -and
-                        $activationWindowValue -eq $expectedWindowValue)
-                      if (-not $activationValid) { continue }
-
-                      $matchedCooperative = $cooperativeCandidate
-                      $matchedDeviceCooperative = $deviceCandidate
-                      $matchedActivation = $activationCandidate
-                      $clusterFound = $true
-                      break
-                    }
-                    if ($clusterFound) { break }
-                  }
-                  if ($clusterFound) { break }
+              if($sessionMarkerValid) {
+                $matchedDisplayMode=$displayModeEvents | Where-Object {$_.line -gt $sessionMarkerLine -and [int]$_.value.width -eq 800 -and [int]$_.value.height -eq 600 -and [int]$_.value.bpp -eq 16 -and [int]$_.value.result -eq 0 -and [bool]$_.value.windowed} | Select-Object -Last 1
+                $matchedDeviceDisplayMode=$deviceDisplayModeEvents | Where-Object {$_.line -gt $sessionMarkerLine -and ([string]$_.value.hresult -eq "0" -or [string]$_.value.hresult -eq "0x0")} | Select-Object -Last 1
+                $matchedPrimarySurface=$primarySurfaceEvents | Where-Object {$_.line -gt $sessionMarkerLine -and -not [string]::IsNullOrWhiteSpace([string]$_.value.surface)} | Select-Object -Last 1
+                $matchedBackBuffer=$backBufferEvents | Where-Object {$_.line -gt $sessionMarkerLine -and [int]$_.value.result -eq 0 -and [int]$_.value.width -eq 800 -and [int]$_.value.height -eq 600 -and [int]$_.value.bpp -eq 16} | Select-Object -Last 1
+                $matchedOwnerWindow=$ownerWindowEvents | Where-Object {
+                  $w=[string]$_.value.window;$v=0L
+                  if($w -match '^0x([0-9A-Fa-f]+)$'){$v=[Convert]::ToInt64($Matches[1],16)}else{[void][Int64]::TryParse($w,[ref]$v)}
+                  $_.line -gt $sessionMarkerLine -and $v -eq $expectedWindowValue -and [int]$_.value.pid -eq $clientPid
+                } | Select-Object -Last 1
+                $matchedNormalizedWindow=$normalizedWindowEvents | Where-Object {
+                  $w=[string]$_.value.window;$v=0L
+                  if($w -match '^0x([0-9A-Fa-f]+)$'){$v=[Convert]::ToInt64($Matches[1],16)}else{[void][Int64]::TryParse($w,[ref]$v)}
+                  $_.line -gt $sessionMarkerLine -and $v -eq $expectedWindowValue -and [bool]$_.value.set_window_pos_result -and [int]$_.value.client_width -eq 800 -and [int]$_.value.client_height -eq 600
+                } | Select-Object -Last 1
+                $matchedActivation=$activationEvents | Where-Object {
+                  $w=[string]$_.value.window;$v=0L
+                  if($w -match '^0x([0-9A-Fa-f]+)$'){$v=[Convert]::ToInt64($Matches[1],16)}else{[void][Int64]::TryParse($w,[ref]$v)}
+                  $_.line -gt $sessionMarkerLine -and $v -eq $expectedWindowValue -and [bool]$_.value.brought -and [bool]$_.value.foreground
+                } | Select-Object -Last 1
+                $required=@($matchedDisplayMode,$matchedDeviceDisplayMode,$matchedPrimarySurface,$matchedBackBuffer,$matchedOwnerWindow,$matchedNormalizedWindow,$matchedActivation)
+                $clusterFound=(@($required | Where-Object {$null -eq $_}).Count -eq 0)
+                if($clusterFound) {
+                  $numbers=@($required | ForEach-Object {[int]$_.line})
+                  $sameStartupCluster=(($numbers | Measure-Object -Maximum).Maximum-($numbers | Measure-Object -Minimum).Minimum) -le 500
+                  $clusterFound=$sameStartupCluster
+                  if($clusterFound){$initializationMode="real-SetDisplayMode+primary-surface+800x600-backbuffer+CreateWindowEx-owner+normalized-client+activation"}
                 }
+                if($clusterFound){break}
               }
-
-              if ($clusterFound) { break }
-              if ([DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 250 }
+              Start-Sleep -Milliseconds 250
             }
-
-            $failureReasons = @()
-            if (-not $sessionMarkerValid) {
-              $failureReasons += "current-process npc_startup_exception_handler_installed marker missing or invalid"
-            }
-            if (-not $clusterFound) {
-              if ($cooperativeEvents.Count -eq 0) { $failureReasons += "directdraw_cooperative_level event missing" }
-              if ($deviceCooperativeEvents.Count -eq 0) { $failureReasons += "SetCooperativeLevel device event missing" }
-              if ($activationEvents.Count -eq 0) { $failureReasons += "windowed_initial_activation event missing" }
-              if ($cooperativeEvents.Count -gt 0 -and $deviceCooperativeEvents.Count -gt 0 -and
-                  $activationEvents.Count -gt 0) {
-                $failureReasons += "initialization events did not form one current-process startup cluster within two log lines"
-              }
-            }
-
-            $cooperativeLine = $null
-            if ($null -ne $matchedCooperative) { $cooperativeLine = $matchedCooperative.line }
-            $deviceCooperativeLine = $null
-            if ($null -ne $matchedDeviceCooperative) { $deviceCooperativeLine = $matchedDeviceCooperative.line }
-            $activationLine = $null
-            if ($null -ne $matchedActivation) { $activationLine = $matchedActivation.line }
-            $sessionMarkerTimestamp = $null
-            if ($null -ne $sessionMarker) { $sessionMarkerTimestamp = $sessionMarker.value.timestamp_unix }
-
-            Write-Host "YBCS_WINDOWED_INIT_SESSION: client_pid=$clientPid client_started_at=$clientStartedAt marker_valid=$sessionMarkerValid marker_line=$sessionMarkerLine marker_timestamp=$sessionMarkerTimestamp"
-            Write-Host "YBCS_WINDOWED_INIT_EVENT_MATCH: cooperative_line=$cooperativeLine device_cooperative_line=$deviceCooperativeLine activation_line=$activationLine same_startup_cluster=$clusterFound line_distance_limit=2"
+            $failureReasons=@()
+            if(-not $sessionMarkerValid){$failureReasons += "current-process pre-resume startup exception marker missing or invalid"}
+            if($null -eq $matchedDisplayMode){$failureReasons += "successful requested windowed 800x600x16 DirectDraw display-mode event missing"}
+            if($null -eq $matchedDeviceDisplayMode){$failureReasons += "successful real SetDisplayMode device call missing"}
+            if($null -eq $matchedPrimarySurface){$failureReasons += "windowed primary surface creation event missing"}
+            if($null -eq $matchedBackBuffer){$failureReasons += "successful 800x600x16 back-buffer creation event missing"}
+            if($null -eq $matchedOwnerWindow){$failureReasons += "current-process top-level CreateWindowEx owner event missing or HWND mismatch"}
+            if($null -eq $matchedNormalizedWindow){$failureReasons += "owner window client area was not verified at 800x600"}
+            if($null -eq $matchedActivation){$failureReasons += "windowed initial activation event missing or not foreground"}
+            if(-not $sameStartupCluster){$failureReasons += "real initialization events were not in the same startup cluster"}
+            $failureReason=$failureReasons -join "; "
+            Write-Host "YBCS_WINDOWED_INIT_SESSION: client_pid=$clientPid client_started_at=$clientStartedAt marker_valid=$sessionMarkerValid marker_line=$sessionMarkerLine"
+            Write-Host "YBCS_WINDOWED_INIT_EVENT_MATCH: display_mode_line=$($matchedDisplayMode.line) device_display_mode_line=$($matchedDeviceDisplayMode.line) primary_surface_line=$($matchedPrimarySurface.line) back_buffer_line=$($matchedBackBuffer.line) owner_window_line=$($matchedOwnerWindow.line) normalized_window_line=$($matchedNormalizedWindow.line) activation_line=$($matchedActivation.line) same_startup_cluster=$sameStartupCluster"
+            Write-Host "YBCS_WINDOWED_INIT_EQUIVALENT_CHAIN: mode=$initializationMode valid=$clusterFound log_truncated=$logTruncated baseline_tail_matches=$baselineTailMatches"
             Write-Host "YBCS_WINDOWED_INIT_SCAN_COMPLETE: baseline_lines=$afterLine rows_final=$lastRowsCount truncated_detected=$logTruncated scan_start=$nextLine timeout_seconds=$timeoutSeconds"
-            $failureReason = "none"
-            if ($failureReasons.Count -gt 0) { $failureReason = $failureReasons -join "; " }
-            Write-Host "YBCS_WINDOWED_INIT_FAILURE_REASON: $failureReason"
-
+            if(-not $clusterFound){Write-Host "YBCS_WINDOWED_INIT_FAILURE_REASON: $failureReason"}
             return [pscustomobject]@{
-              valid = $clusterFound
-              expectedWindow = ("0x{0:x}" -f $expectedWindowValue)
-              cooperativeLevelValid = ($null -ne $matchedCooperative)
-              cooperativeLevel = if ($null -ne $matchedCooperative) { $matchedCooperative.value } else { $null }
-              cooperativeLine = $cooperativeLine
-              deviceCooperativeLevelValid = ($null -ne $matchedDeviceCooperative)
-              deviceCooperativeLevel = if ($null -ne $matchedDeviceCooperative) { $matchedDeviceCooperative.value } else { $null }
-              deviceCooperativeLine = $deviceCooperativeLine
-              initialActivationValid = ($null -ne $matchedActivation)
-              initialActivation = if ($null -ne $matchedActivation) { $matchedActivation.value } else { $null }
-              initialActivationLine = $activationLine
-              sessionMarkerValid = $sessionMarkerValid
-              sessionMarkerLine = $sessionMarkerLine
-              sameStartupCluster = $clusterFound
-              logTruncated = $logTruncated
-              baselineTailMatches = $baselineTailMatches
-              rowsFinal = $lastRowsCount
-              attachedRequired = $false
-              failureReason = $failureReason
+              valid=$clusterFound;expectedWindow=$expectedHwnd.ToString();initializationMode=$initializationMode
+              displayModeValid=($null -ne $matchedDisplayMode);deviceDisplayModeValid=($null -ne $matchedDeviceDisplayMode)
+              primarySurfaceValid=($null -ne $matchedPrimarySurface);backBufferValid=($null -ne $matchedBackBuffer)
+              ownerWindowValid=($null -ne $matchedOwnerWindow);normalizedWindowValid=($null -ne $matchedNormalizedWindow)
+              initialActivationValid=($null -ne $matchedActivation);sameStartupCluster=$sameStartupCluster
+              sessionMarkerValid=$sessionMarkerValid;sessionMarkerLine=$sessionMarkerLine
+              logTruncated=$logTruncated;baselineTailMatches=$baselineTailMatches;rowsFinal=$lastRowsCount
+              failureReason=$failureReason
             }
           }
           function Get-LogLineCount([string]$logPath) {
@@ -3833,72 +3795,42 @@ jobs:
             return $null
           }
           function Get-DialogMenuDiff([string]$beforePath, [string]$afterPath) {
-            $before = [System.Drawing.Bitmap]::FromFile($beforePath)
-            $after = [System.Drawing.Bitmap]::FromFile($afterPath)
+            $before=[System.Drawing.Bitmap]::FromFile($beforePath);$after=[System.Drawing.Bitmap]::FromFile($afterPath)
             try {
-              if ($before.Width -lt 562 -or $after.Width -lt 562 -or
-                  $before.Height -lt 604 -or $after.Height -lt 604) {
-                throw "NPC dialog screenshot dimensions are smaller than the measured 1024x768 layout"
-              }
-              $regions = @(
-                @{ name = "greeting"; left = 361; top = 555; width = 200; height = 12 },
-                @{ name = "option1"; left = 361; top = 573; width = 200; height = 12 },
-                @{ name = "option2"; left = 361; top = 591; width = 200; height = 12 }
+              $metrics=[WinInput]::GetWindowMetrics($gameHwnd)
+              $clientWidth=[int]$metrics[2];$clientHeight=[int]$metrics[3];$originX=[int]$metrics[4];$originY=[int]$metrics[5]
+              if($clientWidth -ne 800 -or $clientHeight -ne 600){throw "NPC dialog pixel comparison requires 800x600 client; got $($clientWidth)x$($clientHeight)"}
+              $scaleX=$clientWidth/800.0;$scaleY=$clientHeight/600.0
+              $regions=@(
+                @{name="greeting";left=$originX+[int][Math]::Round(318*$scaleX);top=$originY+[int][Math]::Round(489*$scaleY);width=[int][Math]::Round(200*$scaleX);height=[int][Math]::Round(12*$scaleY)},
+                @{name="option1";left=$originX+[int][Math]::Round(318*$scaleX);top=$originY+[int][Math]::Round(507*$scaleY);width=[int][Math]::Round(200*$scaleX);height=[int][Math]::Round(12*$scaleY)},
+                @{name="option2";left=$originX+[int][Math]::Round(318*$scaleX);top=$originY+[int][Math]::Round(525*$scaleY);width=[int][Math]::Round(200*$scaleX);height=[int][Math]::Round(12*$scaleY)}
               )
-              $counts = @{}
-              $option1Left = $after.Width
-              $option1Top = $after.Height
-              $option1Right = -1
-              $option1Bottom = -1
-              foreach ($region in $regions) {
-                $changed = 0
-                for ($y = $region.top; $y -lt ($region.top + $region.height); $y++) {
-                  for ($x = $region.left; $x -lt ($region.left + $region.width); $x++) {
-                    $a = $before.GetPixel($x, $y)
-                    $b = $after.GetPixel($x, $y)
-                    $delta = [Math]::Abs([int]$a.R - [int]$b.R) +
-                      [Math]::Abs([int]$a.G - [int]$b.G) +
-                      [Math]::Abs([int]$a.B - [int]$b.B)
-                    if ($delta -ge 80) {
-                      $changed++
-                      if ($region.name -eq "option1") {
-                        if ($x -lt $option1Left) { $option1Left = $x }
-                        if ($x -gt $option1Right) { $option1Right = $x }
-                        if ($y -lt $option1Top) { $option1Top = $y }
-                        if ($y -gt $option1Bottom) { $option1Bottom = $y }
-                      }
-                    }
-                  }
-                }
-                $counts[$region.name] = $changed
+              foreach($region in $regions){if($region.left -lt 0 -or $region.top -lt 0 -or ($region.left+$region.width) -gt $after.Width -or ($region.top+$region.height) -gt $after.Height){throw "NPC dialog screenshot does not contain current client-relative region $($region.name)"}}
+              $counts=@{};$option1Left=$after.Width;$option1Top=$after.Height;$option1Right=-1;$option1Bottom=-1
+              foreach($region in $regions){
+                $changed=0
+                for($y=$region.top;$y -lt ($region.top+$region.height);$y++){for($x=$region.left;$x -lt ($region.left+$region.width);$x++){
+                  $a=$before.GetPixel($x,$y);$b=$after.GetPixel($x,$y)
+                  $delta=[Math]::Abs([int]$a.R-[int]$b.R)+[Math]::Abs([int]$a.G-[int]$b.G)+[Math]::Abs([int]$a.B-[int]$b.B)
+                  if($delta -ge 80){$changed++;if($region.name -eq "option1"){
+                    if($x -lt $option1Left){$option1Left=$x};if($x -gt $option1Right){$option1Right=$x}
+                    if($y -lt $option1Top){$option1Top=$y};if($y -gt $option1Bottom){$option1Bottom=$y}
+                  }}
+                }}
+                $counts[$region.name]=$changed
               }
-              $option1Bounds = $null
-              if ($option1Right -ge $option1Left -and $option1Bottom -ge $option1Top) {
-                $option1Width = $option1Right - $option1Left + 1
-                $option1Height = $option1Bottom - $option1Top + 1
-                $option1Bounds = [pscustomobject]@{
-                  left = [int]$option1Left
-                  top = [int]$option1Top
-                  right = [int]$option1Right
-                  bottom = [int]$option1Bottom
-                  width = [int]$option1Width
-                  height = [int]$option1Height
-                  changedPixels = [int]$counts["option1"]
-                  centerX = [int][Math]::Round(($option1Left + $option1Right) / 2.0)
-                  centerY = [int][Math]::Round(($option1Top + $option1Bottom) / 2.0)
+              $option1Bounds=$null
+              if($option1Right -ge $option1Left -and $option1Bottom -ge $option1Top){
+                $option1Bounds=[pscustomobject]@{
+                  left=[int]$option1Left;top=[int]$option1Top;right=[int]$option1Right;bottom=[int]$option1Bottom
+                  width=[int]($option1Right-$option1Left+1);height=[int]($option1Bottom-$option1Top+1)
+                  changedPixels=[int]$counts["option1"]
+                  centerX=[int][Math]::Round(($option1Left+$option1Right)/2.0);centerY=[int][Math]::Round(($option1Top+$option1Bottom)/2.0)
                 }
               }
-              return [pscustomobject]@{
-                greeting = [int]$counts["greeting"]
-                option1 = [int]$counts["option1"]
-                option2 = [int]$counts["option2"]
-                option1Bounds = $option1Bounds
-              }
-            }
-            finally {
-              $before.Dispose()
-              $after.Dispose()
-            }
+              return [pscustomobject]@{greeting=[int]$counts["greeting"];option1=[int]$counts["option1"];option2=[int]$counts["option2"];option1Bounds=$option1Bounds}
+            } finally {$before.Dispose();$after.Dispose()}
           }
           $failureReason = $null
           $shopDifferentialTestOnly = $true
@@ -4055,6 +3987,9 @@ jobs:
             Write-Host "YBCS_STARTUP_DIAGNOSTIC_COMPLETE: stable visible window captured"
             $windowedInit = Wait-WindowedInitialization $clientLog $startupClientLogBefore $startupClientLogTailBefore ([double]$clientPidRecord.started_at) $clientPid $gameHwnd 5
             Write-Host "YBCS_WINDOWED_INIT_GATE: $($windowedInit | ConvertTo-Json -Compress -Depth 8)"
+            $windowMetrics = [WinInput]::GetWindowMetrics($gameHwnd)
+            $clientSize = @([int]$windowMetrics[2], [int]$windowMetrics[3])
+            Write-Host "YBCS_WINDOW_GEOMETRY_AFTER_INIT: hwnd=$gameHwnd window=$($windowMetrics[0])x$($windowMetrics[1]) client=$($windowMetrics[2])x$($windowMetrics[3]) client_origin=($($windowMetrics[4]),$($windowMetrics[5]))"
             $clientGeometryValid = ([int]$windowMetrics[2] -eq 800 -and [int]$windowMetrics[3] -eq 600)
             if ($clientGeometryValid) {
               Write-Host "YBCS_CLIENT_GEOMETRY_GATE_PASSED: expected=800x600 actual=$($windowMetrics[2])x$($windowMetrics[3])"
@@ -4119,7 +4054,8 @@ jobs:
             $worldClientBefore = Get-LogLineCount $clientLog
             $worldServerBefore = Get-LogLineCount $serverLog
             $worldStdoutBefore = Get-LogLineCount (Join-Path $ws "game-stdout.log")
-            Click-Screen 625 544
+            Write-Host "YBCS_LOGIN_CONFIRM_COORD_TRANSFORM: prior_screen=(625,544) prior_client=1024x768 logical_client=(488,425) current_client=800x600"
+            if (-not [WinInput]::ClickLogicalClient($gameHwnd, 488, 425)) { throw "Login confirm click failed at logical-client (488,425)" }
             Write-Host "clicked Confirm at 625,544"
             Shot "shot-00-postclick"
                         $worldEvent = Wait-WorldEntered $worldClientBefore $worldServerBefore $worldStdoutBefore 300
@@ -4169,7 +4105,7 @@ jobs:
               Shot "npc-greeting-before-click"
               $greetingBeforeShot = Join-Path $shotDir "npc-greeting-before-click.png"
             }
-            Write-Host "NPC greeting click basis: Run #14 1024x768 screenshot; game client screen origin=(43,66); visible greeting glyph bounds approximately x=361..451 y=553..563; physical client click=(362,492) maps to screen=(405,558)"
+            Write-Host "NPC greeting click basis: current client=800x600 logical greeting=(318,489) option1=(318,507) option2=(318,525) click_logical_client=(362,492) client_origin=($($windowMetrics[4]),$($windowMetrics[5]))"
             Click-Client 362 492
             Start-Sleep -Seconds 3
             $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
@@ -4444,7 +4380,7 @@ jobs:
             $blueCellScreenX = $shopOriginX + [int][Math]::Round(735.0 * $shopClientWidth / 800.0)
             $blueCellScreenY = $shopOriginY + [int][Math]::Round(504.0 * $shopClientHeight / 600.0)
             Write-Host "YBCS_SHOP_CATALOG_TARGETS: catalog_count=105 shop_number=3 red_item=4001 index=0 client=(514,504) screen=($redCellScreenX,$redCellScreenY) blue_item=4006 index=5 client=(735,504) screen=($blueCellScreenX,$blueCellScreenY)"
-            Write-Host "YBCS_SHOP_SCROLL_THUMB_DRAG_BEGIN: screen=($shopScrollX,$shopScrollBottomY) target=($shopScrollX,$shopScrollTopY) source=verified Run-43 medicine-shop route"
+            Write-Host "YBCS_SHOP_SCROLL_THUMB_DRAG_BEGIN: screen=($shopScrollX,$shopScrollBottomY) target=($shopScrollX,$shopScrollTopY) source=existing-workflow-geometry current-run-screenshot-verified"
             if (-not [WinInput]::SetCursorPos($shopScrollX, $shopScrollBottomY)) { throw "Could not position cursor on the shop catalog scrollbar thumb" }
             $shopScrollMouseDown = $false
             try {
@@ -4487,49 +4423,208 @@ jobs:
               throw "Could not move cursor away after item-1 hover screenshot"
             }
             Start-Sleep -Milliseconds 250
-            $redBefore = Get-LogLineCount $serverLog
-            $clientBeforeRedClick = Get-LogLineCount $clientLog
-            Write-Host "YBCS_SHOP_RED_CLICK_BEGIN: item=4001 catalog_index=0 logical_client=(514,504) screen=($redCellScreenX,$redCellScreenY) clicks=1 method=short-left-click"
-            Focus-Game
-            if (-not [WinInput]::ClickLogicalClientShort($gameHwnd, 514, 504)) { throw "Short logical-client red-potion click failed at (514,504); no further game input sent" }
-            Write-Host "YBCS_SHOP_RED_SHORT_CLICK_SENT: item=4001 logical_client=(514,504) press_ms=40 button_events=LEFTDOWN,LEFTUP clicks=1"
-            Shot "shop-red-after-click-immediate"
-            $screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-            if (-not [WinInput]::SetCursorPos($screenBounds.Right - 20, $screenBounds.Bottom - 40)) { throw "Could not move cursor away after red-potion click" }
-            Start-Sleep -Milliseconds 250
-            Shot "shop-red-after-click-250ms"
-            Start-Sleep -Milliseconds 750
-            Shot "shop-red-after-click-1s"
-            Start-Sleep -Seconds 2
-            Shot "shop-red-after-click-3s"
-            Shot "shop-red-quantity-dialog"
-            Write-FocusDiagnostic "after-red-item-4001-click"
-            $clientRowsAfterRed = @(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue)
-            $shopClickTraceRows = New-Object System.Collections.Generic.List[string]
-            $shopQuantityTraceRows = New-Object System.Collections.Generic.List[string]
-            for ($j = $clientBeforeRedClick; $j -lt $clientRowsAfterRed.Count; $j++) {
-              try {
-                $traceEvent = $clientRowsAfterRed[$j] | ConvertFrom-Json -ErrorAction Stop
-                if ($traceEvent.kind -eq "shop_click_decision") { $shopClickTraceRows.Add([string]$clientRowsAfterRed[$j]) }
-                elseif ($traceEvent.kind -eq "shop_quantity_state") { $shopQuantityTraceRows.Add([string]$clientRowsAfterRed[$j]) }
-              } catch {}
+            $dragEvidencePath = Join-Path $ws "shop-drag-evidence.jsonl"
+            $serverStatusEvidencePath = Join-Path $ws "shop-server-status.jsonl"
+            Set-Content -LiteralPath $dragEvidencePath -Value "" -Encoding utf8
+            Set-Content -LiteralPath $serverStatusEvidencePath -Value "" -Encoding utf8
+            function Add-ShopDragEvidence([string]$stage,[hashtable]$fields) {
+              $row=[ordered]@{kind="shop_drag_evidence";value=[ordered]@{stage=$stage;timestamp_utc=[DateTime]::UtcNow.ToString("o")}}
+              foreach($key in $fields.Keys){$row.value[$key]=$fields[$key]}
+              ($row | ConvertTo-Json -Compress -Depth 10) | Add-Content -LiteralPath $dragEvidencePath -Encoding utf8
             }
-            Write-Host "YBCS_SHOP_RUNTIME_EVIDENCE_COUNTS: click_decision=$($shopClickTraceRows.Count) quantity_state=$($shopQuantityTraceRows.Count)"
-            foreach ($traceRow in $shopClickTraceRows) { Write-Host "YBCS_SHOP_CLICK_DECISION_EVIDENCE: $traceRow" }
-            foreach ($traceRow in $shopQuantityTraceRows) { Write-Host "YBCS_SHOP_QUANTITY_STATE_EVIDENCE: $traceRow" }
-            if ($shopClickTraceRows.Count -eq 0) { Write-Host "YBCS_SHOP_CLICK_DECISION_EVIDENCE_MISSING: no shop_click_decision event after the red click" }
-            if ($shopQuantityTraceRows.Count -eq 0) { Write-Host "YBCS_SHOP_QUANTITY_STATE_EVIDENCE_MISSING: no shop_quantity_state event after the red click" }
-            $visualEvidence = [ordered]@{kind="shop_quantity_state";value=[ordered]@{
-              stage="runner_screenshot_observation";source="runner-screenshot";item_id=4001;catalog_index=0
-              click_count=1;quantity_input_sent=$false;confirmation_input_sent=$false;visible=$null
-              screenshots=@("shop-red-after-click-immediate.png","shop-red-after-click-250ms.png","shop-red-after-click-1s.png","shop-red-after-click-3s.png","shop-red-quantity-dialog.png")
-            }}
-            $visualEvidence | ConvertTo-Json -Compress -Depth 6 | Set-Content -LiteralPath (Join-Path $ws "shop-quantity-visual.jsonl") -Encoding utf8
-            $unexpectedRedPurchase = Wait-LogLine $serverLog 'offline_shop_purchase.*record=\(4001,\s*30,\s*0,\s*0,\s*0\)' $redBefore 3
-            if ($unexpectedRedPurchase) { throw "Red item click produced a purchase event before quantity confirmation: $unexpectedRedPurchase" }
-            Write-Host "YBCS_SHOP_RED_NO_PURCHASE_EVENT: no offline_shop_purchase for item=4001 after the single selection click"
-            Write-Host "YBCS_SHOP_RED_ITEM_CLICK: catalog_index=0 item=4001 logical_client=(514,504) quantity_input_sent=False confirmation_input_sent=False further_game_input_sent=False"
-            Write-Host "YBCS_SHOP_DIAGNOSTIC_COMPLETE: one_red_click=True purchase_not_requested=True"
+            function Get-OfflineServerStatus {
+              $status=Invoke-RestMethod -Uri "http://127.0.0.1:14003/api/status" -TimeoutSec 5
+              if(-not $status.ok -or $null -eq $status.inventory_records){throw "Offline server /api/status did not return read-only inventory_records"}
+              return $status
+            }
+            function Get-InventoryStackState($status,[int]$itemId) {
+              if($null -eq $status.inventory_records){throw "Server status is missing inventory_records"}
+              $total=0;$matchingRows=@()
+              foreach($record in @($status.inventory_records)){
+                $words=@($record)
+                if($words.Count -ge 5 -and [int]$words[0] -eq $itemId -and [int]$words[2] -eq 0 -and [int]$words[3] -eq 0 -and [int]$words[4] -eq 0){
+                  $total += [int]$words[1];$matchingRows += ,@($words)
+                }
+              }
+              return [pscustomobject]@{item_id=$itemId;total=$total;row_count=$matchingRows.Count;rows=$matchingRows}
+            }
+            function Wait-OfflineServerState([long]$expectedMoney,[int]$itemId,[int]$expectedStackTotal,[int]$timeoutSeconds) {
+              $deadline=[DateTime]::UtcNow.AddSeconds($timeoutSeconds);$last=$null;$stack=$null
+              while([DateTime]::UtcNow -lt $deadline){
+                $last=Get-OfflineServerStatus;$stack=Get-InventoryStackState $last $itemId
+                if([long]$last.player_money -eq $expectedMoney -and $stack.total -eq $expectedStackTotal){return [pscustomobject]@{status=$last;stack=$stack}}
+                Start-Sleep -Milliseconds 250
+              }
+              throw "Offline server status did not reach money=$expectedMoney item=$itemId stack=$expectedStackTotal; last=$($last | ConvertTo-Json -Compress -Depth 8) stack=$($stack | ConvertTo-Json -Compress -Depth 8)"
+            }
+            function Get-ShopCellEdgeScore([System.Drawing.Bitmap]$bitmap,[int]$x,[int]$y,[int]$size) {
+              $hits=0;$total=0
+              for($t=5;$t -lt $size-5;$t+=4){
+                $a=$bitmap.GetPixel($x+$t,$y+1);$b=$bitmap.GetPixel($x+$t,$y+4)
+                if(([Math]::Abs($a.R-$b.R)+[Math]::Abs($a.G-$b.G)+[Math]::Abs($a.B-$b.B)) -ge 36){$hits++};$total++
+                $a=$bitmap.GetPixel($x+$t,$y+$size-2);$b=$bitmap.GetPixel($x+$t,$y+$size-5)
+                if(([Math]::Abs($a.R-$b.R)+[Math]::Abs($a.G-$b.G)+[Math]::Abs($a.B-$b.B)) -ge 36){$hits++};$total++
+                $a=$bitmap.GetPixel($x+1,$y+$t);$b=$bitmap.GetPixel($x+4,$y+$t)
+                if(([Math]::Abs($a.R-$b.R)+[Math]::Abs($a.G-$b.G)+[Math]::Abs($a.B-$b.B)) -ge 36){$hits++};$total++
+                $a=$bitmap.GetPixel($x+$size-2,$y+$t);$b=$bitmap.GetPixel($x+$size-5,$y+$t)
+                if(([Math]::Abs($a.R-$b.R)+[Math]::Abs($a.G-$b.G)+[Math]::Abs($a.B-$b.B)) -ge 36){$hits++};$total++
+              }
+              return [double]$hits/[Math]::Max(1,$total)
+            }
+            function Get-ShopCellEmptyScore([System.Drawing.Bitmap]$bitmap,[int]$x,[int]$y,[int]$size) {
+              $values=@()
+              for($gy=0;$gy -lt 4;$gy++){for($gx=0;$gx -lt 4;$gx++){
+                $px=$x+[int](($gx+1)*$size/5);$py=$y+[int](($gy+1)*$size/5)
+                $p=$bitmap.GetPixel($px,$py);$values += [int](($p.R*30+$p.G*59+$p.B*11)/100)
+              }}
+              $mean=($values | Measure-Object -Average).Average;$variance=0.0
+              foreach($v in $values){$variance += [Math]::Pow(($v-$mean),2)}
+              $sd=[Math]::Sqrt($variance/[Math]::Max(1,$values.Count))
+              return 1.0-[Math]::Min($sd/42.0,1.0)
+            }
+            function Find-ShopInventoryDropTarget([string]$label) {
+              $metrics=[WinInput]::GetWindowMetrics($gameHwnd)
+              $width=[int]$metrics[2];$height=[int]$metrics[3];$originX=[int]$metrics[4];$originY=[int]$metrics[5]
+              if($width -ne 800 -or $height -ne 600){throw "Inventory target screenshot requires 800x600 client, got $($width)x$($height)"}
+              $bitmap=New-Object System.Drawing.Bitmap($width,$height);$graphics=[System.Drawing.Graphics]::FromImage($bitmap)
+              try{$graphics.CopyFromScreen($originX,$originY,0,0,[System.Drawing.Size]::new($width,$height));$bitmap.Save((Join-Path $shotDir "$label-inventory-target-source.png"))}
+              finally{$graphics.Dispose()}
+              try{
+                $minX=[Math]::Max(0,$width-360);$minY=[Math]::Max(0,$height-100);$bestScore=0.0;$best=$null
+                foreach($size in @(28,32,36,40,44,48)){foreach($gap in @(0,2,4)){foreach($columns in @(3,4,5,6)){
+                  $groupWidth=$columns*$size+($columns-1)*$gap;if($groupWidth -gt ($width-$minX)){continue}
+                  for($y=$minY;$y+$size -le $height;$y+=6){for($x=$minX;$x+$groupWidth -le $width;$x+=6){
+                    $edges=@();$empties=@();$strong=0
+                    for($col=0;$col -lt $columns;$col++){
+                      $cellX=$x+$col*($size+$gap);$edge=Get-ShopCellEdgeScore $bitmap $cellX $y $size;$empty=Get-ShopCellEmptyScore $bitmap $cellX $y $size
+                      $edges += $edge;$empties += $empty;if($edge -ge 0.12){$strong++}
+                    }
+                    if($strong -lt 3){continue};$avgEdge=($edges | Measure-Object -Average).Average;if($avgEdge -lt 0.14){continue}
+                    $spread=($edges | Measure-Object -Maximum).Maximum-($edges | Measure-Object -Minimum).Minimum
+                    $consistency=1.0-[Math]::Min($spread,1.0);$avgEmpty=($empties | Measure-Object -Average).Average
+                    $bottomBias=($y-$minY)/[double][Math]::Max(1,$height-$size-$minY);$score=$avgEdge*0.70+$consistency*0.12+$avgEmpty*0.16+$bottomBias*0.02
+                    $selected=-1;$selectedScore=-1.0
+                    for($col=0;$col -lt $columns;$col++){
+                      if($edges[$col] -lt 0.12 -or $empties[$col] -lt 0.35){continue}
+                      $cx=$x+$col*($size+$gap)+[int]($size/2);$cy=$y+[int]($size/2)
+                      if($cx -lt 560 -or $cy -lt 540 -or $cx -gt 780 -or $cy -gt 590){continue}
+                      $candidateScore=$empties[$col]+($col/[double][Math]::Max(1,$columns-1))*0.06
+                      if($candidateScore -gt $selectedScore){$selectedScore=$candidateScore;$selected=$col}
+                    }
+                    if($selected -ge 0 -and $score -gt $bestScore){$bestScore=$score;$best=[pscustomobject]@{x=$x;y=$y;size=$size;gap=$gap;columns=$columns;selected=$selected;score=$score;empty=$empties[$selected]}}
+                  }}
+                }}}
+                if($null -eq $best -or $bestScore -lt 0.22){throw "No confident empty bottom-right inventory slot found in current client screenshot; no drag sent"}
+                $targetX=[int]($best.x+$best.selected*($best.size+$best.gap)+[int]($best.size/2));$targetY=[int]($best.y+[int]($best.size/2))
+                if($targetX -lt 560 -or $targetY -lt 540 -or $targetX -gt 780 -or $targetY -gt 590){throw "Detected drop target outside right-bottom inventory bounds: ($targetX,$targetY)"}
+                $overlay=[System.Drawing.Graphics]::FromImage($bitmap);$pen=New-Object System.Drawing.Pen([System.Drawing.Color]::Lime,2);$font=New-Object System.Drawing.Font("Arial",10)
+                try{$overlay.DrawRectangle($pen,$targetX-[int]($best.size/2),$targetY-[int]($best.size/2),$best.size,$best.size);$overlay.DrawString("DROP",$font,[System.Drawing.Brushes]::Lime,[float]($targetX-18),[float]($targetY-20));$bitmap.Save((Join-Path $shotDir "$label-inventory-target-detected.png"))}
+                finally{$font.Dispose();$pen.Dispose();$overlay.Dispose()}
+                $point=New-Object WinInput+POINT;$point.X=$targetX;$point.Y=$targetY
+                if(-not [WinInput]::ClientToScreen($gameHwnd,[ref]$point)){throw "ClientToScreen failed for screenshot-derived inventory slot"}
+                $result=[pscustomobject]@{clientX=$targetX;clientY=$targetY;screenX=$point.X;screenY=$point.Y;gridLeft=$best.x;gridTop=$best.y;slotSize=$best.size;gap=$best.gap;gridColumns=$best.columns;selectedColumn=$best.selected;gridScore=[Math]::Round($best.score,4);emptyScore=[Math]::Round($best.empty,4);clientWidth=$width;clientHeight=$height;clientOriginX=$originX;clientOriginY=$originY;sourceScreenshot="$label-inventory-target-source.png";markedScreenshot="$label-inventory-target-detected.png"}
+                Write-Host "YBCS_SHOP_INVENTORY_DROP_TARGET: $($result | ConvertTo-Json -Compress -Depth 6)";return $result
+              }finally{$bitmap.Dispose()}
+            }
+            function Get-ClientImageDifference([string]$beforePath,[string]$afterPath) {
+              $before=[System.Drawing.Bitmap]::FromFile($beforePath);$after=[System.Drawing.Bitmap]::FromFile($afterPath)
+              try{
+                if($before.Width -ne $after.Width -or $before.Height -ne $after.Height){throw "Client screenshot dimensions changed during quantity-dialog observation"}
+                $changed=0;$sampled=0
+                for($y=0;$y -lt $before.Height;$y+=2){for($x=0;$x -lt $before.Width;$x+=2){
+                  $a=$before.GetPixel($x,$y);$b=$after.GetPixel($x,$y)
+                  $delta=[Math]::Abs([int]$a.R-[int]$b.R)+[Math]::Abs([int]$a.G-[int]$b.G)+[Math]::Abs([int]$a.B-[int]$b.B)
+                  if($delta -ge 60){$changed++};$sampled++
+                }}
+                return [pscustomobject]@{changed_pixels=$changed;sampled_pixels=$sampled;ratio=[Math]::Round($changed/[double][Math]::Max(1,$sampled),4)}
+              }finally{$before.Dispose();$after.Dispose()}
+            }
+            function Invoke-ShopItemDrag([string]$label,[int]$itemId,[int]$catalogIndex,[int]$sourceX,[int]$sourceY,[int]$expectedPrice,[long]$expectedBeforeMoney,[long]$expectedAfterMoney,[int]$expectedBeforeStackTotal) {
+              $target=Find-ShopInventoryDropTarget $label
+              if([Math]::Sqrt([Math]::Pow($target.clientX-$sourceX,2)+[Math]::Pow($target.clientY-$sourceY,2)) -lt 2*$target.slotSize){throw "Detected drop target overlaps source item=$itemId; no drag sent"}
+              $beforeServer=Get-OfflineServerStatus;$beforeStack=Get-InventoryStackState $beforeServer $itemId
+              if([long]$beforeServer.player_money -ne $expectedBeforeMoney -or $beforeStack.total -ne $expectedBeforeStackTotal){throw "Pre-drag server state mismatch for item=$itemId: money=$($beforeServer.player_money) stack=$($beforeStack | ConvertTo-Json -Compress -Depth 6)"}
+              $beforeStatusRow=[ordered]@{kind="shop_server_status";value=[ordered]@{stage="before-$label";player_money=[long]$beforeServer.player_money;inventory_count=[int]$beforeServer.inventory_count;inventory_records=$beforeServer.inventory_records;item_stack=$beforeStack;map=$beforeServer.map;cell=$beforeServer.cell;timestamp_utc=[DateTime]::UtcNow.ToString("o")}}
+              ($beforeStatusRow | ConvertTo-Json -Compress -Depth 10) | Add-Content -LiteralPath $serverStatusEvidencePath -Encoding utf8
+              $sourcePoint=New-Object WinInput+POINT;$sourcePoint.X=$sourceX;$sourcePoint.Y=$sourceY
+              if(-not [WinInput]::ClientToScreen($gameHwnd,[ref]$sourcePoint)){throw "ClientToScreen failed for shop source item=$itemId"}
+              $clientBeforeDrag=Get-LogLineCount $clientLog;$serverBeforeDrag=Get-LogLineCount $serverLog
+              $beforeProbe=Capture-ClientFrameProbe $gameHwnd "$label-before-drag-client"
+              if(-not $beforeProbe.valid){throw "D1 before-drag client frame was not visibly rendered for item=$itemId"}
+              $beforeImage=Join-Path $shotDir "$label-before-drag-client.png"
+              Write-Host "YBCS_SHOP_DRAG_BEGIN: item=$itemId catalog_index=$catalogIndex source_client=($sourceX,$sourceY) source_screen=($($sourcePoint.X),$($sourcePoint.Y)) target_client=($($target.clientX),$($target.clientY)) target_screen=($($target.screenX),$($target.screenY))"
+              Focus-Game;Shot "$label-before-drag"
+              if(-not [WinInput]::SetCursorPos($sourcePoint.X,$sourcePoint.Y)){throw "Could not position cursor on shop item=$itemId"}
+              Start-Sleep -Milliseconds 120;$mouseDown=$false
+              try{
+                [WinInput]::mouse_event([WinInput]::LEFTDOWN,0,0,0,[UIntPtr]::Zero);$mouseDown=$true;Start-Sleep -Milliseconds 120
+                Shot "$label-drag-start";$steps=6
+                for($step=1;$step -le $steps;$step++){
+                  $moveX=$sourcePoint.X+[int][Math]::Round(($target.screenX-$sourcePoint.X)*$step/[double]$steps)
+                  $moveY=$sourcePoint.Y+[int][Math]::Round(($target.screenY-$sourcePoint.Y)*$step/[double]$steps)
+                  if(-not [WinInput]::SetCursorPos($moveX,$moveY)){throw "Cursor move failed during item=$itemId drag step=$step"}
+                  Start-Sleep -Milliseconds 70
+                  if($step -eq 1){
+                    Shot "$label-drag-first-move"
+                    Add-ShopDragEvidence "$label-D1-drag-start" @{item_id=$itemId;catalog_index=$catalogIndex;source_client=@($sourceX,$sourceY);source_screen=@($sourcePoint.X,$sourcePoint.Y);left_down_sent=$true;first_move_sent=$true;movement_step=1;left_button_held=$true;target_client=@($target.clientX,$target.clientY);target_screen=@($target.screenX,$target.screenY);screenshot="$label-drag-first-move.png";before_frame=$beforeProbe}
+                  }
+                  if($step -eq 3){Shot "$label-drag-mid"}
+                }
+                Shot "$label-drag-over-target"
+                [WinInput]::mouse_event([WinInput]::LEFTUP,0,0,0,[UIntPtr]::Zero);$mouseDown=$false
+                Add-ShopDragEvidence "$label-D2-drop" @{item_id=$itemId;catalog_index=$catalogIndex;target_client=@($target.clientX,$target.clientY);target_screen=@($target.screenX,$target.screenY);left_button_held_during_move=$true;movement_steps=$steps;left_up_sent=$true;screenshot="$label-after-drop.png"}
+              }finally{if($mouseDown){[WinInput]::mouse_event([WinInput]::LEFTUP,0,0,0,[UIntPtr]::Zero)}}
+              Start-Sleep -Milliseconds 500;$afterDropProbe=Capture-ClientFrameProbe $gameHwnd "$label-after-drop-client";Shot "$label-after-drop"
+              if(-not $afterDropProbe.valid){throw "D2 post-drop client frame was not visibly rendered for item=$itemId"}
+              $quantityLine=Wait-LogLine $clientLog '"kind"\s*:\s*"shop_quantity_state".*"stage"\s*:\s*"data_apply_return".*"item_id"\s*:\s*' $clientBeforeDrag 8
+              if(-not $quantityLine){throw "D3 quantity data-apply return event missing for item=$itemId; no confirm input sent"}
+              $clientRows=@(Get-Content -LiteralPath $clientLog -ErrorAction SilentlyContinue);$quantityEvents=@();$clickEvents=@()
+              for($j=$clientBeforeDrag;$j -lt $clientRows.Count;$j++){try{$event=$clientRows[$j] | ConvertFrom-Json -ErrorAction Stop;if($event.kind -eq "shop_quantity_state" -and [int]$event.value.item_id -eq $itemId){$quantityEvents += $event}elseif($event.kind -eq "shop_click_decision" -and [int]$event.value.item_id -eq $itemId){$clickEvents += $event}}catch{}}
+              $purchaseEntry=$clickEvents | Where-Object {$_.value.stage -eq "purchase_entry"} | Select-Object -Last 1
+              if($null -eq $purchaseEntry -or [int]$purchaseEntry.value.catalog_index -ne $catalogIndex -or $null -eq $purchaseEntry.value.grid_position){throw "D3 native purchase-entry did not confirm item=$itemId catalog_index=$catalogIndex and actual grid position; no confirm input sent"}
+              $managerReturn=$quantityEvents | Where-Object {$_.value.stage -eq "manager_return"} | Select-Object -Last 1
+              $dataApplyReturn=$quantityEvents | Where-Object {$_.value.stage -eq "data_apply_return"} | Select-Object -Last 1
+              if($null -eq $managerReturn -or -not [bool]$managerReturn.value.resolved){throw "D3 quantity manager did not return a non-null dialog for item=$itemId; no confirm input sent"}
+              if($null -eq $dataApplyReturn -or -not [bool]$dataApplyReturn.value.data_applied -or [int]$dataApplyReturn.value.word1 -ne 30){throw "D3 quantity data did not apply default word1=30 for item=$itemId; no confirm input sent"}
+              $quantityScreenshot=Capture-ClientFrameProbe $gameHwnd "$label-quantity-dialog";$dialogImage=Join-Path $shotDir "$label-quantity-dialog.png"
+              $afterDropImage=Join-Path $shotDir "$label-after-drop-client.png"
+              $dialogDiff=Get-ClientImageDifference $afterDropImage $dialogImage
+              $memoryWords=@($dataApplyReturn.value.data_words_u16)+@($dataApplyReturn.value.dialog_words_u16)
+              $memoryContains30=@($memoryWords | Where-Object {$null -ne $_ -and [int]$_ -eq 30}).Count -gt 0
+              $quantityDefaultObserved=([int]$dataApplyReturn.value.word1 -eq 30 -and [bool]$dataApplyReturn.value.data_applied -and $memoryContains30 -and $quantityScreenshot.valid -and [int]$dialogDiff.changed_pixels -ge 100)
+              Add-ShopDragEvidence "$label-D3-quantity-dialog" @{item_id=$itemId;catalog_index=$catalogIndex;grid_position=$purchaseEntry.value.grid_position;quantity_dialog_pointer=$managerReturn.value.dialog_pointer;resolved=[bool]$managerReturn.value.resolved;data_applied=[bool]$dataApplyReturn.value.data_applied;catalog_word1=[int]$dataApplyReturn.value.word1;data_words_u16=$dataApplyReturn.value.data_words_u16;dialog_words_u16=$dataApplyReturn.value.dialog_words_u16;quantity_payload_contains_30=$memoryContains30;quantity_dialog_screenshot="$label-quantity-dialog.png";screenshot_non_black=[bool]$quantityScreenshot.valid;pixel_difference=$dialogDiff;default_quantity_30_visible_and_bound=$quantityDefaultObserved}
+              Write-Host "YBCS_SHOP_D3_QUANTITY_EVIDENCE: item=$itemId word1=$($dataApplyReturn.value.word1) payload_contains_30=$memoryContains30 screenshot_valid=$($quantityScreenshot.valid) changed_pixels=$($dialogDiff.changed_pixels)"
+              if(-not $quantityDefaultObserved){throw "D3 quantity default 30 and visible quantity-dialog change were not both confirmed; no confirm input sent"}
+              Focus-Game;[WinInput]::PressKey(0x0D)
+              Add-ShopDragEvidence "$label-D4-confirm" @{item_id=$itemId;confirm_method="VK_RETURN-default-confirm";quantity_default=30;quantity_edit_sent=$false;confirmation_key_sent="ENTER"}
+              Shot "$label-after-confirm"
+              $purchasePattern='offline_shop_purchase.*record=\('+$itemId+'\s*,\s*30\s*,\s*0\s*,\s*0\s*,\s*0\).*selected_count=30'
+              $purchaseLine=Wait-LogLine $serverLog $purchasePattern $serverBeforeDrag 15
+              if(-not $purchaseLine){throw "D7 offline_shop_purchase for item=$itemId selected_count=30 not observed after confirm"}
+              if($purchaseLine -notmatch "accepted=True" -or $purchaseLine -notmatch "price=$expectedPrice" -or $purchaseLine -notmatch "player_money=$expectedBeforeMoney->$expectedAfterMoney"){throw "D5/D7 server purchase record did not match accepted price and expected money delta: $purchaseLine"}
+              $afterState=Wait-OfflineServerState $expectedAfterMoney $itemId ($expectedBeforeStackTotal+30) 10
+              $afterServer=$afterState.status;$afterStack=$afterState.stack;$stackDelta=$afterStack.total-$beforeStack.total
+              if($stackDelta -ne 30 -or $afterStack.row_count -lt 1){throw "D6 authoritative inventory stack delta was not +30 for item=$itemId: before=$($beforeStack.total) after=$($afterStack.total)"}
+              $statusRow=[ordered]@{kind="shop_server_status";value=[ordered]@{stage="after-$label";player_money=[long]$afterServer.player_money;inventory_count=[int]$afterServer.inventory_count;inventory_records=$afterServer.inventory_records;item_stack_before=$beforeStack;item_stack_after=$afterStack;expected_item_id=$itemId;expected_stack_delta=30;purchase_record=$purchaseLine;timestamp_utc=[DateTime]::UtcNow.ToString("o")}}
+              ($statusRow | ConvertTo-Json -Compress -Depth 10) | Add-Content -LiteralPath $serverStatusEvidencePath -Encoding utf8
+              Add-ShopDragEvidence "$label-D5-money" @{item_id=$itemId;price=$expectedPrice;player_money_before=$expectedBeforeMoney;player_money_after=[long]$afterServer.player_money;expected_money_after=$expectedAfterMoney;money_delta_valid=([long]$afterServer.player_money -eq $expectedAfterMoney)}
+              Add-ShopDragEvidence "$label-D6-inventory-stack" @{item_id=$itemId;stack_before=$beforeStack.total;stack_after=$afterStack.total;stack_delta=$stackDelta;expected_stack_delta=30;matching_rows_before=$beforeStack.row_count;matching_rows_after=$afterStack.row_count;inventory_count_before=[int]$beforeServer.inventory_count;inventory_count_after=[int]$afterServer.inventory_count;stack_delta_valid=($stackDelta -eq 30)}
+              Add-ShopDragEvidence "$label-D7-server-event" @{item_id=$itemId;shop_opened_event=$shopOpened;purchase_event=$purchaseLine;accepted=$true;selected_count=30;price=$expectedPrice}
+              Write-Host "YBCS_SHOP_DRAG_PURCHASE_VERIFIED: item=$itemId selected_count=30 price=$expectedPrice money=$expectedBeforeMoney->$($afterServer.player_money) stack=$($beforeStack.total)->$($afterStack.total) inventory_count=$($beforeServer.inventory_count)->$($afterServer.inventory_count) server_event=$purchaseLine"
+              return $afterState
+            }
+            if(-not $shopOpened){throw "D7 offline_shop_opened event was not available; no drag attempted"}
+            Add-ShopDragEvidence "D7-shop-opened" @{event=$shopOpened;entity_id=21230;program=15;shop_number=3;catalog_count=105}
+            $initialServer=Get-OfflineServerStatus
+            if([long]$initialServer.player_money -ne 1685650){throw "Initial server gold did not match 1,685,650: $($initialServer | ConvertTo-Json -Compress -Depth 8)"}
+            $initialRedStack=Get-InventoryStackState $initialServer 4001;$initialBlueStack=Get-InventoryStackState $initialServer 4006
+            $initialStatusRow=[ordered]@{kind="shop_server_status";value=[ordered]@{stage="initial-before-purchases";player_money=[long]$initialServer.player_money;inventory_count=[int]$initialServer.inventory_count;inventory_records=$initialServer.inventory_records;red_stack=$initialRedStack;blue_stack=$initialBlueStack;map=$initialServer.map;cell=$initialServer.cell;timestamp_utc=[DateTime]::UtcNow.ToString("o")}}
+            ($initialStatusRow | ConvertTo-Json -Compress -Depth 10) | Add-Content -LiteralPath $serverStatusEvidencePath -Encoding utf8
+            Write-Host "YBCS_SHOP_INITIAL_SERVER_STATUS: $($initialServer | ConvertTo-Json -Compress -Depth 8)"
+            $afterRed=Invoke-ShopItemDrag "shop-red" 4001 0 514 504 1500 1685650 1684150 $initialRedStack.total
+            $afterBlue=Invoke-ShopItemDrag "shop-blue" 4006 5 735 504 3000 1684150 1681150 $initialBlueStack.total
+            Write-Host "YBCS_SHOP_DRAG_TEST_COMPLETE: red_4001x30=True blue_4006x30=True final_gold=$($afterBlue.status.player_money) final_red_stack=$($afterRed.stack.total) final_blue_stack=$($afterBlue.stack.total)"
+
           }
           catch {
             $failureReason = $_.Exception.Message
@@ -4569,6 +4664,8 @@ jobs:
           Copy-Item startup-crash-diagnostics.log collected/ -ErrorAction SilentlyContinue
           Copy-Item navigation-diagnostics.log collected/ -ErrorAction SilentlyContinue
           Copy-Item shop-quantity-visual.jsonl collected/ -ErrorAction SilentlyContinue
+          Copy-Item shop-drag-evidence.jsonl collected/ -ErrorAction SilentlyContinue
+          Copy-Item shop-server-status.jsonl collected/ -ErrorAction SilentlyContinue
           Copy-Item ybcs\runtime\ybcs-gui-client.pid.json collected/ -ErrorAction SilentlyContinue
           Copy-Item npc-window-tree.txt collected/ -ErrorAction SilentlyContinue
           Copy-Item ybcs\runtime\logs\* collected/ -Recurse -ErrorAction SilentlyContinue
