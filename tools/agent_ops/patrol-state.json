@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "last_run_at": null,
+  "tasks": {},
+  "active_alerts": {},
+  "metrics": {
+    "daily_alerts": {},
+    "false_positive_count": 0,
+    "missed_alert_count": 0,
+    "manager_handling_minutes_total": 0,
+    "manager_handling_samples": 0
+  }
+}
