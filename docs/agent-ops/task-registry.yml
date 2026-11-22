@@ -492,7 +492,19 @@
       "cost_budget": {
         "max_rounds": 30,
         "timeout_minutes": 120,
-        "cost_record": []
+        "cost_record": [
+          {
+            "recorded_at": "2026-11-22T09:35:13+00:00",
+            "source": "Chat conversation + GitHub PR #31; pending P5 Routine ledger reconciliation; actual_minutes=83 is a wall-clock upper bound (12:12-13:35), exact working minutes unmeasured",
+            "tier": "medium",
+            "actual_rounds": 4,
+            "actual_minutes": 83.0,
+            "merged_pr_count": 1,
+            "retry_count": 1,
+            "exceeded": false,
+            "exceeded_reason": null
+          }
+        ]
       },
       "conflict_group": null,
       "shared_files": [],
