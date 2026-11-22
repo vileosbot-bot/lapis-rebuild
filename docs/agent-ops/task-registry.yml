@@ -520,10 +520,10 @@
       "repository": "vileosbot-bot/lapis-rebuild",
       "branch": "feat/agent-ops-budget-source-20261122",
       "base_sha": "52742b7179fa9da0da24025a2549237d264eed29",
-      "head_sha": null,
+      "head_sha": "3b2f9f3ece907ee0ea37e763e1fc60c531091a61",
       "status": "dispatched",
-      "progress": "已派活；工人实施中。",
-      "next_action": "工人按简报实施 --source 必填化并记 CP0–CP3。",
+      "progress": "代码已提交；工人未运行本地 CLI/self-test，待总管本地验证。",
+      "next_action": "总管在临时登记表副本运行缺失/显式 --source CLI 验证及 task_registry.py self-test；随后盲审。",
       "deadline": "2026-11-23T12:00:00+08:00",
       "risk_level": "low",
       "approval_required": true,
@@ -572,13 +572,57 @@
           ],
           "release_status": "granted",
           "release_source": "总管在复述核对后放行。"
+        },
+        "CP2": {
+          "completed": true,
+          "repository": "vileosbot-bot/lapis-rebuild",
+          "branch": "feat/agent-ops-budget-source-20261122",
+          "base_sha": "52742b7179fa9da0da24025a2549237d264eed29",
+          "head_sha": "3b2f9f3ece907ee0ea37e763e1fc60c531091a61",
+          "commit_sha": "3b2f9f3ece907ee0ea37e763e1fc60c531091a61",
+          "latest_commit_message": "fix(agent-ops): require explicit budget record source\n\nrequest-id: agent-7x24-d4-integration-20261122-01",
+          "changed_files": [
+            "tools/agent_ops/budget_tracker.py"
+          ],
+          "tests_passed": null,
+          "test_summary": "NOT_RUN by worker: no terminal execution was available. The temporary-registry CLI checks (missing --source rejection and explicit --source persistence) and task_registry.py self-test are delegated to the total manager's local verification. No test pass/fail output is claimed.",
+          "test_commands_executed": [],
+          "test_results": [],
+          "test_execution": {
+            "status": "NOT_RUN",
+            "reason": "Worker environment has no terminal; per brief, CLI and task_registry.py self-test are to be run by the total manager locally.",
+            "delegated_checks": [
+              "Temporary registry copy: record without --source exits non-zero and writes no record.",
+              "Temporary registry copy: record with explicit --source succeeds and stores the exact string.",
+              "python tools/agent_ops/task_registry.py self-test"
+            ]
+          },
+          "callsite_search": {
+            "method": "GitHub repository code search on the main-based branch; no terminal grep claimed.",
+            "queries": [
+              "budget_tracker.py record",
+              "budget_tracker.py",
+              "P5 Routine cost audit log"
+            ],
+            "findings": [
+              "budget_tracker.py record matched docs/agent-ops/budget-rules.md only, describing the general record command.",
+              "budget_tracker.py matched docs/agent-ops/budget-rules.md only.",
+              "P5 Routine cost audit log matched tools/agent_ops/budget_tracker.py only; no separate caller was returned."
+            ],
+            "conclusion": "No additional caller depending on the --source default was found in GitHub repository search. A local full-repository grep remains for manager verification."
+          },
+          "documentation_review": {
+            "tools/agent_ops/budget_tracker.py docstring": "Unchanged: it describes the actual task conversation and P5 Routine audit log as evidence/provenance inputs, not a CLI default.",
+            "docs/agent-ops/budget-rules.md": "Unchanged: it describes the P5 ledger as a general baseline/source; it does not state that --source has a default."
+          },
+          "next_action": "Total manager to run the delegated local CLI and self-test checks, then perform blind review."
         }
       },
       "notes": [
         "Day 4 全链路联调任务；预算小档 15 轮/60 分钟。",
         "head_sha_verified_at=null：尚未派活，尚无可验证分支 SHA。"
       ],
-      "head_sha_verified_at": null
+      "head_sha_verified_at": "2026-11-22"
     }
   ],
   "head_sha_verified_at_policy": "每个任务必须包含 head_sha_verified_at。该时间只表示登记表当前 head_sha 与 GitHub 实际分支状态/提交图完成核对的日期；无法确认、SHA 已知过期或时间来源不明时填 null，不得用更新时间冒充验证时间。总管每次验收或任务状态变更时，必须重新读取对应 GitHub 分支 HEAD、PR head/base 和必要提交图，核对后刷新 head_sha 与 head_sha_verified_at。P0-1 的 seed head_sha 已于 2026-11-16 按总管裁决刷新为 808a1b9c79a1efe8afec337349651d4b07991151（验收完成，head_sha_verified_at 已填）。"
