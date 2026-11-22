@@ -4543,7 +4543,7 @@ jobs:
               $target=Find-ShopInventoryDropTarget $label
               if([Math]::Sqrt([Math]::Pow($target.clientX-$sourceX,2)+[Math]::Pow($target.clientY-$sourceY,2)) -lt 2*$target.slotSize){throw "Detected drop target overlaps source item=$itemId; no drag sent"}
               $beforeServer=Get-OfflineServerStatus;$beforeStack=Get-InventoryStackState $beforeServer $itemId
-              if([long]$beforeServer.player_money -ne $expectedBeforeMoney -or $beforeStack.total -ne $expectedBeforeStackTotal){throw "Pre-drag server state mismatch for item=$itemId: money=$($beforeServer.player_money) stack=$($beforeStack | ConvertTo-Json -Compress -Depth 6)"}
+              if([long]$beforeServer.player_money -ne $expectedBeforeMoney -or $beforeStack.total -ne $expectedBeforeStackTotal){throw "Pre-drag server state mismatch for item=${itemId}: money=$($beforeServer.player_money) stack=$($beforeStack | ConvertTo-Json -Compress -Depth 6)"}
               $beforeStatusRow=[ordered]@{kind="shop_server_status";value=[ordered]@{stage="before-$label";player_money=[long]$beforeServer.player_money;inventory_count=[int]$beforeServer.inventory_count;inventory_records=$beforeServer.inventory_records;item_stack=$beforeStack;map=$beforeServer.map;cell=$beforeServer.cell;timestamp_utc=[DateTime]::UtcNow.ToString("o")}}
               ($beforeStatusRow | ConvertTo-Json -Compress -Depth 10) | Add-Content -LiteralPath $serverStatusEvidencePath -Encoding utf8
               $sourcePoint=New-Object WinInput+POINT;$sourcePoint.X=$sourceX;$sourcePoint.Y=$sourceY
@@ -4604,7 +4604,7 @@ jobs:
               if($purchaseLine -notmatch "accepted=True" -or $purchaseLine -notmatch "price=$expectedPrice" -or $purchaseLine -notmatch "player_money=$expectedBeforeMoney->$expectedAfterMoney"){throw "D5/D7 server purchase record did not match accepted price and expected money delta: $purchaseLine"}
               $afterState=Wait-OfflineServerState $expectedAfterMoney $itemId ($expectedBeforeStackTotal+30) 10
               $afterServer=$afterState.status;$afterStack=$afterState.stack;$stackDelta=$afterStack.total-$beforeStack.total
-              if($stackDelta -ne 30 -or $afterStack.row_count -lt 1){throw "D6 authoritative inventory stack delta was not +30 for item=$itemId: before=$($beforeStack.total) after=$($afterStack.total)"}
+              if($stackDelta -ne 30 -or $afterStack.row_count -lt 1){throw "D6 authoritative inventory stack delta was not +30 for item=${itemId}: before=$($beforeStack.total) after=$($afterStack.total)"}
               $statusRow=[ordered]@{kind="shop_server_status";value=[ordered]@{stage="after-$label";player_money=[long]$afterServer.player_money;inventory_count=[int]$afterServer.inventory_count;inventory_records=$afterServer.inventory_records;item_stack_before=$beforeStack;item_stack_after=$afterStack;expected_item_id=$itemId;expected_stack_delta=30;purchase_record=$purchaseLine;timestamp_utc=[DateTime]::UtcNow.ToString("o")}}
               ($statusRow | ConvertTo-Json -Compress -Depth 10) | Add-Content -LiteralPath $serverStatusEvidencePath -Encoding utf8
               Add-ShopDragEvidence "$label-D5-money" @{item_id=$itemId;price=$expectedPrice;player_money_before=$expectedBeforeMoney;player_money_after=[long]$afterServer.player_money;expected_money_after=$expectedAfterMoney;money_delta_valid=([long]$afterServer.player_money -eq $expectedAfterMoney)}
