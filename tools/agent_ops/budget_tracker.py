@@ -224,7 +224,7 @@ def build_parser():
     p.add_argument("--retries", type=int, required=True)
     p.add_argument("--exceeded", action="store_true")
     p.add_argument("--exceeded-reason")
-    p.add_argument("--source", default="P5 Routine cost audit log")
+    p.add_argument("--source", required=True, help="Source/provenance label for this cost record")
     p.set_defaults(func=command_record)
 
     p = sub.add_parser("report", help="summarize recorded task costs by tier")
