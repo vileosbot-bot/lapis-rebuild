@@ -446,7 +446,7 @@
             "source": "Chat conversation + GitHub PR #30; pending P5 Routine ledger reconciliation",
             "tier": "medium",
             "actual_rounds": 2,
-            "actual_minutes": 32.0,
+            "actual_minutes": 32,
             "merged_pr_count": 0,
             "retry_count": 0,
             "exceeded": false,
@@ -505,6 +505,49 @@
       "checkpoints": {},
       "notes": [
         "request-id 按总管指示保留占位值，不参与重复编号检测。",
+        "head_sha_verified_at=null：尚未派活，尚无可验证分支 SHA。"
+      ],
+      "head_sha_verified_at": null
+    },
+    {
+      "task_key": "D4-1",
+      "request_id": "agent-7x24-d4-integration-20261122-01",
+      "task_name": "Day 4 全链路联调：budget_tracker --source 必填化",
+      "conversation_url": "https://chatgpt.com/c/6b02a88a-58ac-83e8-9b93-29202a63ac71",
+      "workspace": "0718 (EN)",
+      "model": "GPT-6 + Extra High",
+      "mode": "Chat",
+      "repository": "vileosbot-bot/lapis-rebuild",
+      "branch": "feat/agent-ops-budget-source-20261122",
+      "base_sha": "52742b7179fa9da0da24025a2549237d264eed29",
+      "head_sha": null,
+      "status": "created",
+      "progress": "已登记；总管复述核对后放行，待派活。",
+      "next_action": "工人按简报实施 --source 必填化并记 CP0–CP3。",
+      "deadline": "2026-11-23T12:00:00+08:00",
+      "risk_level": "low",
+      "approval_required": true,
+      "approval_status": "granted",
+      "last_updated": "2026-11-22",
+      "cost_budget": {
+        "max_rounds": 15,
+        "timeout_minutes": 60,
+        "cost_record": []
+      },
+      "conflict_group": "agent-ops",
+      "shared_files": [],
+      "write_files": [
+        "tools/agent_ops/budget_tracker.py",
+        "docs/agent-ops/task-registry.yml"
+      ],
+      "depends_on": [],
+      "blocked_by": [],
+      "pull_request_url": null,
+      "legacy_import": false,
+      "acceptance_status": "pending",
+      "checkpoints": {},
+      "notes": [
+        "Day 4 全链路联调任务；预算小档 15 轮/60 分钟。",
         "head_sha_verified_at=null：尚未派活，尚无可验证分支 SHA。"
       ],
       "head_sha_verified_at": null
