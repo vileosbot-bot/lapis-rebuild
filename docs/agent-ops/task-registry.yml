@@ -419,7 +419,7 @@
     },
     {
       "task_key": "P1-4",
-      "request_id": "待派活时填",
+      "request_id": "agent-7x24-p14-cost-20261118-01",
       "task_name": "P1-4 成本上限",
       "conversation_url": null,
       "workspace": null,
@@ -438,8 +438,8 @@
       "approval_status": "pending",
       "last_updated": "2026-11-16",
       "cost_budget": {
-        "max_rounds": null,
-        "timeout_minutes": null,
+        "max_rounds": 30,
+        "timeout_minutes": 120,
         "cost_record": []
       },
       "conflict_group": null,
@@ -459,7 +459,7 @@
     },
     {
       "task_key": "P1-5",
-      "request_id": "待派活时填",
+      "request_id": "agent-7x24-p15-patrol-20261118-01",
       "task_name": "P1-5 巡检",
       "conversation_url": null,
       "workspace": null,
@@ -478,8 +478,8 @@
       "approval_status": "pending",
       "last_updated": "2026-11-16",
       "cost_budget": {
-        "max_rounds": null,
-        "timeout_minutes": null,
+        "max_rounds": 30,
+        "timeout_minutes": 120,
         "cost_record": []
       },
       "conflict_group": null,
