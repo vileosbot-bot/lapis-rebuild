@@ -28,6 +28,7 @@ STATUSES = {
     "blocked", "paused", "failed", "cancelled", "dead_letter",
 }
 ACTIVE = {"in_progress", "awaiting_review"}
+BUDGET_TIERS = {"small": (15, 60), "medium": (30, 120), "large": (50, 240)}
 REQUIRED = (
     "task_key", "request_id", "task_name", "conversation_url", "workspace",
     "model", "mode", "repository", "branch", "base_sha", "head_sha",
@@ -43,7 +44,7 @@ TRANSITIONS = {
     "blocked": {"in_progress", "paused", "failed", "cancelled", "dead_letter"},
     "paused": {"in_progress", "blocked", "failed", "cancelled", "dead_letter"},
     "failed": {"in_progress", "cancelled", "dead_letter"},
-    "completed": set(), "cancelled": set(), "dead_letter": set(),
+    "completed": set(), "cancelled": set(), "dead_letter": {"in_progress"},
 }
 
 
@@ -106,6 +107,12 @@ def validate_task(task: dict[str, Any]) -> list[str]:
                 errors.append(f"cost_budget missing {key}")
         if not isinstance(budget.get("cost_record", []), list):
             errors.append("cost_budget.cost_record must be an array")
+        for key in ("max_rounds", "timeout_minutes"):
+            value = budget.get(key)
+            if value is not None and (isinstance(value, bool) or not isinstance(value, int) or value <= 0):
+                errors.append(f"cost_budget.{key} must be a positive integer or null")
+        if "budget_decisions" in budget and not isinstance(budget["budget_decisions"], list):
+            errors.append("cost_budget.budget_decisions must be an array")
     if not isinstance(task["checkpoints"], dict):
         errors.append("checkpoints must be an object")
     for key in ("shared_files", "depends_on", "blocked_by"):
@@ -270,11 +277,16 @@ def checkpoint_gate_errors(tasks: list[dict[str, Any]]) -> list[str]:
 
 
 def validate_transition(task: dict[str, Any], target: str, *, release=False, resume=False,
-                        retry=False, changes_requested=False, accepted_by=None) -> None:
+                        retry=False, changes_requested=False, accepted_by=None,
+                        approved_by=None, manager_diagnosis=None) -> None:
     current = task.get("status")
     if target not in TRANSITIONS.get(current, set()):
         raise RegistryError(f"illegal status transition: {current} -> {target}")
     if target == "dispatched":
+        budget = task.get("cost_budget", {})
+        missing_budget = [key for key in ("max_rounds", "timeout_minutes") if budget.get(key) is None]
+        if missing_budget:
+            raise RegistryError("dispatch requires configured cost_budget fields: " + ", ".join(missing_budget))
         errors = checkpoint_errors(task, "CP0")
         if errors:
             raise RegistryError("; ".join(errors))
@@ -301,6 +313,15 @@ def validate_transition(task: dict[str, Any], target: str, *, release=False, res
         raise RegistryError("resume approval required")
     elif current == "failed" and target == "in_progress" and not retry:
         raise RegistryError("retry approval required")
+    elif current == "dead_letter" and target == "in_progress":
+        if not retry or approved_by not in {"total-manager", "总管"} or not isinstance(manager_diagnosis, str) or not manager_diagnosis.strip():
+            raise RegistryError("dead_letter retry requires --retry-approved, --approved-by total-manager/总管, and --manager-diagnosis")
+        report = task.get("dead_letter_report", {})
+        limit_type = report.get("limit_type")
+        previous_limit = report.get("limit")
+        new_limit = task.get("cost_budget", {}).get(limit_type)
+        if limit_type not in {"max_rounds", "timeout_minutes"} or not isinstance(previous_limit, (int, float)) or not isinstance(new_limit, (int, float)) or new_limit <= previous_limit:
+            raise RegistryError("dead_letter retry requires a manager-approved budget increase beyond the recorded limit")
     elif target == "dead_letter":
         evidence = task.get("dead_letter_evidence", {})
         kind = evidence.get("limit_type")
@@ -524,7 +545,31 @@ def command_transition(args):
         task, args.to, release=args.release_approved, resume=args.resume_approved,
         retry=args.retry_approved, changes_requested=args.changes_requested,
         accepted_by=args.accepted_by,
+        approved_by=getattr(args, "approved_by", None),
+        manager_diagnosis=getattr(args, "manager_diagnosis", None),
     )
+    if task.get("status") == "dead_letter" and args.to == "in_progress":
+        task.setdefault("dead_letter_history", []).append({
+            "report": task.get("dead_letter_report"),
+            "approved_by": getattr(args, "approved_by", None),
+            "manager_diagnosis": getattr(args, "manager_diagnosis", None),
+            "reopened_at": now_iso(),
+        })
+    if args.to == "dead_letter":
+        evidence = task["dead_letter_evidence"]
+        limit_type = evidence["limit_type"]
+        task["dead_letter_report"] = {
+            "generated_at": now_iso(),
+            "request_id": task.get("request_id"),
+            "status_before": task.get("status"),
+            "completed_progress": task.get("progress"),
+            "stuck_reason": task.get("next_action"),
+            "limit_type": limit_type,
+            "limit": task.get("cost_budget", {}).get(limit_type),
+            "actual_value": evidence.get("actual_value"),
+            "evidence": evidence.get("evidence"),
+            "action": "stopped; no automatic retry; await total-manager diagnosis",
+        }
     task["status"] = args.to
     task["last_updated"] = now_iso()
     errors = capacity_errors(data["tasks"], data["parallel_limit"]) + conflict_errors(data["tasks"])
@@ -532,6 +577,78 @@ def command_transition(args):
         raise RegistryError("; ".join(errors))
     save_registry(path, data)
     print(f"TRANSITIONED: {args.request_id} -> {args.to}")
+    return 0
+
+
+def command_set_budget(args):
+    """Set a manager-approved budget; the fixed tier table is pre-approved policy.
+
+    Custom values and changes to an existing budget require an explicit manager
+    identity and approval basis. The command never widens a live task budget
+    without that evidence.
+    """
+    path = Path(args.registry)
+    data = load_registry(path)
+    task = find_task(data, args.request_id)
+    if task.get("status") in {"completed", "cancelled"}:
+        raise RegistryError(f"set-budget is not allowed for terminal status {task.get('status')}")
+
+    budget = task.get("cost_budget")
+    if not isinstance(budget, dict):
+        raise RegistryError("cost_budget must be an object")
+    tier = getattr(args, "tier", None)
+    max_rounds = getattr(args, "max_rounds", None)
+    timeout_minutes = getattr(args, "timeout_minutes", None)
+    approved_by = getattr(args, "approved_by", None)
+    approval_basis = getattr(args, "approval_basis", None)
+
+    if tier is not None:
+        if max_rounds is not None or timeout_minutes is not None:
+            raise RegistryError("tier and explicit budget numbers are mutually exclusive")
+        if tier not in BUDGET_TIERS:
+            raise RegistryError(f"unknown budget tier: {tier}")
+        max_rounds, timeout_minutes = BUDGET_TIERS[tier]
+    else:
+        if max_rounds is None or timeout_minutes is None:
+            raise RegistryError("provide --tier or both --max-rounds and --timeout-minutes")
+        for key, value in (("max_rounds", max_rounds), ("timeout_minutes", timeout_minutes)):
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise RegistryError(f"{key} must be a positive integer")
+
+    old_rounds = budget.get("max_rounds")
+    old_minutes = budget.get("timeout_minutes")
+    changed = (max_rounds, timeout_minutes) != (old_rounds, old_minutes)
+    initial_created_tier = tier is not None and old_rounds is None and old_minutes is None and task.get("status") == "created"
+    requires_approval = not initial_created_tier and (tier is None or changed or task.get("status") != "created")
+    if bool(approved_by) != bool(approval_basis):
+        raise RegistryError("--approved-by and --approval-basis must be supplied together")
+    if requires_approval and (not isinstance(approved_by, str) or approved_by.strip() not in {"total-manager", "总管"} or
+                              not isinstance(approval_basis, str) or not approval_basis.strip()):
+        raise RegistryError("custom values or budget changes require --approved-by total-manager/总管 and --approval-basis")
+
+    budget["max_rounds"] = max_rounds
+    budget["timeout_minutes"] = timeout_minutes
+    decisions = budget.setdefault("budget_decisions", [])
+    if not isinstance(decisions, list):
+        raise RegistryError("cost_budget.budget_decisions must be an array")
+    decisions.append({
+        "recorded_at": now_iso(),
+        "tier": tier or "custom",
+        "max_rounds": max_rounds,
+        "timeout_minutes": timeout_minutes,
+        "approved_by": approved_by.strip() if isinstance(approved_by, str) and approved_by.strip() else "policy:budget-rules.md",
+        "approval_basis": approval_basis.strip() if isinstance(approval_basis, str) and approval_basis.strip() else "fixed tier values pre-approved by total manager",
+    })
+    task["last_updated"] = now_iso()
+
+    errors = validate_task(task)
+    if errors:
+        raise RegistryError("; ".join(errors))
+    errors = capacity_errors(data["tasks"], data["parallel_limit"]) + conflict_errors(data["tasks"])
+    if errors:
+        raise RegistryError("; ".join(errors))
+    save_registry(path, data)
+    print(f"BUDGET_SET: {task['request_id']} max_rounds={max_rounds} timeout_minutes={timeout_minutes} tier={tier or 'custom'}")
     return 0
 
 
@@ -775,6 +892,164 @@ def command_self_test(_args):
         assert result == 0 and "CHECK: PASS" in output and "HEAD_MATCH" in output, output
         assert "detached HEAD; using explicit --branch" in output, output
 
+    def set_budget_fixture(task, tasks=None, **kwargs):
+        with tempfile.TemporaryDirectory() as directory:
+            registry_path = Path(directory) / "task-registry.yml"
+            save_registry(registry_path, {
+                "schema_version": 1, "registry_repository": "owner/repo",
+                "parallel_limit": 10, "active_statuses": list(ACTIVE), "tasks": tasks or [task],
+            })
+            args = argparse.Namespace(
+                registry=str(registry_path), request_id=task["request_id"],
+                tier=kwargs.get("tier"), max_rounds=kwargs.get("max_rounds"),
+                timeout_minutes=kwargs.get("timeout_minutes"),
+                approved_by=kwargs.get("approved_by"), approval_basis=kwargs.get("approval_basis"),
+            )
+            before = registry_path.read_bytes()
+            try:
+                command_set_budget(args)
+            except RegistryError:
+                return False, load_registry(registry_path)["tasks"], before == registry_path.read_bytes()
+            return True, load_registry(registry_path)["tasks"], before == registry_path.read_bytes()
+
+    def set_budget_tier_writes_fixed_values():
+        a = sample()
+        ok, tasks, _ = set_budget_fixture(a, tier="medium")
+        assert ok and tasks[0]["cost_budget"]["max_rounds"] == 30
+        assert tasks[0]["cost_budget"]["timeout_minutes"] == 120
+        assert tasks[0]["cost_budget"]["budget_decisions"][-1]["tier"] == "medium"
+
+    def set_budget_explicit_values_require_manager_approval():
+        a = sample()
+        ok, tasks, _ = set_budget_fixture(
+            a, max_rounds=7, timeout_minutes=45,
+            approved_by="total-manager", approval_basis="explicitly approved for fixture",
+        )
+        assert ok and tasks[0]["cost_budget"]["max_rounds"] == 7
+        assert tasks[0]["cost_budget"]["timeout_minutes"] == 45
+        assert tasks[0]["cost_budget"]["budget_decisions"][-1]["approved_by"] == "total-manager"
+
+    def set_budget_rejects_invalid_values():
+        for value in (0, -1, True, 1.5):
+            a = sample()
+            ok, tasks, unchanged = set_budget_fixture(
+                a, max_rounds=value, timeout_minutes=45,
+                approved_by="total-manager", approval_basis="fixture approval",
+            )
+            assert not ok and unchanged and tasks[0]["cost_budget"]["max_rounds"] is None
+
+    def set_budget_validation_failure_does_not_save():
+        a = sample()
+        left, right = sample("A", "active-A", "in_progress"), sample("B", "active-B", "in_progress")
+        left["write_files"] = ["shared.py"]
+        right["write_files"] = ["shared.py"]
+        ok, tasks, unchanged = set_budget_fixture(a, tasks=[a, left, right], tier="small")
+        assert not ok and unchanged and tasks[0]["cost_budget"]["max_rounds"] is None
+
+    def set_budget_task_validation_failure_does_not_save():
+        a = sample()
+        del a["task_name"]
+        ok, tasks, unchanged = set_budget_fixture(a, tier="small")
+        assert not ok and unchanged and tasks[0]["cost_budget"]["max_rounds"] is None
+
+    def dispatch_without_budget_is_rejected():
+        a = sample()
+        a["checkpoints"] = {"CP0": {"conversation_url": a["conversation_url"], "branch": a["branch"], "base_sha": a["base_sha"]}}
+        try:
+            validate_transition(a, "dispatched")
+        except RegistryError as exc:
+            assert "cost_budget" in str(exc)
+            return
+        raise AssertionError("created task without budget was dispatched")
+
+    def dispatch_with_budget_is_allowed():
+        a = sample()
+        a["cost_budget"].update({"max_rounds": 30, "timeout_minutes": 120})
+        a["checkpoints"] = {"CP0": {"conversation_url": a["conversation_url"], "branch": a["branch"], "base_sha": a["base_sha"]}}
+        validate_transition(a, "dispatched")
+
+    def historical_dispatched_task_without_budget_is_not_retroactively_blocked():
+        a = sample(status="dispatched")
+        a["approval_status"] = "granted"
+        a["checkpoints"] = {"CP0": {"completed": True}, "CP1": {
+            "authorization_scope": ["test"], "plan_steps": ["test"], "release_status": "granted",
+        }}
+        validate_transition(a, "in_progress", release=True)
+
+    def budget_extension_without_manager_approval_is_rejected():
+        a = sample()
+        a["cost_budget"].update({"max_rounds": 2, "timeout_minutes": 60})
+        ok, tasks, unchanged = set_budget_fixture(a, max_rounds=12, timeout_minutes=60)
+        assert not ok and unchanged and tasks[0]["cost_budget"]["max_rounds"] == 2
+
+    def dead_letter_generates_report_and_rejects_unauthorized_retry():
+        a = sample(status="in_progress")
+        a["cost_budget"].update({"max_rounds": 2, "timeout_minutes": 60})
+        a["progress"] = "completed first pass"
+        a["next_action"] = "blocked on final verification"
+        with tempfile.TemporaryDirectory() as directory:
+            registry_path = Path(directory) / "task-registry.yml"
+            save_registry(registry_path, {
+                "schema_version": 1, "registry_repository": "owner/repo",
+                "parallel_limit": 10, "active_statuses": list(ACTIVE), "tasks": [a],
+            })
+            args = argparse.Namespace(
+                registry=str(registry_path), request_id=a["request_id"], to="dead_letter",
+                release_approved=False, resume_approved=False, retry_approved=False,
+                changes_requested=False, accepted_by=None, approved_by=None, manager_diagnosis=None,
+                dead_letter_evidence=json.dumps({"limit_type": "max_rounds", "actual_value": 3,
+                                                 "evidence": "round 3 was blocked before a new work message"}),
+            )
+            command_transition(args)
+            after = load_registry(registry_path)["tasks"][0]
+            report = after["dead_letter_report"]
+            assert after["status"] == "dead_letter"
+            assert report["completed_progress"] == "completed first pass"
+            assert report["stuck_reason"] == "blocked on final verification"
+            retry_args = argparse.Namespace(**{**vars(args), "to": "in_progress", "dead_letter_evidence": None})
+            try:
+                command_transition(retry_args)
+            except RegistryError:
+                assert load_registry(registry_path)["tasks"][0]["status"] == "dead_letter"
+                return
+            raise AssertionError("dead-letter task was restarted without manager diagnosis")
+
+    def dead_letter_retry_requires_manager_diagnosis_and_budget_increase():
+        a = sample(status="in_progress")
+        a["cost_budget"].update({"max_rounds": 2, "timeout_minutes": 60})
+        with tempfile.TemporaryDirectory() as directory:
+            registry_path = Path(directory) / "task-registry.yml"
+            save_registry(registry_path, {
+                "schema_version": 1, "registry_repository": "owner/repo",
+                "parallel_limit": 10, "active_statuses": list(ACTIVE), "tasks": [a],
+            })
+            dead_args = argparse.Namespace(
+                registry=str(registry_path), request_id=a["request_id"], to="dead_letter",
+                release_approved=False, resume_approved=False, retry_approved=False,
+                changes_requested=False, accepted_by=None, approved_by=None, manager_diagnosis=None,
+                dead_letter_evidence=json.dumps({"limit_type": "max_rounds", "actual_value": 3,
+                                                 "evidence": "blocked round 3"}),
+            )
+            command_transition(dead_args)
+            set_args = argparse.Namespace(
+                registry=str(registry_path), request_id=a["request_id"], tier=None,
+                max_rounds=12, timeout_minutes=60, approved_by="total-manager",
+                approval_basis="manager diagnosis: root cause isolated; authorize +10 rounds",
+            )
+            command_set_budget(set_args)
+            retry_args = argparse.Namespace(
+                registry=str(registry_path), request_id=a["request_id"], to="in_progress",
+                release_approved=False, resume_approved=False, retry_approved=True,
+                changes_requested=False, accepted_by=None, approved_by="total-manager",
+                manager_diagnosis="Root cause isolated; approve a bounded continuation of +10 rounds.",
+                dead_letter_evidence=None,
+            )
+            command_transition(retry_args)
+            after = load_registry(registry_path)["tasks"][0]
+            assert after["status"] == "in_progress"
+            assert after["cost_budget"]["max_rounds"] == 12
+            assert after["dead_letter_history"][-1]["approved_by"] == "total-manager"
+
     tests = _ACCEPT_GATEFIX_TESTS + [
         ("duplicate request-id rejected", duplicate),
         ("missing required field rejected", missing),
@@ -797,6 +1072,17 @@ def command_self_test(_args):
         ("missing CP3 in awaiting_review makes check FAIL", missing_cp_check_fails),
         ("detached HEAD without --branch cannot PASS", detached_without_branch_fails),
         ("detached HEAD with --branch is associated without false mismatch", detached_with_branch_uses_explicit_branch),
+        ("set-budget tier writes fixed values", set_budget_tier_writes_fixed_values),
+        ("set-budget explicit values require manager approval", set_budget_explicit_values_require_manager_approval),
+        ("set-budget rejects invalid values", set_budget_rejects_invalid_values),
+        ("set-budget validation failure does not save", set_budget_validation_failure_does_not_save),
+        ("set-budget task validation failure does not save", set_budget_task_validation_failure_does_not_save),
+        ("dispatch without budget is rejected", dispatch_without_budget_is_rejected),
+        ("dispatch with budget is allowed", dispatch_with_budget_is_allowed),
+        ("historical dispatched task without budget is not retroactively blocked", historical_dispatched_task_without_budget_is_not_retroactively_blocked),
+        ("budget extension without manager approval is rejected", budget_extension_without_manager_approval_is_rejected),
+        ("dead-letter generates report and rejects unauthorized retry", dead_letter_generates_report_and_rejects_unauthorized_retry),
+        ("dead-letter retry requires manager diagnosis and budget increase", dead_letter_retry_requires_manager_diagnosis_and_budget_increase),
     ]
     for name, fn in tests:
         run(name, fn)
@@ -871,8 +1157,20 @@ def build_parser():
     p.add_argument("--changes-requested", action="store_true")
     p.add_argument("--accepted-by")
     p.add_argument("--acceptance-note")
+    p.add_argument("--approved-by")
+    p.add_argument("--manager-diagnosis")
     p.add_argument("--dead-letter-evidence")
     p.set_defaults(func=command_transition)
+
+    p = sub.add_parser("set-budget", help="set a manager-approved task budget")
+    p.add_argument("--registry", default=REGISTRY_REL)
+    p.add_argument("--request-id", required=True)
+    p.add_argument("--tier", choices=sorted(BUDGET_TIERS))
+    p.add_argument("--max-rounds", type=int)
+    p.add_argument("--timeout-minutes", type=int)
+    p.add_argument("--approved-by")
+    p.add_argument("--approval-basis")
+    p.set_defaults(func=command_set_budget)
 
     p = sub.add_parser("recover")
     p.add_argument("--registry", default=REGISTRY_REL)
